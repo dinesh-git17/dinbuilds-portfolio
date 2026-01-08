@@ -1,0 +1,26 @@
+app:
+  - changed-files:
+      - any-glob-to-any-file: "app/**"
+
+components:
+  - changed-files:
+      - any-glob-to-any-file: "components/**"
+
+hooks:
+  - changed-files:
+      - any-glob-to-any-file: "hooks/**"
+
+lib:
+  - changed-files:
+      - any-glob-to-any-file: "lib/**"
+
+config:
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"
+      - any-glob-to-any-file: "*.config.*"
+      - any-glob-to-any-file: "biome.json"
+      - any-glob-to-any-file: "tsconfig.json"
+
+styles:
+  - changed-files:
+      - any-glob-to-any-file: "**/*.css"
