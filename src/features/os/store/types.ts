@@ -69,7 +69,7 @@ export interface WindowSpawnConfig {
 export const DEFAULT_WINDOW_SIZES: Record<AppID, WindowSize> = {
 	[AppID.Yield]: { width: 900, height: 650 },
 	[AppID.Debate]: { width: 850, height: 600 },
-	[AppID.Terminal]: { width: 700, height: 500 },
+	[AppID.Terminal]: { width: 780, height: 520 },
 	[AppID.About]: { width: 780, height: 520 },
 	[AppID.Contact]: { width: 780, height: 520 },
 };

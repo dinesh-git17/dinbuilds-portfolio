@@ -1,4 +1,4 @@
-import { type LucideIcon, Mail, MessageSquare, Terminal, User } from "lucide-react";
+import { type LucideIcon, Mail, Terminal, User } from "lucide-react";
 
 import { AppID } from "@/os/store";
 
@@ -17,6 +17,8 @@ export interface DockItemConfig {
 	gradient?: [string, string];
 	/** Solid background color for custom image icons */
 	backgroundColor?: string;
+	/** Padding around the icon image (e.g., "4px" or "8%") */
+	iconPadding?: string;
 }
 
 /**
@@ -39,8 +41,9 @@ export const DOCK_ITEMS: DockItemConfig[] = [
 	{
 		id: AppID.Debate,
 		label: "Debate Lab",
-		icon: MessageSquare,
-		gradient: ["#FF9F0A", "#FF6B00"], // Orange - like Messages
+		iconSrc: "/assets/apps/debate_lab.png",
+		backgroundColor: "#F5F5F4", // Off-white
+		iconPadding: "6px",
 	},
 	{
 		id: AppID.Terminal,
