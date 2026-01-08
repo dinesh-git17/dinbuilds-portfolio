@@ -20,6 +20,8 @@ export interface DockIconProps {
 	gradient?: [string, string];
 	/** Solid background color for custom image icons */
 	backgroundColor?: string;
+	/** Padding around the icon image */
+	iconPadding?: string;
 	/** Mouse X position relative to dock (motion value) */
 	mouseX: MotionValue<number>;
 	/** Whether magnification is enabled (desktop only) */
@@ -52,6 +54,7 @@ export const DockIcon = memo(function DockIcon({
 	iconSrc,
 	gradient,
 	backgroundColor,
+	iconPadding,
 	mouseX,
 	magnify,
 	isFocused = false,
@@ -168,6 +171,7 @@ export const DockIcon = memo(function DockIcon({
 									0 8px 24px rgba(0,0,0,0.2),
 									inset 0 1px 1px rgba(255,255,255,0.1)
 								`,
+								padding: iconPadding,
 							}}
 						>
 							<Image
@@ -177,6 +181,7 @@ export const DockIcon = memo(function DockIcon({
 								className="object-contain"
 								sizes="80px"
 								priority
+								style={{ padding: iconPadding }}
 							/>
 						</div>
 					</>

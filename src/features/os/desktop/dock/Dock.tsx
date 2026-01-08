@@ -141,6 +141,7 @@ export const Dock = memo(function Dock() {
 							iconSrc={item.iconSrc}
 							gradient={item.gradient}
 							backgroundColor={item.backgroundColor}
+							iconPadding={item.iconPadding}
 							mouseX={mouseX}
 							magnify={!isMobile}
 							isFocused={focusedIndex === index}
