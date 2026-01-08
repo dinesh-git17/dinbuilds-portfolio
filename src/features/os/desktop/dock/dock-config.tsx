@@ -46,6 +46,12 @@ export const DOCK_ITEMS: DockItemConfig[] = [
 		iconPadding: "6px",
 	},
 	{
+		id: AppID.PassFX,
+		label: "PassFX",
+		iconSrc: "/assets/apps/passfx.png",
+		backgroundColor: "#000000",
+	},
+	{
 		id: AppID.Terminal,
 		label: "Terminal",
 		icon: Terminal,
