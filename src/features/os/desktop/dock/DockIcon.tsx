@@ -23,6 +23,8 @@ export interface DockIconProps {
 	isFocused?: boolean;
 	/** Callback when icon receives focus */
 	onFocus?: () => void;
+	/** Callback when icon is clicked (to clear focus state in parent) */
+	onClick?: () => void;
 }
 
 /** Base icon size in pixels */
@@ -47,6 +49,7 @@ export const DockIcon = memo(function DockIcon({
 	magnify,
 	isFocused = false,
 	onFocus,
+	onClick,
 }: DockIconProps) {
 	const ref = useRef<HTMLButtonElement>(null);
 	const launchApp = useSystemStore((s) => s.launchApp);
@@ -82,7 +85,13 @@ export const DockIcon = memo(function DockIcon({
 
 	const handleClick = useCallback(() => {
 		launchApp(appId);
-	}, [launchApp, appId]);
+		// Clear hover state on click (fixes tooltip staying visible on touch devices)
+		setIsHovered(false);
+		// Blur the button to remove focus ring (fixes highlight staying on touch devices)
+		ref.current?.blur();
+		// Notify parent to clear focus index
+		onClick?.();
+	}, [launchApp, appId, onClick]);
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {

@@ -6,6 +6,7 @@ import { WindowManager } from "@/os/window";
 
 import { Dock } from "./dock";
 import { GridPattern } from "./GridPattern";
+import { SystemBar } from "./system-bar";
 import { Vignette } from "./Vignette";
 
 export interface StageProps {
@@ -24,8 +25,9 @@ export interface StageProps {
  * 2. Grid pattern overlay
  * 3. Vignette overlay
  * 4. WindowManager (all open windows)
- * 5. Dock (app launcher)
- * 6. Children (overlays)
+ * 5. SystemBar (top status bar)
+ * 6. Dock (app launcher)
+ * 7. Children (overlays)
  */
 export const Stage = memo(function Stage({ children }: StageProps) {
 	return (
@@ -37,7 +39,8 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 			{/* Window layer */}
 			<WindowManager />
 
-			{/* Dock */}
+			{/* System UI */}
+			<SystemBar />
 			<Dock />
 
 			{/* Additional UI layers */}
