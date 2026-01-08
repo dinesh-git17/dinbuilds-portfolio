@@ -60,6 +60,7 @@
 	"files": {
 		"includes": [
 			"app/**",
+			"src/**",
 			"components/**",
 			"lib/**",
 			"hooks/**",
