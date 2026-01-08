@@ -4,7 +4,12 @@ import { motion, type PanInfo, useDragControls, useMotionValue } from "framer-mo
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
-import { selectIsWindowActive, useSystemStore, type WindowInstance } from "@/os/store";
+import {
+	selectIsWindowActive,
+	selectIsWindowFullscreen,
+	useSystemStore,
+	type WindowInstance,
+} from "@/os/store";
 
 import { WindowControls } from "./WindowControls";
 
@@ -46,6 +51,7 @@ export const WindowFrame = memo(function WindowFrame({
 	const isMobile = deviceType === "mobile";
 
 	const isActive = useSystemStore(selectIsWindowActive(id));
+	const isFullscreen = useSystemStore(selectIsWindowFullscreen(id));
 	const focusWindow = useSystemStore((s) => s.focusWindow);
 	const updateWindowPosition = useSystemStore((s) => s.updateWindowPosition);
 
@@ -71,8 +77,18 @@ export const WindowFrame = memo(function WindowFrame({
 		return () => globalThis.window.removeEventListener("resize", updateViewport);
 	}, []);
 
-	// Calculate responsive layout based on device type and viewport
+	// Calculate responsive layout based on device type, viewport, and fullscreen state
 	const responsiveLayout = (() => {
+		// Fullscreen mode: cover entire viewport
+		if (isFullscreen) {
+			return {
+				width: viewport.width,
+				height: viewport.height,
+				x: 0,
+				y: 0,
+			};
+		}
+
 		if (!isMobile) {
 			return {
 				width: size.width,
@@ -189,9 +205,9 @@ export const WindowFrame = memo(function WindowFrame({
 					y,
 					width: responsiveLayout.width,
 					height: responsiveLayout.height,
-					zIndex: isActive ? 50 : 10,
+					zIndex: isFullscreen ? 100 : isActive ? 50 : 10,
 				}}
-				drag
+				drag={!isFullscreen}
 				dragControls={dragControls}
 				dragListener={false}
 				dragConstraints={constraintsRef}
@@ -212,17 +228,18 @@ export const WindowFrame = memo(function WindowFrame({
 				{/* Window chrome */}
 				<div
 					className={`
-						flex h-full flex-col overflow-hidden rounded-xl
+						flex h-full flex-col overflow-hidden
 						border bg-black/60 backdrop-blur-xl
-						shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]
-						transition-[border-color,box-shadow] duration-200
-						${isActive ? "border-white/20 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.1)]" : "border-white/10"}
+						transition-[border-color,box-shadow,border-radius] duration-200
+						${isFullscreen ? "rounded-none border-transparent" : "rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]"}
+						${!isFullscreen && isActive ? "border-white/20 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.1)]" : ""}
+						${!isFullscreen && !isActive ? "border-white/10" : ""}
 					`}
 				>
 					{/* Header / Drag Handle */}
 					<div
-						className="flex h-11 shrink-0 cursor-grab items-center gap-3 border-b border-white/5 px-4 active:cursor-grabbing"
-						onPointerDown={handleHeaderPointerDown}
+						className={`flex h-11 shrink-0 items-center gap-3 border-b border-white/5 px-4 ${isFullscreen ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+						onPointerDown={isFullscreen ? undefined : handleHeaderPointerDown}
 						style={{ touchAction: "none" }}
 					>
 						<WindowControls windowId={id} />

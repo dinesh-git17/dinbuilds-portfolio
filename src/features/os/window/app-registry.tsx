@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 
 import { AboutApp } from "@/apps/about";
 import { ContactApp } from "@/apps/contact";
+import { YieldApp } from "@/apps/yield";
 import { AppID } from "@/os/store";
 
 /**
@@ -36,7 +37,7 @@ function PlaceholderApp() {
 export const APP_REGISTRY: Record<AppID, AppManifest> = {
 	[AppID.Yield]: {
 		name: "Yield",
-		component: PlaceholderApp,
+		component: YieldApp,
 	},
 	[AppID.Debate]: {
 		name: "Debate Lab",

@@ -75,6 +75,18 @@ export const DEFAULT_WINDOW_SIZES: Record<AppID, WindowSize> = {
 };
 
 /**
+ * Apps that should maximize to fill the viewport.
+ * These windows will be sized to viewport minus padding.
+ */
+export const MAXIMIZED_APPS: Set<AppID> = new Set([AppID.Yield]);
+
+/**
+ * Apps that should automatically enter fullscreen when launched.
+ * These apps will open in fullscreen mode, hiding the dock and system bar.
+ */
+export const AUTO_FULLSCREEN_APPS: Set<AppID> = new Set([AppID.Yield]);
+
+/**
  * State slice for the system store.
  * Represents the current state of all windows.
  */
@@ -90,6 +102,13 @@ export interface SystemState {
 	 * null when no windows are open or all are minimized.
 	 */
 	activeWindowId: AppID | null;
+
+	/**
+	 * ID of the window currently in fullscreen mode.
+	 * null when no window is fullscreen.
+	 * Fullscreen hides the dock and system bar.
+	 */
+	fullscreenWindowId: AppID | null;
 }
 
 /**
@@ -131,6 +150,18 @@ export interface SystemActions {
 	 * Update window size after resize.
 	 */
 	updateWindowSize: (id: AppID, size: WindowSize) => void;
+
+	/**
+	 * Toggle fullscreen mode for a window.
+	 * If window is already fullscreen, exits fullscreen.
+	 * If another window is fullscreen, switches to this one.
+	 */
+	toggleFullscreen: (id: AppID) => void;
+
+	/**
+	 * Exit fullscreen mode.
+	 */
+	exitFullscreen: () => void;
 }
 
 /**

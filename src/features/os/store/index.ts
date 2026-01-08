@@ -8,7 +8,10 @@
 // Store
 export {
 	selectActiveWindowId,
+	selectFullscreenWindowId,
+	selectIsAnyWindowFullscreen,
 	selectIsWindowActive,
+	selectIsWindowFullscreen,
 	selectWindowById,
 	selectWindows,
 	useSystemStore,
@@ -17,7 +20,9 @@ export {
 // Types
 export {
 	AppID,
+	AUTO_FULLSCREEN_APPS,
 	DEFAULT_WINDOW_SIZES,
+	MAXIMIZED_APPS,
 	type SystemActions,
 	type SystemState,
 	type SystemStore,
