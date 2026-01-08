@@ -1,12 +1,14 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useRef } from "react";
 
 import { WindowManager } from "@/os/window";
 
 import { Dock } from "./dock";
 import { GridPattern } from "./GridPattern";
+import { SelectionBox } from "./SelectionBox";
 import { SystemBar } from "./system-bar";
+import { useSelectionBox } from "./useSelectionBox";
 import { Vignette } from "./Vignette";
 
 export interface StageProps {
@@ -30,11 +32,25 @@ export interface StageProps {
  * 7. Children (overlays)
  */
 export const Stage = memo(function Stage({ children }: StageProps) {
+	const stageRef = useRef<HTMLDivElement>(null);
+	const { isSelecting, selectionBox, handlePointerDown, handlePointerMove, handlePointerUp } =
+		useSelectionBox(stageRef);
+
 	return (
-		<div className="relative h-screen w-screen overflow-hidden bg-background">
+		<div
+			ref={stageRef}
+			className="relative h-screen w-screen overflow-hidden bg-background"
+			onPointerDown={handlePointerDown}
+			onPointerMove={handlePointerMove}
+			onPointerUp={handlePointerUp}
+			onPointerCancel={handlePointerUp}
+		>
 			{/* Background layers */}
 			<GridPattern />
 			<Vignette />
+
+			{/* Selection box layer (z-0, above background, below windows) */}
+			{isSelecting && selectionBox && <SelectionBox box={selectionBox} />}
 
 			{/* Window layer */}
 			<WindowManager />

@@ -111,11 +111,17 @@ export const WindowFrame = memo(function WindowFrame({
 		y.set(responsiveLayout.y);
 	}, [responsiveLayout.x, responsiveLayout.y, x, y]);
 
-	const handleFocus = useCallback(() => {
-		if (!isActive) {
-			focusWindow(id);
-		}
-	}, [focusWindow, id, isActive]);
+	const handleFocus = useCallback(
+		(e: React.PointerEvent) => {
+			// Prevent selection box from triggering when clicking on window
+			e.stopPropagation();
+
+			if (!isActive) {
+				focusWindow(id);
+			}
+		},
+		[focusWindow, id, isActive],
+	);
 
 	const handleDragEnd = useCallback(
 		(_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {

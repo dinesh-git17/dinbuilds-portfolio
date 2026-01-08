@@ -75,6 +75,11 @@ export const Dock = memo(function Dock() {
 		setFocusedIndex(-1);
 	}, []);
 
+	// Prevent selection box from triggering when interacting with dock
+	const handlePointerDown = useCallback((e: React.PointerEvent) => {
+		e.stopPropagation();
+	}, []);
+
 	return (
 		<motion.nav
 			ref={dockRef}
@@ -89,6 +94,7 @@ export const Dock = memo(function Dock() {
 				damping: 30,
 				delay: 0.2,
 			}}
+			onPointerDown={handlePointerDown}
 		>
 			{/* Dock platform container */}
 			<div

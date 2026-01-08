@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { memo } from "react";
+import { memo, useCallback } from "react";
 
 import { useDeviceType } from "../dock/useDeviceType";
 import { StatusIndicators } from "./StatusIndicators";
@@ -34,6 +34,11 @@ export const SystemBar = memo(function SystemBar({ className }: SystemBarProps) 
 	// Height: 32px on mobile, 36px on desktop
 	const barHeight = isMobile ? 32 : 36;
 
+	// Prevent selection box from triggering when interacting with system bar
+	const handlePointerDown = useCallback((e: React.PointerEvent) => {
+		e.stopPropagation();
+	}, []);
+
 	return (
 		<motion.header
 			role="banner"
@@ -47,6 +52,7 @@ export const SystemBar = memo(function SystemBar({ className }: SystemBarProps) 
 				damping: 30,
 				delay: 0.1,
 			}}
+			onPointerDown={handlePointerDown}
 		>
 			{/* Glass background layer */}
 			<div
