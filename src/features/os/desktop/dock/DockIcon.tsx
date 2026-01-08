@@ -2,6 +2,7 @@
 
 import { type MotionValue, motion, useSpring, useTransform } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
+import Image from "next/image";
 import { memo, useCallback, useRef, useState } from "react";
 
 import { type AppID, useSystemStore } from "@/os/store";
@@ -11,10 +12,14 @@ export interface DockIconProps {
 	appId: AppID;
 	/** Display label for accessibility */
 	label: string;
-	/** Icon component */
-	icon: LucideIcon;
-	/** Background gradient colors [from, to] */
-	gradient: [string, string];
+	/** Lucide icon component (mutually exclusive with iconSrc) */
+	icon?: LucideIcon;
+	/** Custom image path for apps with branded icons (mutually exclusive with icon) */
+	iconSrc?: string;
+	/** Background gradient colors [from, to] (only used with icon) */
+	gradient?: [string, string];
+	/** Solid background color for custom image icons */
+	backgroundColor?: string;
 	/** Mouse X position relative to dock (motion value) */
 	mouseX: MotionValue<number>;
 	/** Whether magnification is enabled (desktop only) */
@@ -44,7 +49,9 @@ export const DockIcon = memo(function DockIcon({
 	appId,
 	label,
 	icon: Icon,
+	iconSrc,
 	gradient,
+	backgroundColor,
 	mouseX,
 	magnify,
 	isFocused = false,
@@ -148,42 +155,75 @@ export const DockIcon = memo(function DockIcon({
 				}}
 				whileTap={{ scale: 0.92 }}
 			>
-				{/* Gradient background */}
-				<div
-					className="absolute inset-0 shadow-lg"
-					style={{
-						background: `linear-gradient(145deg, ${gradient[0]}, ${gradient[1]})`,
-						borderRadius: "22.5%",
-						boxShadow: `
-							0 2px 8px rgba(0,0,0,0.3),
-							0 8px 24px rgba(0,0,0,0.2),
-							inset 0 1px 1px rgba(255,255,255,0.2)
-						`,
-					}}
-				/>
+				{iconSrc ? (
+					<>
+						{/* Custom image icon */}
+						<div
+							className="absolute inset-0 overflow-hidden"
+							style={{
+								borderRadius: "22.5%",
+								backgroundColor: backgroundColor ?? "#000",
+								boxShadow: `
+									0 2px 8px rgba(0,0,0,0.3),
+									0 8px 24px rgba(0,0,0,0.2),
+									inset 0 1px 1px rgba(255,255,255,0.1)
+								`,
+							}}
+						>
+							<Image
+								src={iconSrc}
+								alt={label}
+								fill
+								className="object-contain"
+								sizes="80px"
+								priority
+							/>
+						</div>
+					</>
+				) : (
+					<>
+						{/* Gradient background */}
+						<div
+							className="absolute inset-0 shadow-lg"
+							style={{
+								background: gradient
+									? `linear-gradient(145deg, ${gradient[0]}, ${gradient[1]})`
+									: "linear-gradient(145deg, #666, #333)",
+								borderRadius: "22.5%",
+								boxShadow: `
+									0 2px 8px rgba(0,0,0,0.3),
+									0 8px 24px rgba(0,0,0,0.2),
+									inset 0 1px 1px rgba(255,255,255,0.2)
+								`,
+							}}
+						/>
 
-				{/* Glass highlight overlay */}
-				<div className="absolute inset-0 overflow-hidden" style={{ borderRadius: "22.5%" }}>
-					<div
-						className="absolute inset-x-0 top-0 h-1/2"
-						style={{
-							background:
-								"linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 100%)",
-						}}
-					/>
-				</div>
+						{/* Glass highlight overlay */}
+						<div className="absolute inset-0 overflow-hidden" style={{ borderRadius: "22.5%" }}>
+							<div
+								className="absolute inset-x-0 top-0 h-1/2"
+								style={{
+									background:
+										"linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 100%)",
+								}}
+							/>
+						</div>
 
-				{/* Icon */}
-				<div className="relative flex h-full w-full items-center justify-center">
-					<Icon
-						className="pointer-events-none text-white drop-shadow-md"
-						style={{
-							width: "50%",
-							height: "50%",
-						}}
-						strokeWidth={1.75}
-					/>
-				</div>
+						{/* Lucide Icon */}
+						{Icon && (
+							<div className="relative flex h-full w-full items-center justify-center">
+								<Icon
+									className="pointer-events-none text-white drop-shadow-md"
+									style={{
+										width: "50%",
+										height: "50%",
+									}}
+									strokeWidth={1.75}
+								/>
+							</div>
+						)}
+					</>
+				)}
 			</motion.button>
 		</motion.div>
 	);
