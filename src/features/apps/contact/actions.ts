@@ -5,10 +5,16 @@ import { Resend } from "resend";
 import { checkRateLimit } from "./rate-limiter";
 import { type ContactFormData, type ContactFormResult, contactFormSchema } from "./schema";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const RECIPIENT_EMAIL = "info@dineshd.dev";
 const FROM_EMAIL = "DinBuilds OS <contact@dineshd.dev>";
+
+function getResendClient(): Resend {
+	const apiKey = process.env.RESEND_API_KEY;
+	if (!apiKey) {
+		throw new Error("RESEND_API_KEY environment variable is not configured");
+	}
+	return new Resend(apiKey);
+}
 
 function getClientIP(headersList: Headers): string {
 	const forwarded = headersList.get("x-forwarded-for");
@@ -49,6 +55,7 @@ export async function sendEmail(data: ContactFormData): Promise<ContactFormResul
 	}
 
 	try {
+		const resend = getResendClient();
 		const { error } = await resend.emails.send({
 			from: FROM_EMAIL,
 			to: RECIPIENT_EMAIL,
