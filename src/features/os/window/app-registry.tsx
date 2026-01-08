@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 
 import { AboutApp } from "@/apps/about";
+import { ContactApp } from "@/apps/contact";
 import { AppID } from "@/os/store";
 
 /**
@@ -51,7 +52,7 @@ export const APP_REGISTRY: Record<AppID, AppManifest> = {
 	},
 	[AppID.Contact]: {
 		name: "Contact",
-		component: PlaceholderApp,
+		component: ContactApp,
 	},
 };
 
