@@ -12,6 +12,7 @@
 export enum AppID {
 	Yield = "app.yield",
 	Debate = "app.debate",
+	PassFX = "app.passfx",
 	Terminal = "app.terminal",
 	About = "app.about",
 	Contact = "app.contact",
@@ -69,6 +70,7 @@ export interface WindowSpawnConfig {
 export const DEFAULT_WINDOW_SIZES: Record<AppID, WindowSize> = {
 	[AppID.Yield]: { width: 900, height: 650 },
 	[AppID.Debate]: { width: 850, height: 600 },
+	[AppID.PassFX]: { width: 900, height: 650 },
 	[AppID.Terminal]: { width: 780, height: 520 },
 	[AppID.About]: { width: 780, height: 520 },
 	[AppID.Contact]: { width: 780, height: 520 },
@@ -78,13 +80,13 @@ export const DEFAULT_WINDOW_SIZES: Record<AppID, WindowSize> = {
  * Apps that should maximize to fill the viewport.
  * These windows will be sized to viewport minus padding.
  */
-export const MAXIMIZED_APPS: Set<AppID> = new Set([AppID.Yield]);
+export const MAXIMIZED_APPS: Set<AppID> = new Set([AppID.Yield, AppID.Debate, AppID.PassFX]);
 
 /**
  * Apps that should automatically enter fullscreen when launched.
  * These apps will open in fullscreen mode, hiding the dock and system bar.
  */
-export const AUTO_FULLSCREEN_APPS: Set<AppID> = new Set([AppID.Yield]);
+export const AUTO_FULLSCREEN_APPS: Set<AppID> = new Set([AppID.Yield, AppID.Debate, AppID.PassFX]);
 
 /**
  * State slice for the system store.

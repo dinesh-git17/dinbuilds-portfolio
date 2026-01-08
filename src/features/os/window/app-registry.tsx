@@ -2,6 +2,8 @@ import type { ComponentType } from "react";
 
 import { AboutApp } from "@/apps/about";
 import { ContactApp } from "@/apps/contact";
+import { DebateApp } from "@/apps/debate";
+import { PassFXApp } from "@/apps/passfx";
 import { TerminalApp } from "@/apps/terminal";
 import { YieldApp } from "@/apps/yield";
 import { AppID } from "@/os/store";
@@ -18,17 +20,6 @@ export interface AppManifest {
 }
 
 /**
- * Placeholder component for apps not yet implemented.
- */
-function PlaceholderApp() {
-	return (
-		<div className="flex h-full items-center justify-center p-8">
-			<p className="font-mono text-sm text-foreground-subtle">App content coming soon...</p>
-		</div>
-	);
-}
-
-/**
  * Registry of all available applications.
  * Maps AppID to manifest with name and component.
  *
@@ -42,7 +33,11 @@ export const APP_REGISTRY: Record<AppID, AppManifest> = {
 	},
 	[AppID.Debate]: {
 		name: "Debate Lab",
-		component: PlaceholderApp,
+		component: DebateApp,
+	},
+	[AppID.PassFX]: {
+		name: "PassFX",
+		component: PassFXApp,
 	},
 	[AppID.Terminal]: {
 		name: "Terminal",
