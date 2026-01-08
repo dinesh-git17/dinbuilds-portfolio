@@ -3,6 +3,8 @@
 import { motion, useMotionValue } from "framer-motion";
 import { memo, useCallback, useRef, useState } from "react";
 
+import { selectIsAnyWindowFullscreen, useSystemStore } from "@/os/store";
+
 import { DockIcon } from "./DockIcon";
 import { DOCK_ITEMS } from "./dock-config";
 import { useDeviceType } from "./useDeviceType";
@@ -22,6 +24,7 @@ import { useDeviceType } from "./useDeviceType";
 export const Dock = memo(function Dock() {
 	const deviceType = useDeviceType();
 	const isMobile = deviceType === "mobile";
+	const isFullscreen = useSystemStore(selectIsAnyWindowFullscreen);
 
 	const dockRef = useRef<HTMLElement>(null);
 	const mouseX = useMotionValue(Infinity);
@@ -87,14 +90,15 @@ export const Dock = memo(function Dock() {
 			aria-label="Application dock"
 			className="fixed bottom-3 left-1/2 z-50 -translate-x-1/2"
 			initial={{ y: 100, opacity: 0 }}
-			animate={{ y: 0, opacity: 1 }}
+			animate={{ y: isFullscreen ? 100 : 0, opacity: isFullscreen ? 0 : 1 }}
 			transition={{
 				type: "spring",
 				stiffness: 300,
 				damping: 30,
-				delay: 0.2,
+				delay: isFullscreen ? 0 : 0.2,
 			}}
 			onPointerDown={handlePointerDown}
+			aria-hidden={isFullscreen}
 		>
 			{/* Dock platform container */}
 			<div

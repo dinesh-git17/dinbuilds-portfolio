@@ -2,7 +2,7 @@
 
 import { memo, useCallback } from "react";
 
-import { type AppID, useSystemStore } from "@/os/store";
+import { type AppID, selectIsWindowFullscreen, useSystemStore } from "@/os/store";
 
 export interface WindowControlsProps {
 	/** Window identifier for store actions */
@@ -11,13 +11,15 @@ export interface WindowControlsProps {
 
 /**
  * macOS-style window control buttons.
- * Close (red), Minimize (yellow), Maximize (green - disabled for now).
+ * Close (red), Minimize (yellow), Fullscreen (green).
  *
  * Buttons are keyboard accessible with proper ARIA labels.
  */
 export const WindowControls = memo(function WindowControls({ windowId }: WindowControlsProps) {
 	const closeWindow = useSystemStore((s) => s.closeWindow);
 	const minimizeWindow = useSystemStore((s) => s.minimizeWindow);
+	const toggleFullscreen = useSystemStore((s) => s.toggleFullscreen);
+	const isFullscreen = useSystemStore(selectIsWindowFullscreen(windowId));
 
 	const handleClose = useCallback(
 		(e: React.MouseEvent | React.KeyboardEvent) => {
@@ -33,6 +35,14 @@ export const WindowControls = memo(function WindowControls({ windowId }: WindowC
 			minimizeWindow(windowId);
 		},
 		[minimizeWindow, windowId],
+	);
+
+	const handleFullscreen = useCallback(
+		(e: React.MouseEvent | React.KeyboardEvent) => {
+			e.stopPropagation();
+			toggleFullscreen(windowId);
+		},
+		[toggleFullscreen, windowId],
 	);
 
 	return (
@@ -63,14 +73,17 @@ export const WindowControls = memo(function WindowControls({ windowId }: WindowC
 				</span>
 			</button>
 
-			{/* Maximize (disabled/decorative for now) */}
+			{/* Fullscreen */}
 			<button
 				type="button"
-				disabled
-				className="h-3 w-3 cursor-not-allowed rounded-full bg-[#28c840]/50"
-				aria-label="Maximize window (disabled)"
+				onClick={handleFullscreen}
+				onKeyDown={(e) => e.key === "Enter" && handleFullscreen(e)}
+				className="group relative h-3 w-3 rounded-full bg-[#28c840] transition-colors hover:bg-[#1fb636] focus:outline-none focus:ring-2 focus:ring-[#28c840]/50"
+				aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
 			>
-				<span className="sr-only">Maximize (not available)</span>
+				<span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-black/0 transition-colors group-hover:text-black/80">
+					{isFullscreen ? "−" : "+"}
+				</span>
 			</button>
 		</fieldset>
 	);

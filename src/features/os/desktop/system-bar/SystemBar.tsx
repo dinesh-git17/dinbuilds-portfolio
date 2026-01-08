@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { memo, useCallback } from "react";
 
+import { selectIsAnyWindowFullscreen, useSystemStore } from "@/os/store";
+
 import { useDeviceType } from "../dock/useDeviceType";
 import { StatusIndicators } from "./StatusIndicators";
 import { SystemClock } from "./SystemClock";
@@ -30,6 +32,7 @@ export interface SystemBarProps {
 export const SystemBar = memo(function SystemBar({ className }: SystemBarProps) {
 	const deviceType = useDeviceType();
 	const isMobile = deviceType === "mobile";
+	const isFullscreen = useSystemStore(selectIsAnyWindowFullscreen);
 
 	// Height: 32px on mobile, 36px on desktop
 	const barHeight = isMobile ? 32 : 36;
@@ -45,14 +48,15 @@ export const SystemBar = memo(function SystemBar({ className }: SystemBarProps) 
 			aria-label="System status bar"
 			className={`fixed top-0 left-0 z-[60] w-full ${isMobile ? "h-8" : "h-9"} ${className ?? ""}`}
 			initial={{ y: -barHeight, opacity: 0 }}
-			animate={{ y: 0, opacity: 1 }}
+			animate={{ y: isFullscreen ? -barHeight : 0, opacity: isFullscreen ? 0 : 1 }}
 			transition={{
 				type: "spring",
 				stiffness: 300,
 				damping: 30,
-				delay: 0.1,
+				delay: isFullscreen ? 0 : 0.1,
 			}}
 			onPointerDown={handlePointerDown}
+			aria-hidden={isFullscreen}
 		>
 			{/* Glass background layer */}
 			<div

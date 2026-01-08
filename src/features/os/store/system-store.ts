@@ -8,13 +8,37 @@ import type {
 	WindowSize,
 	WindowSpawnConfig,
 } from "./types";
-import { DEFAULT_WINDOW_SIZES } from "./types";
+import { AUTO_FULLSCREEN_APPS, DEFAULT_WINDOW_SIZES, MAXIMIZED_APPS } from "./types";
 
 /**
  * Default viewport assumption for SSR/initial render.
  * Used to calculate centered positions before client hydration.
  */
 const DEFAULT_VIEWPORT = { width: 1440, height: 900 };
+
+/**
+ * Padding around maximized windows.
+ */
+const MAXIMIZED_PADDING = 32;
+
+/**
+ * Calculate maximized window size based on current viewport.
+ * Fills the available space with padding on all sides.
+ */
+function calculateMaximizedSize(): WindowSize {
+	const viewport =
+		typeof window !== "undefined"
+			? { width: window.innerWidth, height: window.innerHeight }
+			: DEFAULT_VIEWPORT;
+
+	const systemBarHeight = 32;
+	const dockHeight = 80;
+
+	return {
+		width: viewport.width - MAXIMIZED_PADDING * 2,
+		height: viewport.height - systemBarHeight - dockHeight - MAXIMIZED_PADDING,
+	};
+}
 
 /**
  * Calculate centered window position with cascade offset.
@@ -79,11 +103,13 @@ export const useSystemStore = create<SystemStore>((set, get) => ({
 	// Initial State
 	windows: [],
 	activeWindowId: null,
+	fullscreenWindowId: null,
 
 	// Actions
 	launchApp: (appId: AppID, config?: WindowSpawnConfig) => {
 		const { windows } = get();
 		const existingIndex = windows.findIndex((w) => w.id === appId);
+		const shouldAutoFullscreen = AUTO_FULLSCREEN_APPS.has(appId);
 
 		if (existingIndex !== -1) {
 			// Window exists - restore if minimized and bring to front
@@ -99,36 +125,52 @@ export const useSystemStore = create<SystemStore>((set, get) => ({
 			set({
 				windows: updatedWindows,
 				activeWindowId: appId,
+				// Auto-enter fullscreen for designated apps
+				fullscreenWindowId: shouldAutoFullscreen ? appId : get().fullscreenWindowId,
 			});
 		} else {
 			// Create new window instance
-			const defaultSize = DEFAULT_WINDOW_SIZES[appId];
+			// Use maximized size for designated apps, otherwise use defaults
+			const isMaximized = MAXIMIZED_APPS.has(appId);
+			const defaultSize = isMaximized ? calculateMaximizedSize() : DEFAULT_WINDOW_SIZES[appId];
 			const windowSize = config?.size ?? defaultSize;
+
+			// Maximized windows position at top-left with padding, others cascade
+			const defaultPosition = isMaximized
+				? { x: MAXIMIZED_PADDING, y: 32 + MAXIMIZED_PADDING / 2 }
+				: calculateCenteredPosition(windowSize, windows.length);
+
 			const newWindow: WindowInstance = {
 				id: appId,
 				status: "open",
-				position: config?.position ?? calculateCenteredPosition(windowSize, windows.length),
+				position: config?.position ?? defaultPosition,
 				size: windowSize,
 			};
 
 			set({
 				windows: [...windows, newWindow],
 				activeWindowId: appId,
+				// Auto-enter fullscreen for designated apps
+				fullscreenWindowId: shouldAutoFullscreen ? appId : get().fullscreenWindowId,
 			});
 		}
 	},
 
 	closeWindow: (id: AppID) => {
-		const { windows, activeWindowId } = get();
+		const { windows, activeWindowId, fullscreenWindowId } = get();
 		const filteredWindows = windows.filter((w) => w.id !== id);
 
 		// If closing the active window, transfer focus
 		const newActiveId =
 			activeWindowId === id ? findNextFocusTarget(filteredWindows) : activeWindowId;
 
+		// Exit fullscreen if closing the fullscreen window
+		const newFullscreenId = fullscreenWindowId === id ? null : fullscreenWindowId;
+
 		set({
 			windows: filteredWindows,
 			activeWindowId: newActiveId,
+			fullscreenWindowId: newFullscreenId,
 		});
 	},
 
@@ -160,7 +202,7 @@ export const useSystemStore = create<SystemStore>((set, get) => ({
 	},
 
 	minimizeWindow: (id: AppID) => {
-		const { windows, activeWindowId } = get();
+		const { windows, activeWindowId, fullscreenWindowId } = get();
 		const windowIndex = windows.findIndex((w) => w.id === id);
 
 		if (windowIndex === -1) return;
@@ -178,9 +220,13 @@ export const useSystemStore = create<SystemStore>((set, get) => ({
 		const newActiveId =
 			activeWindowId === id ? findNextFocusTarget(updatedWindows, id) : activeWindowId;
 
+		// Exit fullscreen if minimizing the fullscreen window
+		const newFullscreenId = fullscreenWindowId === id ? null : fullscreenWindowId;
+
 		set({
 			windows: updatedWindows,
 			activeWindowId: newActiveId,
+			fullscreenWindowId: newFullscreenId,
 		});
 	},
 
@@ -219,6 +265,23 @@ export const useSystemStore = create<SystemStore>((set, get) => ({
 
 		set({ windows: updatedWindows });
 	},
+
+	toggleFullscreen: (id: AppID) => {
+		const { fullscreenWindowId } = get();
+
+		if (fullscreenWindowId === id) {
+			// Exit fullscreen
+			set({ fullscreenWindowId: null });
+		} else {
+			// Enter fullscreen (and focus the window)
+			get().focusWindow(id);
+			set({ fullscreenWindowId: id });
+		}
+	},
+
+	exitFullscreen: () => {
+		set({ fullscreenWindowId: null });
+	},
 }));
 
 /**
@@ -232,7 +295,12 @@ export const useSystemStore = create<SystemStore>((set, get) => ({
  */
 export const selectWindows = (state: SystemStore) => state.windows;
 export const selectActiveWindowId = (state: SystemStore) => state.activeWindowId;
+export const selectFullscreenWindowId = (state: SystemStore) => state.fullscreenWindowId;
 export const selectIsWindowActive = (id: AppID) => (state: SystemStore) =>
 	state.activeWindowId === id;
+export const selectIsWindowFullscreen = (id: AppID) => (state: SystemStore) =>
+	state.fullscreenWindowId === id;
+export const selectIsAnyWindowFullscreen = (state: SystemStore) =>
+	state.fullscreenWindowId !== null;
 export const selectWindowById = (id: AppID) => (state: SystemStore) =>
 	state.windows.find((w) => w.id === id);
