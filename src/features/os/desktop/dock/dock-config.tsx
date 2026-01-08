@@ -1,16 +1,22 @@
-import { BarChart3, type LucideIcon, Mail, MessageSquare, Terminal, User } from "lucide-react";
+import { type LucideIcon, Mail, MessageSquare, Terminal, User } from "lucide-react";
 
 import { AppID } from "@/os/store";
 
 /**
  * Dock item configuration with visual styling.
+ * Supports either a Lucide icon with gradient or a custom image.
  */
 export interface DockItemConfig {
 	id: AppID;
 	label: string;
-	icon: LucideIcon;
-	/** Gradient colors [from, to] for the icon background */
-	gradient: [string, string];
+	/** Lucide icon component (mutually exclusive with iconSrc) */
+	icon?: LucideIcon;
+	/** Custom image path for apps with branded icons (mutually exclusive with icon) */
+	iconSrc?: string;
+	/** Gradient colors [from, to] for the icon background (only used with icon) */
+	gradient?: [string, string];
+	/** Solid background color for custom image icons */
+	backgroundColor?: string;
 }
 
 /**
@@ -27,8 +33,8 @@ export const DOCK_ITEMS: DockItemConfig[] = [
 	{
 		id: AppID.Yield,
 		label: "Yield",
-		icon: BarChart3,
-		gradient: ["#34C759", "#248A3D"], // Green - like Numbers
+		iconSrc: "/assets/apps/yield.png",
+		backgroundColor: "#1E1B4B",
 	},
 	{
 		id: AppID.Debate,

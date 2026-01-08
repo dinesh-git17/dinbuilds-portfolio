@@ -134,7 +134,9 @@ export const Dock = memo(function Dock() {
 							appId={item.id}
 							label={item.label}
 							icon={item.icon}
+							iconSrc={item.iconSrc}
 							gradient={item.gradient}
+							backgroundColor={item.backgroundColor}
 							mouseX={mouseX}
 							magnify={!isMobile}
 							isFocused={focusedIndex === index}
