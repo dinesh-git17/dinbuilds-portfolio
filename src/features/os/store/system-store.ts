@@ -11,17 +11,40 @@ import type {
 import { DEFAULT_WINDOW_SIZES } from "./types";
 
 /**
- * Calculate initial window position with cascade offset.
- * Each new window is offset slightly from the previous.
+ * Default viewport assumption for SSR/initial render.
+ * Used to calculate centered positions before client hydration.
  */
-function calculateInitialPosition(windowCount: number): WindowPosition {
-	const baseX = 100;
-	const baseY = 80;
-	const cascadeOffset = 30;
+const DEFAULT_VIEWPORT = { width: 1440, height: 900 };
+
+/**
+ * Calculate centered window position with cascade offset.
+ * Centers the window in the viewport, then applies a small offset
+ * for each additional open window to create a cascade effect.
+ */
+function calculateCenteredPosition(windowSize: WindowSize, windowCount: number): WindowPosition {
+	const cascadeOffset = 24;
+
+	// Use actual viewport if available (client-side), otherwise use defaults
+	const viewport =
+		typeof window !== "undefined"
+			? { width: window.innerWidth, height: window.innerHeight }
+			: DEFAULT_VIEWPORT;
+
+	// Account for system bar (top) and dock (bottom) when centering vertically
+	const systemBarHeight = 32;
+	const dockHeight = 80;
+	const availableHeight = viewport.height - systemBarHeight - dockHeight;
+
+	// Calculate center position
+	const centerX = (viewport.width - windowSize.width) / 2;
+	const centerY = systemBarHeight + (availableHeight - windowSize.height) / 2;
+
+	// Apply cascade offset for multiple windows
+	const offset = (windowCount % 6) * cascadeOffset;
 
 	return {
-		x: baseX + (windowCount % 8) * cascadeOffset,
-		y: baseY + (windowCount % 8) * cascadeOffset,
+		x: Math.max(16, centerX + offset),
+		y: Math.max(systemBarHeight + 8, centerY + offset),
 	};
 }
 
@@ -80,11 +103,12 @@ export const useSystemStore = create<SystemStore>((set, get) => ({
 		} else {
 			// Create new window instance
 			const defaultSize = DEFAULT_WINDOW_SIZES[appId];
+			const windowSize = config?.size ?? defaultSize;
 			const newWindow: WindowInstance = {
 				id: appId,
 				status: "open",
-				position: config?.position ?? calculateInitialPosition(windows.length),
-				size: config?.size ?? defaultSize,
+				position: config?.position ?? calculateCenteredPosition(windowSize, windows.length),
+				size: windowSize,
 			};
 
 			set({

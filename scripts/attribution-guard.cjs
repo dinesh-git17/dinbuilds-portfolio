@@ -37,6 +37,8 @@ const WHITELISTED_CONTEXTS = [
   /api.*anthropic/i,
   /sdk.*openai/i,
   /sdk.*anthropic/i,
+  /["']OpenAI["']/i, // Tech stack array entries
+  /["']Anthropic["']/i, // Tech stack array entries
 ];
 
 // Files to exclude from checking
