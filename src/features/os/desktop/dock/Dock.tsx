@@ -71,6 +71,10 @@ export const Dock = memo(function Dock() {
 		setFocusedIndex(index);
 	}, []);
 
+	const handleIconClick = useCallback(() => {
+		setFocusedIndex(-1);
+	}, []);
+
 	return (
 		<motion.nav
 			ref={dockRef}
@@ -129,6 +133,7 @@ export const Dock = memo(function Dock() {
 							magnify={!isMobile}
 							isFocused={focusedIndex === index}
 							onFocus={() => handleIconFocus(index)}
+							onClick={handleIconClick}
 						/>
 					))}
 				</div>

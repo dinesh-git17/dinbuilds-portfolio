@@ -1,8 +1,9 @@
 "use client";
 
 import { motion, type PanInfo, useDragControls, useMotionValue } from "framer-motion";
-import { memo, useCallback, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
+import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
 import { selectIsWindowActive, useSystemStore, type WindowInstance } from "@/os/store";
 
 import { WindowControls } from "./WindowControls";
@@ -26,7 +27,13 @@ export interface WindowFrameProps {
  * - Click anywhere to focus (z-index promotion)
  * - Smooth scale + fade animations on mount/unmount
  * - Constrained to viewport bounds
+ * - Mobile: viewport-constrained sizing with touch drag support
  */
+// Mobile viewport padding constants
+const MOBILE_PADDING = 8;
+const SYSTEM_BAR_HEIGHT = 32;
+const DOCK_HEIGHT = 80;
+
 export const WindowFrame = memo(function WindowFrame({
 	window,
 	title,
@@ -35,6 +42,9 @@ export const WindowFrame = memo(function WindowFrame({
 }: WindowFrameProps) {
 	const { id, position, size } = window;
 
+	const deviceType = useDeviceType();
+	const isMobile = deviceType === "mobile";
+
 	const isActive = useSystemStore(selectIsWindowActive(id));
 	const focusWindow = useSystemStore((s) => s.focusWindow);
 	const updateWindowPosition = useSystemStore((s) => s.updateWindowPosition);
@@ -42,9 +52,64 @@ export const WindowFrame = memo(function WindowFrame({
 	const constraintsRef = useRef<HTMLDivElement>(null);
 	const dragControls = useDragControls();
 
+	// Track viewport dimensions with state (updates on mount and resize)
+	const [viewport, setViewport] = useState({ width: 375, height: 667 });
+
+	useEffect(() => {
+		const updateViewport = () => {
+			setViewport({
+				width: globalThis.window.innerWidth,
+				height: globalThis.window.innerHeight,
+			});
+		};
+
+		// Set initial viewport
+		updateViewport();
+
+		// Update on resize
+		globalThis.window.addEventListener("resize", updateViewport);
+		return () => globalThis.window.removeEventListener("resize", updateViewport);
+	}, []);
+
+	// Calculate responsive layout based on device type and viewport
+	const responsiveLayout = (() => {
+		if (!isMobile) {
+			return {
+				width: size.width,
+				height: size.height,
+				x: position.x,
+				y: position.y,
+			};
+		}
+
+		// On mobile: constrain to viewport with padding
+		const maxWidth = viewport.width - MOBILE_PADDING * 2;
+		const maxHeight = viewport.height - SYSTEM_BAR_HEIGHT - DOCK_HEIGHT - MOBILE_PADDING * 2;
+
+		const constrainedWidth = Math.min(size.width, maxWidth);
+		const constrainedHeight = Math.min(size.height, maxHeight);
+
+		// Center horizontally, position below SystemBar
+		const centeredX = (viewport.width - constrainedWidth) / 2;
+		const centeredY = SYSTEM_BAR_HEIGHT + MOBILE_PADDING;
+
+		return {
+			width: constrainedWidth,
+			height: constrainedHeight,
+			x: centeredX,
+			y: centeredY,
+		};
+	})();
+
 	// Motion values for smooth position updates
 	const x = useMotionValue(position.x);
 	const y = useMotionValue(position.y);
+
+	// Update motion values when responsive layout changes (especially on mobile)
+	useEffect(() => {
+		x.set(responsiveLayout.x);
+		y.set(responsiveLayout.y);
+	}, [responsiveLayout.x, responsiveLayout.y, x, y]);
 
 	const handleFocus = useCallback(() => {
 		if (!isActive) {
@@ -81,22 +146,43 @@ export const WindowFrame = memo(function WindowFrame({
 		exit: reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 },
 	};
 
+	// Mobile-specific drag constraints (tighter bounds)
+	const mobileConstraints = {
+		top: SYSTEM_BAR_HEIGHT,
+		left: MOBILE_PADDING,
+		right: viewport.width - responsiveLayout.width - MOBILE_PADDING,
+		bottom: viewport.height - responsiveLayout.height - DOCK_HEIGHT,
+	};
+
 	return (
 		<>
-			{/* Invisible constraints boundary */}
-			<div ref={constraintsRef} className="pointer-events-none fixed inset-4" />
+			{/* Invisible constraints boundary - tighter on mobile */}
+			<div
+				ref={constraintsRef}
+				className="pointer-events-none fixed"
+				style={
+					isMobile
+						? {
+								top: mobileConstraints.top,
+								left: mobileConstraints.left,
+								right: MOBILE_PADDING,
+								bottom: DOCK_HEIGHT,
+							}
+						: { inset: 16 }
+				}
+			/>
 
 			<motion.div
 				role="dialog"
 				aria-label={`${title} window`}
 				aria-modal="false"
 				tabIndex={-1}
-				className="fixed select-none"
+				className="fixed select-none touch-none"
 				style={{
 					x,
 					y,
-					width: size.width,
-					height: size.height,
+					width: responsiveLayout.width,
+					height: responsiveLayout.height,
 					zIndex: isActive ? 50 : 10,
 				}}
 				drag

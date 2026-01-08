@@ -1,7 +1,7 @@
 /**
  * Desktop Module
  *
- * Contains the Stage, Dock, and all background layer components.
+ * Contains the Stage, Dock, SystemBar, and all background layer components.
  * Import via '@/os/desktop'.
  */
 
@@ -16,4 +16,5 @@ export {
 } from "./dock";
 export { GridPattern, type GridPatternProps } from "./GridPattern";
 export { Stage, type StageProps } from "./Stage";
+export { SystemBar, type SystemBarProps } from "./system-bar";
 export { Vignette, type VignetteProps } from "./Vignette";
