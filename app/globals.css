@@ -105,3 +105,37 @@ body {
 	outline: 2px solid var(--border-focus);
 	outline-offset: 2px;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Global Scrollbar Skin (The "Ghost" Look)
+   Visible only when needed, blends with the UI.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* WebKit Browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background-color: rgba(113, 113, 122, 0.3);
+	border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background-color: rgba(113, 113, 122, 0.5);
+}
+
+::-webkit-scrollbar-corner {
+	background: transparent;
+}
+
+/* Firefox Support */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(113, 113, 122, 0.3) transparent;
+}
