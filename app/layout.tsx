@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { generateProfilePageSchema, renderJsonLd } from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+	metadataBase: new URL("https://dineshd.dev"),
 	title: {
 		default: "Dinesh Dawonauth | Data Engineer",
 		template: "%s | DinBuilds OS",
@@ -58,9 +60,18 @@ export default function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+	const profileSchema = generateProfilePageSchema();
+
 	return (
 		<html lang="en">
-			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
+			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+				{children}
+				{/* Schema.org JSON-LD for Person & ProfilePage */}
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{ __html: renderJsonLd(profileSchema) }}
+				/>
+			</body>
 		</html>
 	);
 }

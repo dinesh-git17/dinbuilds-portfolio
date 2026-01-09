@@ -5,6 +5,8 @@
  * Import from '@/os/store' for clean access.
  */
 
+// Hydration
+export { StoreHydrator, type StoreHydratorProps } from "./StoreHydrator";
 // Store
 export {
 	selectActiveWindowId,

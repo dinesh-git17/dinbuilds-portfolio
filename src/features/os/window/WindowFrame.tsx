@@ -252,23 +252,21 @@ export const WindowFrame = memo(function WindowFrame({
 					`}
 				>
 					{/* Header / Drag Handle */}
-					<div
+					<header
 						className={`flex h-11 shrink-0 items-center gap-3 border-b border-white/5 px-4 ${isFullscreen ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
 						onPointerDown={isFullscreen ? undefined : handleHeaderPointerDown}
 						style={{ touchAction: "none" }}
 					>
 						<WindowControls windowId={id} />
 
-						<span className="flex-1 truncate text-center font-mono text-xs text-white/50">
-							{title}
-						</span>
+						<h2 className="flex-1 truncate text-center font-mono text-xs text-white/50">{title}</h2>
 
 						{/* Spacer for centering title */}
-						<div className="w-[52px]" />
-					</div>
+						<div className="w-[52px]" aria-hidden="true" />
+					</header>
 
 					{/* Content area */}
-					<div className="flex-1 overflow-auto">{children}</div>
+					<article className="flex-1 overflow-auto">{children}</article>
 				</div>
 			</motion.div>
 		</>
