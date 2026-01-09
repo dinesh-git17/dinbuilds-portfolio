@@ -1,14 +1,31 @@
+import * as React from "react";
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 import type {
 	AppID,
+	DockConfig,
 	SystemStore,
 	WindowInstance,
 	WindowPosition,
 	WindowSize,
 	WindowSpawnConfig,
 } from "./types";
-import { AUTO_FULLSCREEN_APPS, DEFAULT_WINDOW_SIZES, MAXIMIZED_APPS } from "./types";
+import {
+	AUTO_FULLSCREEN_APPS,
+	DEFAULT_DOCK_CONFIG,
+	DEFAULT_WINDOW_SIZES,
+	MAXIMIZED_APPS,
+} from "./types";
+
+/**
+ * State keys that should persist across sessions.
+ * Window state is ephemeral—only preferences survive.
+ */
+interface PersistedState {
+	wallpaper: string | null;
+	dockConfig: DockConfig;
+}
 
 /**
  * Default viewport assumption for SSR/initial render.
@@ -99,190 +116,245 @@ function findNextFocusTarget(windows: WindowInstance[], excludeId?: AppID): AppI
  * const launchApp = useSystemStore(s => s.launchApp);
  * ```
  */
-export const useSystemStore = create<SystemStore>((set, get) => ({
-	// Initial State
-	windows: [],
-	activeWindowId: null,
-	fullscreenWindowId: null,
+export const useSystemStore = create<SystemStore>()(
+	persist(
+		(set, get) => ({
+			// Initial State
+			windows: [],
+			activeWindowId: null,
+			fullscreenWindowId: null,
+			wallpaper: "/assets/wallpapers/wall-9.jpg",
+			dockConfig: DEFAULT_DOCK_CONFIG,
 
-	// Actions
-	launchApp: (appId: AppID, config?: WindowSpawnConfig) => {
-		const { windows } = get();
-		const existingIndex = windows.findIndex((w) => w.id === appId);
-		const shouldAutoFullscreen = AUTO_FULLSCREEN_APPS.has(appId);
+			// Actions
+			launchApp: (appId: AppID, config?: WindowSpawnConfig) => {
+				const { windows } = get();
+				const existingIndex = windows.findIndex((w) => w.id === appId);
+				const shouldAutoFullscreen = AUTO_FULLSCREEN_APPS.has(appId);
 
-		if (existingIndex !== -1) {
-			// Window exists - restore if minimized and bring to front
-			const existingWindow = windows[existingIndex];
-			if (!existingWindow) return;
+				if (existingIndex !== -1) {
+					// Window exists - restore if minimized and bring to front
+					const existingWindow = windows[existingIndex];
+					if (!existingWindow) return;
 
-			const updatedWindows = windows.filter((w) => w.id !== appId);
-			updatedWindows.push({
-				...existingWindow,
-				status: "open",
-			});
+					const updatedWindows = windows.filter((w) => w.id !== appId);
+					updatedWindows.push({
+						...existingWindow,
+						status: "open",
+					});
 
-			set({
-				windows: updatedWindows,
-				activeWindowId: appId,
-				// Auto-enter fullscreen for designated apps
-				fullscreenWindowId: shouldAutoFullscreen ? appId : get().fullscreenWindowId,
-			});
-		} else {
-			// Create new window instance
-			// Use maximized size for designated apps, otherwise use defaults
-			const isMaximized = MAXIMIZED_APPS.has(appId);
-			const defaultSize = isMaximized ? calculateMaximizedSize() : DEFAULT_WINDOW_SIZES[appId];
-			const windowSize = config?.size ?? defaultSize;
+					set({
+						windows: updatedWindows,
+						activeWindowId: appId,
+						// Auto-enter fullscreen for designated apps
+						fullscreenWindowId: shouldAutoFullscreen ? appId : get().fullscreenWindowId,
+					});
+				} else {
+					// Create new window instance
+					// Use maximized size for designated apps, otherwise use defaults
+					const isMaximized = MAXIMIZED_APPS.has(appId);
+					const defaultSize = isMaximized ? calculateMaximizedSize() : DEFAULT_WINDOW_SIZES[appId];
+					const windowSize = config?.size ?? defaultSize;
 
-			// Maximized windows position at top-left with padding, others cascade
-			const defaultPosition = isMaximized
-				? { x: MAXIMIZED_PADDING, y: 32 + MAXIMIZED_PADDING / 2 }
-				: calculateCenteredPosition(windowSize, windows.length);
+					// Maximized windows position at top-left with padding, others cascade
+					const defaultPosition = isMaximized
+						? { x: MAXIMIZED_PADDING, y: 32 + MAXIMIZED_PADDING / 2 }
+						: calculateCenteredPosition(windowSize, windows.length);
 
-			const newWindow: WindowInstance = {
-				id: appId,
-				status: "open",
-				position: config?.position ?? defaultPosition,
-				size: windowSize,
-			};
+					const newWindow: WindowInstance = {
+						id: appId,
+						status: "open",
+						position: config?.position ?? defaultPosition,
+						size: windowSize,
+					};
 
-			set({
-				windows: [...windows, newWindow],
-				activeWindowId: appId,
-				// Auto-enter fullscreen for designated apps
-				fullscreenWindowId: shouldAutoFullscreen ? appId : get().fullscreenWindowId,
-			});
-		}
-	},
+					set({
+						windows: [...windows, newWindow],
+						activeWindowId: appId,
+						// Auto-enter fullscreen for designated apps
+						fullscreenWindowId: shouldAutoFullscreen ? appId : get().fullscreenWindowId,
+					});
+				}
+			},
 
-	closeWindow: (id: AppID) => {
-		const { windows, activeWindowId, fullscreenWindowId } = get();
-		const filteredWindows = windows.filter((w) => w.id !== id);
+			closeWindow: (id: AppID) => {
+				const { windows, activeWindowId, fullscreenWindowId } = get();
+				const filteredWindows = windows.filter((w) => w.id !== id);
 
-		// If closing the active window, transfer focus
-		const newActiveId =
-			activeWindowId === id ? findNextFocusTarget(filteredWindows) : activeWindowId;
+				// If closing the active window, transfer focus
+				const newActiveId =
+					activeWindowId === id ? findNextFocusTarget(filteredWindows) : activeWindowId;
 
-		// Exit fullscreen if closing the fullscreen window
-		const newFullscreenId = fullscreenWindowId === id ? null : fullscreenWindowId;
+				// Exit fullscreen if closing the fullscreen window
+				const newFullscreenId = fullscreenWindowId === id ? null : fullscreenWindowId;
 
-		set({
-			windows: filteredWindows,
-			activeWindowId: newActiveId,
-			fullscreenWindowId: newFullscreenId,
-		});
-	},
+				set({
+					windows: filteredWindows,
+					activeWindowId: newActiveId,
+					fullscreenWindowId: newFullscreenId,
+				});
+			},
 
-	focusWindow: (id: AppID) => {
-		const { windows, activeWindowId } = get();
+			focusWindow: (id: AppID) => {
+				const { windows, activeWindowId } = get();
 
-		// Already focused and at top
-		if (activeWindowId === id && windows[windows.length - 1]?.id === id) {
-			return;
-		}
+				// Already focused and at top
+				if (activeWindowId === id && windows[windows.length - 1]?.id === id) {
+					return;
+				}
 
-		const windowIndex = windows.findIndex((w) => w.id === id);
-		if (windowIndex === -1) return;
+				const windowIndex = windows.findIndex((w) => w.id === id);
+				if (windowIndex === -1) return;
 
-		const targetWindow = windows[windowIndex];
-		if (!targetWindow) return;
+				const targetWindow = windows[windowIndex];
+				if (!targetWindow) return;
 
-		// Move to end of array (highest z-index)
-		const reorderedWindows = windows.filter((w) => w.id !== id);
-		reorderedWindows.push({
-			...targetWindow,
-			status: "open", // Restore if minimized
-		});
+				// Move to end of array (highest z-index)
+				const reorderedWindows = windows.filter((w) => w.id !== id);
+				reorderedWindows.push({
+					...targetWindow,
+					status: "open", // Restore if minimized
+				});
 
-		set({
-			windows: reorderedWindows,
-			activeWindowId: id,
-		});
-	},
+				set({
+					windows: reorderedWindows,
+					activeWindowId: id,
+				});
+			},
 
-	minimizeWindow: (id: AppID) => {
-		const { windows, activeWindowId, fullscreenWindowId } = get();
-		const windowIndex = windows.findIndex((w) => w.id === id);
+			minimizeWindow: (id: AppID) => {
+				const { windows, activeWindowId, fullscreenWindowId } = get();
+				const windowIndex = windows.findIndex((w) => w.id === id);
 
-		if (windowIndex === -1) return;
+				if (windowIndex === -1) return;
 
-		const targetWindow = windows[windowIndex];
-		if (!targetWindow) return;
+				const targetWindow = windows[windowIndex];
+				if (!targetWindow) return;
 
-		const updatedWindows = [...windows];
-		updatedWindows[windowIndex] = {
-			...targetWindow,
-			status: "minimized",
-		};
+				const updatedWindows = [...windows];
+				updatedWindows[windowIndex] = {
+					...targetWindow,
+					status: "minimized",
+				};
 
-		// Transfer focus if minimizing active window
-		const newActiveId =
-			activeWindowId === id ? findNextFocusTarget(updatedWindows, id) : activeWindowId;
+				// Transfer focus if minimizing active window
+				const newActiveId =
+					activeWindowId === id ? findNextFocusTarget(updatedWindows, id) : activeWindowId;
 
-		// Exit fullscreen if minimizing the fullscreen window
-		const newFullscreenId = fullscreenWindowId === id ? null : fullscreenWindowId;
+				// Exit fullscreen if minimizing the fullscreen window
+				const newFullscreenId = fullscreenWindowId === id ? null : fullscreenWindowId;
 
-		set({
-			windows: updatedWindows,
-			activeWindowId: newActiveId,
-			fullscreenWindowId: newFullscreenId,
-		});
-	},
+				set({
+					windows: updatedWindows,
+					activeWindowId: newActiveId,
+					fullscreenWindowId: newFullscreenId,
+				});
+			},
 
-	updateWindowPosition: (id: AppID, position: WindowPosition) => {
-		const { windows } = get();
-		const windowIndex = windows.findIndex((w) => w.id === id);
+			updateWindowPosition: (id: AppID, position: WindowPosition) => {
+				const { windows } = get();
+				const windowIndex = windows.findIndex((w) => w.id === id);
 
-		if (windowIndex === -1) return;
+				if (windowIndex === -1) return;
 
-		const targetWindow = windows[windowIndex];
-		if (!targetWindow) return;
+				const targetWindow = windows[windowIndex];
+				if (!targetWindow) return;
 
-		const updatedWindows = [...windows];
-		updatedWindows[windowIndex] = {
-			...targetWindow,
-			position,
-		};
+				const updatedWindows = [...windows];
+				updatedWindows[windowIndex] = {
+					...targetWindow,
+					position,
+				};
 
-		set({ windows: updatedWindows });
-	},
+				set({ windows: updatedWindows });
+			},
 
-	updateWindowSize: (id: AppID, size: WindowSize) => {
-		const { windows } = get();
-		const windowIndex = windows.findIndex((w) => w.id === id);
+			updateWindowSize: (id: AppID, size: WindowSize) => {
+				const { windows } = get();
+				const windowIndex = windows.findIndex((w) => w.id === id);
 
-		if (windowIndex === -1) return;
+				if (windowIndex === -1) return;
 
-		const targetWindow = windows[windowIndex];
-		if (!targetWindow) return;
+				const targetWindow = windows[windowIndex];
+				if (!targetWindow) return;
 
-		const updatedWindows = [...windows];
-		updatedWindows[windowIndex] = {
-			...targetWindow,
-			size,
-		};
+				const updatedWindows = [...windows];
+				updatedWindows[windowIndex] = {
+					...targetWindow,
+					size,
+				};
 
-		set({ windows: updatedWindows });
-	},
+				set({ windows: updatedWindows });
+			},
 
-	toggleFullscreen: (id: AppID) => {
-		const { fullscreenWindowId } = get();
+			toggleFullscreen: (id: AppID) => {
+				const { fullscreenWindowId } = get();
 
-		if (fullscreenWindowId === id) {
-			// Exit fullscreen
-			set({ fullscreenWindowId: null });
-		} else {
-			// Enter fullscreen (and focus the window)
-			get().focusWindow(id);
-			set({ fullscreenWindowId: id });
-		}
-	},
+				if (fullscreenWindowId === id) {
+					// Exit fullscreen
+					set({ fullscreenWindowId: null });
+				} else {
+					// Enter fullscreen (and focus the window)
+					get().focusWindow(id);
+					set({ fullscreenWindowId: id });
+				}
+			},
 
-	exitFullscreen: () => {
-		set({ fullscreenWindowId: null });
-	},
-}));
+			exitFullscreen: () => {
+				set({ fullscreenWindowId: null });
+			},
+
+			setWallpaper: (path: string | null) => {
+				set({ wallpaper: path });
+			},
+
+			setDockConfig: (config: Partial<DockConfig>) => {
+				const { dockConfig } = get();
+				set({
+					dockConfig: {
+						...dockConfig,
+						...config,
+					},
+				});
+			},
+		}),
+		{
+			name: "dinos-preferences",
+			partialize: (state): PersistedState => ({
+				wallpaper: state.wallpaper,
+				dockConfig: state.dockConfig,
+			}),
+		},
+	),
+);
+
+/**
+ * Hook to track hydration state.
+ * Returns false during SSR and initial render, true after localStorage hydration.
+ *
+ * Use this to prevent hydration mismatches when persisted state differs from defaults.
+ * Components should render with defaults until hydration completes, then re-render.
+ *
+ * @example
+ * ```tsx
+ * const dockConfig = useSystemStore(selectDockConfig);
+ * const hasHydrated = useHasHydrated();
+ *
+ * // Use defaults during SSR, persisted values after hydration
+ * const position = hasHydrated ? dockConfig.position : 'bottom';
+ * ```
+ */
+export function useHasHydrated(): boolean {
+	const [hasHydrated, setHasHydrated] = React.useState(false);
+
+	React.useEffect(() => {
+		// The persist middleware calls onRehydrateStorage after hydration
+		// We use a simple effect since hydration happens synchronously after mount
+		setHasHydrated(true);
+	}, []);
+
+	return hasHydrated;
+}
 
 /**
  * Selector helpers for common patterns.
@@ -304,3 +376,5 @@ export const selectIsAnyWindowFullscreen = (state: SystemStore) =>
 	state.fullscreenWindowId !== null;
 export const selectWindowById = (id: AppID) => (state: SystemStore) =>
 	state.windows.find((w) => w.id === id);
+export const selectWallpaper = (state: SystemStore) => state.wallpaper;
+export const selectDockConfig = (state: SystemStore) => state.dockConfig;

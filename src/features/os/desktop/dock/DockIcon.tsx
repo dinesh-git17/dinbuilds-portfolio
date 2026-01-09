@@ -22,10 +22,14 @@ export interface DockIconProps {
 	backgroundColor?: string;
 	/** Padding around the icon image */
 	iconPadding?: string;
-	/** Mouse X position relative to dock (motion value) */
-	mouseX: MotionValue<number>;
-	/** Whether magnification is enabled (desktop only) */
+	/** Mouse position relative to dock (motion value) - X for horizontal, Y for vertical */
+	mousePosition: MotionValue<number>;
+	/** Whether magnification is enabled */
 	magnify: boolean;
+	/** Base icon size in pixels (controlled by dock config) */
+	baseSize: number;
+	/** Dock position for tooltip placement */
+	dockPosition: "bottom" | "left" | "right";
 	/** Whether this icon is focused for keyboard navigation */
 	isFocused?: boolean;
 	/** Callback when icon receives focus */
@@ -34,12 +38,10 @@ export interface DockIconProps {
 	onClick?: () => void;
 }
 
-/** Base icon size in pixels */
-const BASE_SIZE = 52;
-/** Maximum magnified size */
-const MAX_SIZE = 80;
 /** Distance at which magnification reaches maximum */
 const MAGNIFY_DISTANCE = 150;
+/** Magnification scale factor (max size = base size * this factor) */
+const MAGNIFY_SCALE = 1.54;
 
 /**
  * Individual dock icon with parabolic magnification effect.
@@ -55,8 +57,10 @@ export const DockIcon = memo(function DockIcon({
 	gradient,
 	backgroundColor,
 	iconPadding,
-	mouseX,
+	mousePosition,
 	magnify,
+	baseSize,
+	dockPosition,
 	isFocused = false,
 	onFocus,
 	onClick,
@@ -65,25 +69,31 @@ export const DockIcon = memo(function DockIcon({
 	const launchApp = useSystemStore((s) => s.launchApp);
 	const [isHovered, setIsHovered] = useState(false);
 
+	const isVertical = dockPosition === "left" || dockPosition === "right";
+
+	// Calculate max size based on base size
+	const maxSize = Math.round(baseSize * MAGNIFY_SCALE);
+
 	// Calculate distance from mouse to icon center
-	const distance = useTransform(mouseX, (val) => {
+	const distance = useTransform(mousePosition, (val) => {
 		const bounds = ref.current?.getBoundingClientRect();
 		if (!bounds) return MAGNIFY_DISTANCE;
-		const iconCenter = bounds.x + bounds.width / 2;
+		// Use Y center for vertical dock, X center for horizontal
+		const iconCenter = isVertical ? bounds.y + bounds.height / 2 : bounds.x + bounds.width / 2;
 		return val - iconCenter;
 	});
 
 	// Parabolic scaling based on distance
 	const scale = useTransform(distance, (d) => {
-		if (!magnify) return BASE_SIZE;
+		if (!magnify) return baseSize;
 
 		const absDistance = Math.abs(d);
-		if (absDistance > MAGNIFY_DISTANCE) return BASE_SIZE;
+		if (absDistance > MAGNIFY_DISTANCE) return baseSize;
 
 		// Cosine interpolation for smooth magnification curve
 		const ratio = 1 - absDistance / MAGNIFY_DISTANCE;
 		const cosValue = (1 + Math.cos(Math.PI * (1 - ratio))) / 2;
-		return BASE_SIZE + (MAX_SIZE - BASE_SIZE) * cosValue;
+		return baseSize + (maxSize - baseSize) * cosValue;
 	});
 
 	// Smooth spring animation for the size
@@ -94,13 +104,14 @@ export const DockIcon = memo(function DockIcon({
 	});
 
 	const handleClick = useCallback(() => {
-		launchApp(appId);
+		// Reset magnification and focus BEFORE launching app to prevent stuck state
+		onClick?.();
 		// Clear hover state on click (fixes tooltip staying visible on touch devices)
 		setIsHovered(false);
 		// Blur the button to remove focus ring (fixes highlight staying on touch devices)
 		ref.current?.blur();
-		// Notify parent to clear focus index
-		onClick?.();
+		// Launch the app after resetting dock state
+		launchApp(appId);
 	}, [launchApp, appId, onClick]);
 
 	const handleKeyDown = useCallback(
@@ -118,14 +129,33 @@ export const DockIcon = memo(function DockIcon({
 			className="relative flex flex-col items-center"
 			style={{ width: size, height: size }}
 		>
-			{/* Tooltip - appears above icon on hover */}
+			{/* Tooltip - appears above (bottom dock), right (left dock), or left (right dock) */}
 			<motion.div
-				className="pointer-events-none absolute -top-9 left-1/2 z-50"
-				initial={{ opacity: 0, y: 4, x: "-50%" }}
+				className={`pointer-events-none absolute z-50 ${
+					dockPosition === "bottom"
+						? "-top-9 left-1/2"
+						: dockPosition === "left"
+							? "left-full top-1/2 ml-3"
+							: "right-full top-1/2 mr-3"
+				}`}
+				initial={{
+					opacity: 0,
+					x: dockPosition === "bottom" ? "-50%" : dockPosition === "left" ? -4 : 4,
+					y: dockPosition === "bottom" ? 4 : "-50%",
+				}}
 				animate={{
 					opacity: isHovered ? 1 : 0,
-					y: isHovered ? 0 : 4,
-					x: "-50%",
+					x:
+						dockPosition === "bottom"
+							? "-50%"
+							: dockPosition === "left"
+								? isHovered
+									? 0
+									: -4
+								: isHovered
+									? 0
+									: 4,
+					y: dockPosition === "bottom" ? (isHovered ? 0 : 4) : "-50%",
 				}}
 				transition={{ duration: 0.15 }}
 			>
@@ -133,7 +163,15 @@ export const DockIcon = memo(function DockIcon({
 					{label}
 				</div>
 				{/* Tooltip arrow */}
-				<div className="absolute left-1/2 -bottom-1 h-2 w-2 -translate-x-1/2 rotate-45 bg-gray-800/95" />
+				<div
+					className={`absolute h-2 w-2 rotate-45 bg-gray-800/95 ${
+						dockPosition === "bottom"
+							? "-bottom-1 left-1/2 -translate-x-1/2"
+							: dockPosition === "left"
+								? "-left-1 top-1/2 -translate-y-1/2"
+								: "-right-1 top-1/2 -translate-y-1/2"
+					}`}
+				/>
 			</motion.div>
 
 			{/* Icon button */}
