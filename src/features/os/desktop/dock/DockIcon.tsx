@@ -104,13 +104,14 @@ export const DockIcon = memo(function DockIcon({
 	});
 
 	const handleClick = useCallback(() => {
-		launchApp(appId);
+		// Reset magnification and focus BEFORE launching app to prevent stuck state
+		onClick?.();
 		// Clear hover state on click (fixes tooltip staying visible on touch devices)
 		setIsHovered(false);
 		// Blur the button to remove focus ring (fixes highlight staying on touch devices)
 		ref.current?.blur();
-		// Notify parent to clear focus index
-		onClick?.();
+		// Launch the app after resetting dock state
+		launchApp(appId);
 	}, [launchApp, appId, onClick]);
 
 	const handleKeyDown = useCallback(

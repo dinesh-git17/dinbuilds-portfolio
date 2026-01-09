@@ -42,7 +42,7 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 	return (
 		<div
 			ref={stageRef}
-			className="relative h-screen w-screen overflow-hidden bg-background"
+			className="relative h-screen w-screen select-none overflow-hidden bg-background"
 			onPointerDown={handlePointerDown}
 			onPointerMove={handlePointerMove}
 			onPointerUp={handlePointerUp}
@@ -55,6 +55,8 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 					alt=""
 					fill
 					priority
+					quality={90}
+					sizes="100vw"
 					className="pointer-events-none object-cover"
 					aria-hidden="true"
 				/>

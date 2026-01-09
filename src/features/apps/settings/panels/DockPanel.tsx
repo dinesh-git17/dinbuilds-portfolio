@@ -110,7 +110,7 @@ export const DockPanel = memo(function DockPanel() {
 			</header>
 
 			{/* Position Section */}
-			<fieldset className="flex flex-col gap-3">
+			<fieldset className="flex flex-col gap-4">
 				<legend className="text-xs font-medium text-white/70">Position on screen</legend>
 				<div className="flex gap-4">
 					{POSITION_OPTIONS.map((option) => {
@@ -152,9 +152,9 @@ export const DockPanel = memo(function DockPanel() {
 			</fieldset>
 
 			{/* Size Section */}
-			<fieldset className="flex flex-col gap-3">
+			<fieldset className="flex flex-col gap-4">
 				<legend className="text-xs font-medium text-white/70">Size</legend>
-				<div className="inline-flex rounded-lg bg-white/5 p-1">
+				<div className="inline-flex w-fit rounded-lg bg-white/5 p-1">
 					{SIZE_OPTIONS.map((option) => {
 						const isSelected = dockConfig.size === option.id;
 						const inputId = `${sizeGroupId}-${option.id}`;

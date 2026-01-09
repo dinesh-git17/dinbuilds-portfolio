@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { motion, useMotionValue } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue } from "framer-motion";
 import { memo, useCallback, useRef, useState } from "react";
 
 import {
@@ -19,15 +19,20 @@ import { useDeviceType } from "./useDeviceType";
 
 /**
  * Position-based CSS classes for dock placement.
+ * Note: Centering transforms are handled by Framer Motion to avoid
+ * transform override conflicts between CSS and motion animations.
  */
 const POSITION_CLASSES = {
-	bottom: "bottom-3 left-1/2 -translate-x-1/2",
-	left: "left-3 top-1/2 -translate-y-1/2",
-	right: "right-3 top-1/2 -translate-y-1/2",
+	bottom: "bottom-3 left-1/2",
+	left: "left-3 top-1/2",
+	right: "right-3 top-1/2",
 } as const;
 
 /**
  * Animation variants for dock show/hide based on position.
+ * Includes centering transforms to prevent CSS/motion transform conflicts.
+ * Exit animations slide the dock out in the direction of its edge.
+ * Note: Opacity is not animated to prevent backdrop-blur glitching.
  */
 const getAnimationVariants = (position: "bottom" | "left" | "right", isFullscreen: boolean) => {
 	const hiddenOffset = 120;
@@ -35,19 +40,24 @@ const getAnimationVariants = (position: "bottom" | "left" | "right", isFullscree
 	switch (position) {
 		case "left":
 			return {
-				initial: { x: -hiddenOffset, opacity: 0 },
-				animate: { x: isFullscreen ? -hiddenOffset : 0, opacity: isFullscreen ? 0 : 1 },
+				// y: "-50%" provides vertical centering (replaces CSS -translate-y-1/2)
+				initial: { x: -hiddenOffset, y: "-50%" },
+				animate: { x: isFullscreen ? -hiddenOffset : 0, y: "-50%" },
+				exit: { x: -hiddenOffset, y: "-50%" },
 			};
 		case "right":
 			return {
-				initial: { x: hiddenOffset, opacity: 0 },
-				animate: { x: isFullscreen ? hiddenOffset : 0, opacity: isFullscreen ? 0 : 1 },
+				// y: "-50%" provides vertical centering (replaces CSS -translate-y-1/2)
+				initial: { x: hiddenOffset, y: "-50%" },
+				animate: { x: isFullscreen ? hiddenOffset : 0, y: "-50%" },
+				exit: { x: hiddenOffset, y: "-50%" },
 			};
 		default:
-			// "bottom" position
+			// "bottom" position - x: "-50%" provides horizontal centering
 			return {
-				initial: { y: hiddenOffset, opacity: 0 },
-				animate: { y: isFullscreen ? hiddenOffset : 0, opacity: isFullscreen ? 0 : 1 },
+				initial: { x: "-50%", y: hiddenOffset },
+				animate: { x: "-50%", y: isFullscreen ? hiddenOffset : 0 },
+				exit: { x: "-50%", y: hiddenOffset },
 			};
 	}
 };
@@ -82,13 +92,15 @@ export const Dock = memo(function Dock() {
 	const dockRef = useRef<HTMLElement>(null);
 	// Track mouse X for horizontal, Y for vertical
 	const mousePosition = useMotionValue(Infinity);
+	// Suspend mouse tracking after click until mouse leaves dock
+	const isTrackingSuspended = useRef(false);
 
 	// Keyboard navigation state
 	const [focusedIndex, setFocusedIndex] = useState<number>(-1);
 
 	const handleMouseMove = useCallback(
 		(e: React.MouseEvent) => {
-			if (isMobile || !magnification) return;
+			if (isMobile || !magnification || isTrackingSuspended.current) return;
 			// Use clientY for vertical dock, clientX for horizontal
 			mousePosition.set(isVertical ? e.clientY : e.clientX);
 		},
@@ -98,6 +110,8 @@ export const Dock = memo(function Dock() {
 	const handleMouseLeave = useCallback(() => {
 		mousePosition.set(Infinity);
 		setFocusedIndex(-1);
+		// Re-enable tracking when mouse leaves
+		isTrackingSuspended.current = false;
 	}, [mousePosition]);
 
 	const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -131,12 +145,20 @@ export const Dock = memo(function Dock() {
 
 	const handleIconClick = useCallback(() => {
 		setFocusedIndex(-1);
-	}, []);
+		// Reset magnification and suspend tracking until mouse leaves
+		mousePosition.set(Infinity);
+		isTrackingSuspended.current = true;
+	}, [mousePosition]);
 
 	// Prevent selection box from triggering when interacting with dock
 	const handlePointerDown = useCallback((e: React.PointerEvent) => {
 		e.stopPropagation();
 	}, []);
+
+	// Reset magnification after any pointer up to catch edge cases
+	const handlePointerUp = useCallback(() => {
+		mousePosition.set(Infinity);
+	}, [mousePosition]);
 
 	// Platform thickness stays fixed (doesn't grow with magnification)
 	// Icons grow outward from the edge, platform stays anchored
@@ -147,102 +169,105 @@ export const Dock = memo(function Dock() {
 	const platformThickness = baseSize + padding * 2;
 
 	// Get animation variants based on position
-	const { initial, animate } = getAnimationVariants(position, isFullscreen);
+	const { initial, animate, exit } = getAnimationVariants(position, isFullscreen);
 
 	return (
-		<motion.nav
-			ref={dockRef}
-			role="navigation"
-			aria-label="Application dock"
-			className={clsx("fixed z-50", POSITION_CLASSES[position])}
-			initial={initial}
-			animate={animate}
-			transition={{
-				type: "spring",
-				stiffness: 300,
-				damping: 30,
-				delay: isFullscreen ? 0 : 0.2,
-			}}
-			onPointerDown={handlePointerDown}
-			aria-hidden={isFullscreen}
-		>
-			{/* Dock platform container */}
-			<div
-				role="toolbar"
-				aria-label="Application shortcuts"
-				className="relative"
-				onMouseMove={handleMouseMove}
-				onMouseLeave={handleMouseLeave}
-				onKeyDown={handleKeyDown}
+		<AnimatePresence mode="wait">
+			<motion.nav
+				key={position}
+				ref={dockRef}
+				role="navigation"
+				aria-label="Application dock"
+				className={clsx("fixed z-50", POSITION_CLASSES[position])}
+				initial={initial}
+				animate={animate}
+				exit={exit}
+				transition={{
+					type: "spring",
+					stiffness: 500,
+					damping: 35,
+					delay: isFullscreen ? 0 : 0.1,
+				}}
+				onPointerDown={handlePointerDown}
+				aria-hidden={isFullscreen}
 			>
-				{/* Glass platform background - anchored to edge, fills container */}
+				{/* Dock platform container */}
 				<div
-					className={clsx(
-						"absolute rounded-2xl",
-						isVertical ? "inset-y-0" : "inset-x-0 bottom-0",
-						// For left dock, anchor to left; for right dock, anchor to right
-						position === "left" && "left-0",
-						position === "right" && "right-0",
-					)}
-					style={{
-						// Fixed thickness perpendicular to the dock edge
-						// Use max icon size when magnification is enabled to prevent platform resize
-						...(isVertical
-							? { width: magnification ? maxIconSize + padding * 2 : platformThickness }
-							: { height: platformThickness }),
-						background: "rgba(50, 50, 50, 0.65)",
-						backdropFilter: "blur(20px)",
-						WebkitBackdropFilter: "blur(20px)",
-						boxShadow: `
+					role="toolbar"
+					aria-label="Application shortcuts"
+					className="relative"
+					onMouseMove={handleMouseMove}
+					onMouseLeave={handleMouseLeave}
+					onPointerUp={handlePointerUp}
+					onKeyDown={handleKeyDown}
+				>
+					{/* Glass platform background - anchored to edge, fills container */}
+					<div
+						className={clsx(
+							"absolute rounded-2xl",
+							isVertical ? "inset-y-0" : "inset-x-0 bottom-0",
+							// For left dock, anchor to left; for right dock, anchor to right
+							position === "left" && "left-0",
+							position === "right" && "right-0",
+						)}
+						style={{
+							// Fixed thickness perpendicular to the dock edge
+							// Icons grow outward beyond the platform during magnification
+							...(isVertical ? { width: platformThickness } : { height: platformThickness }),
+							background: "rgba(50, 50, 50, 0.65)",
+							backdropFilter: "blur(20px)",
+							WebkitBackdropFilter: "blur(20px)",
+							boxShadow: `
 							0 0 0 0.5px rgba(255, 255, 255, 0.15),
 							0 8px 40px rgba(0, 0, 0, 0.55),
 							inset 0 0.5px 0 rgba(255, 255, 255, 0.1)
 						`,
-					}}
-				/>
+						}}
+					/>
 
-				{/* Icons container - icons grow outward from edge during magnification */}
-				<div
-					className={clsx(
-						"relative flex",
-						isVertical ? "flex-col" : "flex-row",
-						// Alignment: icons anchor to the dock edge, grow outward
-						// Bottom dock: items-end (icons align bottom, grow up)
-						// Left dock: items-start (icons align left, grow right)
-						// Right dock: items-end (icons align right, grow left)
-						position === "left" ? "items-start" : "items-end",
-					)}
-					style={{
-						gap: `${gap}px`,
-						padding: `${padding}px`,
-						// Fixed width for vertical docks prevents container resize during magnification
-						...(isVertical &&
-							magnification && {
-								width: maxIconSize + padding * 2,
-							}),
-					}}
-				>
-					{DOCK_ITEMS.map((item, index) => (
-						<DockIcon
-							key={item.id}
-							appId={item.id}
-							label={item.label}
-							icon={item.icon}
-							iconSrc={item.iconSrc}
-							gradient={item.gradient}
-							backgroundColor={item.backgroundColor}
-							iconPadding={item.iconPadding}
-							mousePosition={mousePosition}
-							magnify={!isMobile && magnification}
-							baseSize={baseSize}
-							dockPosition={position}
-							isFocused={focusedIndex === index}
-							onFocus={() => handleIconFocus(index)}
-							onClick={handleIconClick}
-						/>
-					))}
+					{/* Icons container - icons grow outward from edge during magnification */}
+					<div
+						className={clsx(
+							"relative flex",
+							isVertical ? "flex-col" : "flex-row",
+							// Alignment: icons anchor to the dock edge, grow outward
+							// Bottom dock: items-end (icons align bottom, grow up)
+							// Left dock: items-start (icons align left, grow right)
+							// Right dock: items-end (icons align right, grow left)
+							position === "left" ? "items-start" : "items-end",
+						)}
+						style={{
+							gap: `${gap}px`,
+							padding: `${padding}px`,
+							// Fixed width for vertical docks prevents container resize during magnification
+							...(isVertical &&
+								magnification && {
+									width: maxIconSize + padding * 2,
+								}),
+						}}
+					>
+						{DOCK_ITEMS.map((item, index) => (
+							<DockIcon
+								key={item.id}
+								appId={item.id}
+								label={item.label}
+								icon={item.icon}
+								iconSrc={item.iconSrc}
+								gradient={item.gradient}
+								backgroundColor={item.backgroundColor}
+								iconPadding={item.iconPadding}
+								mousePosition={mousePosition}
+								magnify={!isMobile && magnification}
+								baseSize={baseSize}
+								dockPosition={position}
+								isFocused={focusedIndex === index}
+								onFocus={() => handleIconFocus(index)}
+								onClick={handleIconClick}
+							/>
+						))}
+					</div>
 				</div>
-			</div>
-		</motion.nav>
+			</motion.nav>
+		</AnimatePresence>
 	);
 });

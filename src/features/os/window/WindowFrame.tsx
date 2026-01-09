@@ -164,11 +164,11 @@ export const WindowFrame = memo(function WindowFrame({
 	// Animation variants
 	// Note: We avoid animating opacity on elements with backdrop-blur
 	// as it causes a visual "flash" when the blur effect kicks in.
-	// We only animate scale to avoid conflicts with position motion values.
+	// Exit animation is disabled - a partial scale without opacity looks jarring.
 	const variants = {
 		initial: reducedMotion ? {} : { scale: 0.96 },
 		animate: reducedMotion ? {} : { scale: 1 },
-		exit: reducedMotion ? {} : { scale: 0.96 },
+		exit: {},
 	};
 
 	// Mobile-specific drag constraints (tighter bounds)

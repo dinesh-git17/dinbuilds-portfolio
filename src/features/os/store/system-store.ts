@@ -123,7 +123,7 @@ export const useSystemStore = create<SystemStore>()(
 			windows: [],
 			activeWindowId: null,
 			fullscreenWindowId: null,
-			wallpaper: null,
+			wallpaper: "/assets/wallpapers/wall-9.jpg",
 			dockConfig: DEFAULT_DOCK_CONFIG,
 
 			// Actions
