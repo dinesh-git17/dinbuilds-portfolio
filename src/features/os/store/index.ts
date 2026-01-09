@@ -8,6 +8,7 @@
 // Store
 export {
 	selectActiveWindowId,
+	selectDockConfig,
 	selectFullscreenWindowId,
 	selectIsAnyWindowFullscreen,
 	selectIsWindowActive,
@@ -15,6 +16,7 @@ export {
 	selectWallpaper,
 	selectWindowById,
 	selectWindows,
+	useHasHydrated,
 	useSystemStore,
 } from "./system-store";
 
@@ -22,7 +24,12 @@ export {
 export {
 	AppID,
 	AUTO_FULLSCREEN_APPS,
+	DEFAULT_DOCK_CONFIG,
 	DEFAULT_WINDOW_SIZES,
+	DOCK_SIZE_MAP,
+	type DockConfig,
+	type DockPosition,
+	type DockSize,
 	MAXIMIZED_APPS,
 	type SystemActions,
 	type SystemState,

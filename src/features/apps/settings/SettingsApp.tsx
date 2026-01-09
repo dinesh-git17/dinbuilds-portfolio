@@ -3,6 +3,7 @@
 import { memo, useState } from "react";
 
 import { AboutPanel } from "./panels/AboutPanel";
+import { DockPanel } from "./panels/DockPanel";
 import { WallpaperPanel } from "./panels/WallpaperPanel";
 import { type SettingsPanelId, SettingsSidebar } from "./SettingsSidebar";
 
@@ -25,6 +26,7 @@ export const SettingsApp = memo(function SettingsApp() {
 			<main className="flex-1 overflow-y-auto p-6">
 				{activePanel === "about" && <AboutPanel />}
 				{activePanel === "wallpaper" && <WallpaperPanel />}
+				{activePanel === "dock" && <DockPanel />}
 			</main>
 		</div>
 	);

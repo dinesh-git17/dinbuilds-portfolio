@@ -1,13 +1,13 @@
 "use client";
 
 import clsx from "clsx";
-import { ImageIcon, InfoIcon } from "lucide-react";
+import { ImageIcon, InfoIcon, LayoutGridIcon } from "lucide-react";
 import { memo } from "react";
 
 /**
  * Available panel identifiers for Settings navigation.
  */
-export type SettingsPanelId = "about" | "wallpaper";
+export type SettingsPanelId = "about" | "wallpaper" | "dock";
 
 /**
  * Navigation item configuration.
@@ -21,6 +21,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
 	{ id: "about", label: "About", icon: InfoIcon },
 	{ id: "wallpaper", label: "Wallpaper", icon: ImageIcon },
+	{ id: "dock", label: "Dock", icon: LayoutGridIcon },
 ];
 
 export interface SettingsSidebarProps {

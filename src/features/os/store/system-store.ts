@@ -1,15 +1,22 @@
+import * as React from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type {
 	AppID,
+	DockConfig,
 	SystemStore,
 	WindowInstance,
 	WindowPosition,
 	WindowSize,
 	WindowSpawnConfig,
 } from "./types";
-import { AUTO_FULLSCREEN_APPS, DEFAULT_WINDOW_SIZES, MAXIMIZED_APPS } from "./types";
+import {
+	AUTO_FULLSCREEN_APPS,
+	DEFAULT_DOCK_CONFIG,
+	DEFAULT_WINDOW_SIZES,
+	MAXIMIZED_APPS,
+} from "./types";
 
 /**
  * State keys that should persist across sessions.
@@ -17,6 +24,7 @@ import { AUTO_FULLSCREEN_APPS, DEFAULT_WINDOW_SIZES, MAXIMIZED_APPS } from "./ty
  */
 interface PersistedState {
 	wallpaper: string | null;
+	dockConfig: DockConfig;
 }
 
 /**
@@ -116,6 +124,7 @@ export const useSystemStore = create<SystemStore>()(
 			activeWindowId: null,
 			fullscreenWindowId: null,
 			wallpaper: null,
+			dockConfig: DEFAULT_DOCK_CONFIG,
 
 			// Actions
 			launchApp: (appId: AppID, config?: WindowSpawnConfig) => {
@@ -298,15 +307,54 @@ export const useSystemStore = create<SystemStore>()(
 			setWallpaper: (path: string | null) => {
 				set({ wallpaper: path });
 			},
+
+			setDockConfig: (config: Partial<DockConfig>) => {
+				const { dockConfig } = get();
+				set({
+					dockConfig: {
+						...dockConfig,
+						...config,
+					},
+				});
+			},
 		}),
 		{
 			name: "dinos-preferences",
 			partialize: (state): PersistedState => ({
 				wallpaper: state.wallpaper,
+				dockConfig: state.dockConfig,
 			}),
 		},
 	),
 );
+
+/**
+ * Hook to track hydration state.
+ * Returns false during SSR and initial render, true after localStorage hydration.
+ *
+ * Use this to prevent hydration mismatches when persisted state differs from defaults.
+ * Components should render with defaults until hydration completes, then re-render.
+ *
+ * @example
+ * ```tsx
+ * const dockConfig = useSystemStore(selectDockConfig);
+ * const hasHydrated = useHasHydrated();
+ *
+ * // Use defaults during SSR, persisted values after hydration
+ * const position = hasHydrated ? dockConfig.position : 'bottom';
+ * ```
+ */
+export function useHasHydrated(): boolean {
+	const [hasHydrated, setHasHydrated] = React.useState(false);
+
+	React.useEffect(() => {
+		// The persist middleware calls onRehydrateStorage after hydration
+		// We use a simple effect since hydration happens synchronously after mount
+		setHasHydrated(true);
+	}, []);
+
+	return hasHydrated;
+}
 
 /**
  * Selector helpers for common patterns.
@@ -329,3 +377,4 @@ export const selectIsAnyWindowFullscreen = (state: SystemStore) =>
 export const selectWindowById = (id: AppID) => (state: SystemStore) =>
 	state.windows.find((w) => w.id === id);
 export const selectWallpaper = (state: SystemStore) => state.wallpaper;
+export const selectDockConfig = (state: SystemStore) => state.dockConfig;

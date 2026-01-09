@@ -91,6 +91,49 @@ export const MAXIMIZED_APPS: Set<AppID> = new Set([AppID.Yield, AppID.Debate, Ap
 export const AUTO_FULLSCREEN_APPS: Set<AppID> = new Set([AppID.Yield, AppID.Debate, AppID.PassFX]);
 
 /**
+ * Dock position options.
+ * "Top" is excluded to avoid conflict with the System Bar.
+ */
+export type DockPosition = "bottom" | "left" | "right";
+
+/**
+ * Dock size presets mapped to icon dimensions.
+ * sm=40px, md=50px, lg=64px
+ */
+export type DockSize = "sm" | "md" | "lg";
+
+/**
+ * Configuration for dock appearance and behavior.
+ */
+export interface DockConfig {
+	/** Position of the dock on screen */
+	position: DockPosition;
+	/** Icon size preset */
+	size: DockSize;
+	/** Whether icons scale up on hover */
+	magnification: boolean;
+}
+
+/**
+ * Default dock configuration.
+ * Bottom position, medium size, magnification enabled.
+ */
+export const DEFAULT_DOCK_CONFIG: DockConfig = {
+	position: "bottom",
+	size: "md",
+	magnification: true,
+};
+
+/**
+ * Mapping from size preset to icon dimensions in pixels.
+ */
+export const DOCK_SIZE_MAP: Record<DockSize, number> = {
+	sm: 40,
+	md: 50,
+	lg: 64,
+};
+
+/**
  * State slice for the system store.
  * Represents the current state of all windows.
  */
@@ -119,6 +162,12 @@ export interface SystemState {
 	 * null uses the default Grid/Vignette background.
 	 */
 	wallpaper: string | null;
+
+	/**
+	 * Dock appearance and behavior configuration.
+	 * Persisted to localStorage for user preference retention.
+	 */
+	dockConfig: DockConfig;
 }
 
 /**
@@ -178,6 +227,12 @@ export interface SystemActions {
 	 * Pass null to revert to the default Grid/Vignette.
 	 */
 	setWallpaper: (path: string | null) => void;
+
+	/**
+	 * Update dock configuration.
+	 * Accepts partial config to allow updating individual properties.
+	 */
+	setDockConfig: (config: Partial<DockConfig>) => void;
 }
 
 /**
