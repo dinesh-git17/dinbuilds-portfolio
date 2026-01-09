@@ -12,6 +12,7 @@ export {
 	selectIsAnyWindowFullscreen,
 	selectIsWindowActive,
 	selectIsWindowFullscreen,
+	selectWallpaper,
 	selectWindowById,
 	selectWindows,
 	useSystemStore,

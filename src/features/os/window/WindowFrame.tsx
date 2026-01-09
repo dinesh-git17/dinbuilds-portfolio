@@ -162,10 +162,13 @@ export const WindowFrame = memo(function WindowFrame({
 	);
 
 	// Animation variants
+	// Note: We avoid animating opacity on elements with backdrop-blur
+	// as it causes a visual "flash" when the blur effect kicks in.
+	// We only animate scale to avoid conflicts with position motion values.
 	const variants = {
-		initial: reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 },
-		animate: reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 },
-		exit: reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 },
+		initial: reducedMotion ? {} : { scale: 0.96 },
+		animate: reducedMotion ? {} : { scale: 1 },
+		exit: reducedMotion ? {} : { scale: 0.96 },
 	};
 
 	// Mobile-specific drag constraints (tighter bounds)

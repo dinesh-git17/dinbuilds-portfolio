@@ -1,4 +1,4 @@
-import { type LucideIcon, Mail, Terminal, User } from "lucide-react";
+import { type LucideIcon, Mail, Settings, Terminal, User } from "lucide-react";
 
 import { AppID } from "@/os/store";
 
@@ -62,5 +62,11 @@ export const DOCK_ITEMS: DockItemConfig[] = [
 		label: "Contact",
 		icon: Mail,
 		gradient: ["#64D2FF", "#0A84FF"], // Light blue - like Mail
+	},
+	{
+		id: AppID.Settings,
+		label: "Settings",
+		icon: Settings,
+		gradient: ["#8E8E93", "#636366"], // Gray - like System Preferences
 	},
 ];

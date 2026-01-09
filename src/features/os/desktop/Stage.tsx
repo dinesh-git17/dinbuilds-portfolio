@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { memo, useRef } from "react";
 
+import { selectWallpaper, useSystemStore } from "@/os/store";
 import { WindowManager } from "@/os/window";
 
 import { Dock } from "./dock";
@@ -33,6 +35,7 @@ export interface StageProps {
  */
 export const Stage = memo(function Stage({ children }: StageProps) {
 	const stageRef = useRef<HTMLDivElement>(null);
+	const wallpaper = useSystemStore(selectWallpaper);
 	const { isSelecting, selectionBox, handlePointerDown, handlePointerMove, handlePointerUp } =
 		useSelectionBox(stageRef);
 
@@ -46,7 +49,18 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 			onPointerCancel={handlePointerUp}
 		>
 			{/* Background layers */}
-			<GridPattern />
+			{wallpaper ? (
+				<Image
+					src={wallpaper}
+					alt=""
+					fill
+					priority
+					className="pointer-events-none object-cover"
+					aria-hidden="true"
+				/>
+			) : (
+				<GridPattern />
+			)}
 			<Vignette />
 
 			{/* Selection box layer (z-0, above background, below windows) */}

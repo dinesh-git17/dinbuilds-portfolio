@@ -4,6 +4,7 @@ import { AboutApp } from "@/apps/about";
 import { ContactApp } from "@/apps/contact";
 import { DebateApp } from "@/apps/debate";
 import { PassFXApp } from "@/apps/passfx";
+import { SettingsApp } from "@/apps/settings";
 import { TerminalApp } from "@/apps/terminal";
 import { YieldApp } from "@/apps/yield";
 import { AppID } from "@/os/store";
@@ -50,6 +51,10 @@ export const APP_REGISTRY: Record<AppID, AppManifest> = {
 	[AppID.Contact]: {
 		name: "Contact",
 		component: ContactApp,
+	},
+	[AppID.Settings]: {
+		name: "Settings",
+		component: SettingsApp,
 	},
 };
 

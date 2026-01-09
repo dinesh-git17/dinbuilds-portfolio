@@ -16,6 +16,7 @@ export enum AppID {
 	Terminal = "app.terminal",
 	About = "app.about",
 	Contact = "app.contact",
+	Settings = "app.settings",
 }
 
 /**
@@ -74,6 +75,7 @@ export const DEFAULT_WINDOW_SIZES: Record<AppID, WindowSize> = {
 	[AppID.Terminal]: { width: 780, height: 520 },
 	[AppID.About]: { width: 780, height: 520 },
 	[AppID.Contact]: { width: 780, height: 520 },
+	[AppID.Settings]: { width: 680, height: 480 },
 };
 
 /**
@@ -111,6 +113,12 @@ export interface SystemState {
 	 * Fullscreen hides the dock and system bar.
 	 */
 	fullscreenWindowId: AppID | null;
+
+	/**
+	 * Path to the current wallpaper image.
+	 * null uses the default Grid/Vignette background.
+	 */
+	wallpaper: string | null;
 }
 
 /**
@@ -164,6 +172,12 @@ export interface SystemActions {
 	 * Exit fullscreen mode.
 	 */
 	exitFullscreen: () => void;
+
+	/**
+	 * Set the desktop wallpaper.
+	 * Pass null to revert to the default Grid/Vignette.
+	 */
+	setWallpaper: (path: string | null) => void;
 }
 
 /**
