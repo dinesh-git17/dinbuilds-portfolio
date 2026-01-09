@@ -14,6 +14,7 @@ import { SystemBar } from "./system-bar";
 import { useDesktop } from "./useDesktop";
 import { useSelectionBox } from "./useSelectionBox";
 import { Vignette } from "./Vignette";
+import { getWallpaperConfig } from "./wallpapers";
 
 export interface StageProps {
 	/** Content rendered above the background layers (windows, dock, etc.) */
@@ -38,6 +39,7 @@ export interface StageProps {
 export const Stage = memo(function Stage({ children }: StageProps) {
 	const stageRef = useRef<HTMLDivElement>(null);
 	const wallpaper = useSystemStore(selectWallpaper);
+	const wallpaperConfig = wallpaper ? getWallpaperConfig(wallpaper) : undefined;
 	const { isSelecting, selectionBox, handlePointerDown, handlePointerMove, handlePointerUp } =
 		useSelectionBox(stageRef);
 	const {
@@ -86,10 +88,12 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 					alt=""
 					fill
 					priority
-					quality={90}
+					quality={85}
 					sizes="100vw"
 					className="pointer-events-none object-cover"
 					aria-hidden="true"
+					placeholder={wallpaperConfig?.blurDataURL ? "blur" : "empty"}
+					blurDataURL={wallpaperConfig?.blurDataURL}
 				/>
 			) : (
 				<GridPattern />

@@ -1,21 +1,28 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { generateProfilePageSchema, renderJsonLd } from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
 	subsets: ["latin"],
+	display: "swap",
 });
 
 const geistMono = Geist_Mono({
 	variable: "--font-geist-mono",
 	subsets: ["latin"],
+	display: "swap",
 });
 
 export const metadata: Metadata = {
+	metadataBase: new URL("https://dineshd.dev"),
 	title: {
 		default: "Dinesh Dawonauth | Data Engineer",
 		template: "%s | DinBuilds OS",
+	},
+	other: {
+		"color-scheme": "dark",
 	},
 	description:
 		"Data Engineer specializing in building scalable data pipelines, ETL workflows, and analytics infrastructure. Turning raw data into actionable insights.",
@@ -58,9 +65,18 @@ export default function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+	const profileSchema = generateProfilePageSchema();
+
 	return (
 		<html lang="en">
-			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
+			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+				{children}
+				{/* Schema.org JSON-LD for Person & ProfilePage */}
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{ __html: renderJsonLd(profileSchema) }}
+				/>
+			</body>
 		</html>
 	);
 }

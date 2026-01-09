@@ -71,6 +71,18 @@
 			"*.json"
 		]
 	},
+	"overrides": [
+		{
+			"includes": ["app/layout.tsx", "app/page.tsx"],
+			"linter": {
+				"rules": {
+					"security": {
+						"noDangerouslySetInnerHtml": "off"
+					}
+				}
+			}
+		}
+	],
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
