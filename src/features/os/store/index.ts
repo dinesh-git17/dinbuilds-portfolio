@@ -36,6 +36,7 @@ export {
 	type SystemStore,
 	type WindowInstance,
 	type WindowPosition,
+	type WindowProps,
 	type WindowSize,
 	type WindowSpawnConfig,
 	type WindowStatus,

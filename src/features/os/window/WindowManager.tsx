@@ -34,15 +34,16 @@ export const WindowManager = memo(function WindowManager() {
 			{visibleWindows.map((window) => {
 				const manifest = getAppManifest(window.id);
 				const AppComponent = manifest.component;
+				const displayTitle = window.props?.title ?? manifest.name;
 
 				return (
 					<WindowFrame
 						key={window.id}
 						window={window}
-						title={manifest.name}
+						title={displayTitle}
 						reducedMotion={reducedMotion}
 					>
-						<AppComponent />
+						<AppComponent windowProps={window.props} />
 					</WindowFrame>
 				);
 			})}

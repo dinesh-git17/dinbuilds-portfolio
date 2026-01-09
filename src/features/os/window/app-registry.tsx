@@ -3,11 +3,20 @@ import type { ComponentType } from "react";
 import { AboutApp } from "@/apps/about";
 import { ContactApp } from "@/apps/contact";
 import { DebateApp } from "@/apps/debate";
+import { FolderApp } from "@/apps/folder";
+import { MarkdownViewerApp } from "@/apps/markdown";
 import { PassFXApp } from "@/apps/passfx";
 import { SettingsApp } from "@/apps/settings";
 import { TerminalApp } from "@/apps/terminal";
 import { YieldApp } from "@/apps/yield";
-import { AppID } from "@/os/store";
+import { AppID, type WindowProps } from "@/os/store";
+
+/**
+ * Props passed to app components that accept window props.
+ */
+export interface AppComponentProps {
+	windowProps?: WindowProps;
+}
 
 /**
  * App manifest definition.
@@ -17,7 +26,7 @@ export interface AppManifest {
 	/** Display name shown in window title bar */
 	name: string;
 	/** The component to render inside the window */
-	component: ComponentType;
+	component: ComponentType<AppComponentProps>;
 }
 
 /**
@@ -55,6 +64,18 @@ export const APP_REGISTRY: Record<AppID, AppManifest> = {
 	[AppID.Settings]: {
 		name: "Settings",
 		component: SettingsApp,
+	},
+	[AppID.FolderProjects]: {
+		name: "Projects",
+		component: FolderApp,
+	},
+	[AppID.FolderExperience]: {
+		name: "Experience",
+		component: FolderApp,
+	},
+	[AppID.MarkdownViewer]: {
+		name: "Markdown",
+		component: MarkdownViewerApp,
 	},
 };
 

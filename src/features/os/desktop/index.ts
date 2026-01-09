@@ -5,6 +5,7 @@
  * Import via '@/os/desktop'.
  */
 
+export { DesktopIcon, type DesktopIconProps } from "./DesktopIcon";
 export {
 	type DeviceType,
 	DOCK_ITEMS,
@@ -21,6 +22,12 @@ export {
 } from "./SelectionBox";
 export { Stage, type StageProps } from "./Stage";
 export { SystemBar, type SystemBarProps } from "./system-bar";
+export {
+	DESKTOP_ITEMS,
+	type DesktopItem,
+	type SelectionRect,
+	useDesktop,
+} from "./useDesktop";
 export {
 	type SelectionBox,
 	type UseSelectionBoxReturn,

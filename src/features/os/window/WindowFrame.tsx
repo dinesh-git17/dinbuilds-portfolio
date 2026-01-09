@@ -34,9 +34,11 @@ export interface WindowFrameProps {
  * - Constrained to viewport bounds
  * - Mobile: viewport-constrained sizing with touch drag support
  */
-// Mobile viewport padding constants
+// Viewport padding constants
 const MOBILE_PADDING = 8;
-const SYSTEM_BAR_HEIGHT = 32;
+const DESKTOP_PADDING = 16;
+const SYSTEM_BAR_HEIGHT_MOBILE = 32;
+const SYSTEM_BAR_HEIGHT_DESKTOP = 36;
 const DOCK_HEIGHT = 80;
 
 export const WindowFrame = memo(function WindowFrame({
@@ -100,14 +102,14 @@ export const WindowFrame = memo(function WindowFrame({
 
 		// On mobile: constrain to viewport with padding
 		const maxWidth = viewport.width - MOBILE_PADDING * 2;
-		const maxHeight = viewport.height - SYSTEM_BAR_HEIGHT - DOCK_HEIGHT - MOBILE_PADDING * 2;
+		const maxHeight = viewport.height - SYSTEM_BAR_HEIGHT_MOBILE - DOCK_HEIGHT - MOBILE_PADDING * 2;
 
 		const constrainedWidth = Math.min(size.width, maxWidth);
 		const constrainedHeight = Math.min(size.height, maxHeight);
 
 		// Center horizontally, position below SystemBar
 		const centeredX = (viewport.width - constrainedWidth) / 2;
-		const centeredY = SYSTEM_BAR_HEIGHT + MOBILE_PADDING;
+		const centeredY = SYSTEM_BAR_HEIGHT_MOBILE + MOBILE_PADDING;
 
 		return {
 			width: constrainedWidth,
@@ -141,12 +143,28 @@ export const WindowFrame = memo(function WindowFrame({
 
 	const handleDragEnd = useCallback(
 		(_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+			const newX = position.x + info.offset.x;
+			const newY = position.y + info.offset.y;
+
+			// Calculate valid bounds accounting for window size
+			const padding = isMobile ? MOBILE_PADDING : DESKTOP_PADDING;
+			const topBound = isMobile
+				? SYSTEM_BAR_HEIGHT_MOBILE
+				: SYSTEM_BAR_HEIGHT_DESKTOP + padding / 2;
+			const bottomBound = isMobile ? DOCK_HEIGHT : padding;
+
+			const minX = padding;
+			const maxX = viewport.width - responsiveLayout.width - padding;
+			const minY = topBound;
+			const maxY = viewport.height - responsiveLayout.height - bottomBound;
+
+			// Clamp position to valid bounds
 			updateWindowPosition(id, {
-				x: position.x + info.offset.x,
-				y: position.y + info.offset.y,
+				x: Math.max(minX, Math.min(maxX, newX)),
+				y: Math.max(minY, Math.min(maxY, newY)),
 			});
 		},
-		[id, position.x, position.y, updateWindowPosition],
+		[id, position.x, position.y, updateWindowPosition, viewport, responsiveLayout, isMobile],
 	);
 
 	// Start drag when pointer down on header
@@ -171,31 +189,25 @@ export const WindowFrame = memo(function WindowFrame({
 		exit: {},
 	};
 
-	// Mobile-specific drag constraints (tighter bounds)
-	const mobileConstraints = {
-		top: SYSTEM_BAR_HEIGHT,
-		left: MOBILE_PADDING,
-		right: viewport.width - responsiveLayout.width - MOBILE_PADDING,
-		bottom: viewport.height - responsiveLayout.height - DOCK_HEIGHT,
-	};
+	// Drag constraints - respect system bar at top and keep window in viewport
+	const dragConstraintStyle = isMobile
+		? {
+				top: SYSTEM_BAR_HEIGHT_MOBILE,
+				left: MOBILE_PADDING,
+				right: MOBILE_PADDING,
+				bottom: DOCK_HEIGHT,
+			}
+		: {
+				top: SYSTEM_BAR_HEIGHT_DESKTOP + DESKTOP_PADDING / 2,
+				left: DESKTOP_PADDING,
+				right: DESKTOP_PADDING,
+				bottom: DESKTOP_PADDING,
+			};
 
 	return (
 		<>
-			{/* Invisible constraints boundary - tighter on mobile */}
-			<div
-				ref={constraintsRef}
-				className="pointer-events-none fixed"
-				style={
-					isMobile
-						? {
-								top: mobileConstraints.top,
-								left: mobileConstraints.left,
-								right: MOBILE_PADDING,
-								bottom: DOCK_HEIGHT,
-							}
-						: { inset: 16 }
-				}
-			/>
+			{/* Invisible constraints boundary */}
+			<div ref={constraintsRef} className="pointer-events-none fixed" style={dragConstraintStyle} />
 
 			<motion.div
 				role="dialog"
