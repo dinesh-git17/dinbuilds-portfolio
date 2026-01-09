@@ -17,6 +17,7 @@ import { useDesktop } from "./useDesktop";
 import { useSelectionBox } from "./useSelectionBox";
 import { Vignette } from "./Vignette";
 import { getWallpaperConfig } from "./wallpapers";
+import { WeatherWidget } from "./weather";
 
 export interface StageProps {
 	/** Content rendered above the background layers (windows, dock, etc.) */
@@ -33,10 +34,12 @@ export interface StageProps {
  * 1. Solid background color
  * 2. Grid pattern overlay
  * 3. Vignette overlay
- * 4. WindowManager (all open windows)
- * 5. SystemBar (top status bar)
- * 6. Dock (app launcher)
- * 7. Children (overlays)
+ * 4. WeatherWidget (desktop only, top-left)
+ * 5. Desktop icons (folders, files)
+ * 6. WindowManager (all open windows)
+ * 7. SystemBar (top status bar)
+ * 8. Dock (app launcher)
+ * 9. Children (overlays)
  *
  * Boot Sequence:
  * - Renders "behind" the BootScreen (opacity 0) during boot
@@ -119,6 +122,11 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 				<GridPattern />
 			)}
 			<Vignette />
+
+			{/* Weather widget layer (desktop only, top-left) */}
+			<div className="absolute top-14 left-6 z-[1] hidden lg:block">
+				<WeatherWidget />
+			</div>
 
 			{/* Desktop icons layer (above background, below windows) */}
 			<section
