@@ -3,6 +3,12 @@
 import { useCallback, useRef, useState } from "react";
 
 /**
+ * System bar height - selection box cannot extend above this.
+ * Matches the desktop SystemBar height (36px).
+ */
+const SYSTEM_BAR_HEIGHT = 36;
+
+/**
  * Coordinates for a selection rectangle
  */
 export interface SelectionBox {
@@ -65,14 +71,24 @@ export function useSelectionBox(
 	/**
 	 * Calculates the selection box from start and current positions.
 	 * Handles negative coordinates (reverse dragging) by using Math.min/abs.
+	 * Clamps the box to not extend above the system bar.
 	 */
 	const calculateSelectionBox = useCallback(
 		(startX: number, startY: number, currentX: number, currentY: number): SelectionBox => {
+			const rawY = Math.min(startY, currentY);
+			const rawHeight = Math.abs(currentY - startY);
+
+			// Clamp Y to not go above system bar
+			const clampedY = Math.max(rawY, SYSTEM_BAR_HEIGHT);
+			// Adjust height if we clamped Y
+			const heightAdjustment = clampedY - rawY;
+			const clampedHeight = Math.max(0, rawHeight - heightAdjustment);
+
 			return {
 				x: Math.min(startX, currentX),
-				y: Math.min(startY, currentY),
+				y: clampedY,
 				width: Math.abs(currentX - startX),
-				height: Math.abs(currentY - startY),
+				height: clampedHeight,
 			};
 		},
 		[],
@@ -106,6 +122,9 @@ export function useSelectionBox(
 
 			const coords = getRelativeCoordinates(e.clientX, e.clientY);
 			if (!coords) return;
+
+			// Don't start selection if clicking in system bar area
+			if (coords.y < SYSTEM_BAR_HEIGHT) return;
 
 			dragOrigin.current = coords;
 			setIsSelecting(true);

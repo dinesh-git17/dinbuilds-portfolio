@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import { AboutApp } from "@/apps/about";
 import { ContactApp } from "@/apps/contact";
 import { DebateApp } from "@/apps/debate";
+import { FolderApp } from "@/apps/folder";
 import { PassFXApp } from "@/apps/passfx";
 import { SettingsApp } from "@/apps/settings";
 import { TerminalApp } from "@/apps/terminal";
@@ -55,6 +56,14 @@ export const APP_REGISTRY: Record<AppID, AppManifest> = {
 	[AppID.Settings]: {
 		name: "Settings",
 		component: SettingsApp,
+	},
+	[AppID.FolderProjects]: {
+		name: "Projects",
+		component: FolderApp,
+	},
+	[AppID.FolderExperience]: {
+		name: "Experience",
+		component: FolderApp,
 	},
 };
 

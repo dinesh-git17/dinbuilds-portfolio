@@ -17,6 +17,8 @@ export enum AppID {
 	About = "app.about",
 	Contact = "app.contact",
 	Settings = "app.settings",
+	FolderProjects = "app.folder.projects",
+	FolderExperience = "app.folder.experience",
 }
 
 /**
@@ -76,6 +78,8 @@ export const DEFAULT_WINDOW_SIZES: Record<AppID, WindowSize> = {
 	[AppID.About]: { width: 780, height: 520 },
 	[AppID.Contact]: { width: 780, height: 520 },
 	[AppID.Settings]: { width: 680, height: 480 },
+	[AppID.FolderProjects]: { width: 700, height: 450 },
+	[AppID.FolderExperience]: { width: 700, height: 450 },
 };
 
 /**
