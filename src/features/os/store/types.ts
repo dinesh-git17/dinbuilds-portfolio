@@ -6,6 +6,12 @@
  */
 
 /**
+ * Boot sequence phases for system initialization.
+ * Transitions: hidden -> booting -> desktop_enter -> complete
+ */
+export type BootPhase = "hidden" | "booting" | "desktop_enter" | "complete";
+
+/**
  * Application identifiers for all installable apps.
  * Use this enum everywhere instead of string literals.
  */
@@ -172,6 +178,12 @@ export const DOCK_SIZE_MAP: Record<DockSize, number> = {
  */
 export interface SystemState {
 	/**
+	 * Current boot sequence phase.
+	 * Controls the visibility of boot screen, desktop, and welcome overlay.
+	 */
+	bootPhase: BootPhase;
+
+	/**
 	 * Ordered array of window instances.
 	 * Last item = highest Z-index (topmost window).
 	 */
@@ -208,6 +220,12 @@ export interface SystemState {
  * Separated from state for clean typing.
  */
 export interface SystemActions {
+	/**
+	 * Advance the boot sequence to the next phase.
+	 * Used by BootManager to orchestrate system initialization.
+	 */
+	setBootPhase: (phase: BootPhase) => void;
+
 	/**
 	 * Launch an app or bring existing instance to front.
 	 * If minimized, restores and focuses.

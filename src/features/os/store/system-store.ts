@@ -4,6 +4,7 @@ import { persist } from "zustand/middleware";
 
 import type {
 	AppID,
+	BootPhase,
 	DockConfig,
 	SystemStore,
 	WindowInstance,
@@ -120,6 +121,7 @@ export const useSystemStore = create<SystemStore>()(
 	persist(
 		(set, get) => ({
 			// Initial State
+			bootPhase: "hidden" as BootPhase,
 			windows: [],
 			activeWindowId: null,
 			fullscreenWindowId: null,
@@ -127,6 +129,10 @@ export const useSystemStore = create<SystemStore>()(
 			dockConfig: DEFAULT_DOCK_CONFIG,
 
 			// Actions
+			setBootPhase: (phase: BootPhase) => {
+				set({ bootPhase: phase });
+			},
+
 			launchApp: (appId: AppID, config?: WindowSpawnConfig) => {
 				const { windows } = get();
 				const existingIndex = windows.findIndex((w) => w.id === appId);
@@ -379,3 +385,4 @@ export const selectWindowById = (id: AppID) => (state: SystemStore) =>
 	state.windows.find((w) => w.id === id);
 export const selectWallpaper = (state: SystemStore) => state.wallpaper;
 export const selectDockConfig = (state: SystemStore) => state.dockConfig;
+export const selectBootPhase = (state: SystemStore) => state.bootPhase;

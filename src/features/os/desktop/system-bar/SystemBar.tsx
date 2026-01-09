@@ -4,7 +4,9 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { memo, useCallback } from "react";
 
+import { BOOT_TIMING } from "@/os/boot";
 import { selectIsAnyWindowFullscreen, useSystemStore } from "@/os/store";
+import { useReducedMotion } from "@/os/window";
 
 import { useDeviceType } from "../dock/useDeviceType";
 import { StatusIndicators } from "./StatusIndicators";
@@ -13,6 +15,8 @@ import { SystemClock } from "./SystemClock";
 export interface SystemBarProps {
 	/** Optional className for additional styling */
 	className?: string;
+	/** Whether the system is currently booting (delays entrance animation) */
+	isBooting?: boolean;
 }
 
 /**
@@ -28,14 +32,22 @@ export interface SystemBarProps {
  * - Heavy frosted glass material (backdrop-blur-xl)
  * - Responsive height: 32px mobile, 36px desktop
  * - Mobile: Logo only, no clock/status (avoids native browser chrome conflict)
+ * - Staggered entrance during boot sequence (slides in from top)
  */
-export const SystemBar = memo(function SystemBar({ className }: SystemBarProps) {
+export const SystemBar = memo(function SystemBar({ className, isBooting = false }: SystemBarProps) {
 	const deviceType = useDeviceType();
 	const isMobile = deviceType === "mobile";
 	const isFullscreen = useSystemStore(selectIsAnyWindowFullscreen);
+	const prefersReducedMotion = useReducedMotion();
 
 	// Height: 32px on mobile, 36px on desktop
 	const barHeight = isMobile ? 32 : 36;
+
+	// Calculate stagger delay based on boot state and motion preference
+	const staggerDelay = prefersReducedMotion ? 0 : BOOT_TIMING.UI_STAGGER_DELAY / 1000;
+
+	// Should hide: during boot OR when fullscreen
+	const shouldHide = isBooting || isFullscreen;
 
 	// Prevent selection box from triggering when interacting with system bar
 	const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -48,15 +60,16 @@ export const SystemBar = memo(function SystemBar({ className }: SystemBarProps) 
 			aria-label="System status bar"
 			className={`fixed top-0 left-0 z-[60] w-full ${isMobile ? "h-8" : "h-9"} ${className ?? ""}`}
 			initial={{ y: -barHeight, opacity: 0 }}
-			animate={{ y: isFullscreen ? -barHeight : 0, opacity: isFullscreen ? 0 : 1 }}
+			animate={{ y: shouldHide ? -barHeight : 0, opacity: shouldHide ? 0 : 1 }}
 			transition={{
 				type: "spring",
 				stiffness: 300,
 				damping: 30,
-				delay: isFullscreen ? 0 : 0.1,
+				// Stagger delay when appearing after boot, no delay when hiding
+				delay: shouldHide ? 0 : staggerDelay,
 			}}
 			onPointerDown={handlePointerDown}
-			aria-hidden={isFullscreen}
+			aria-hidden={shouldHide}
 		>
 			{/* Glass background layer */}
 			<div

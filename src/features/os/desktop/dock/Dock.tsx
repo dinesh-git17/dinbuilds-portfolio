@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { AnimatePresence, motion, useMotionValue } from "framer-motion";
 import { memo, useCallback, useRef, useState } from "react";
 
+import { BOOT_TIMING } from "@/os/boot";
 import {
 	DEFAULT_DOCK_CONFIG,
 	DOCK_SIZE_MAP,
@@ -12,10 +13,16 @@ import {
 	useHasHydrated,
 	useSystemStore,
 } from "@/os/store";
+import { useReducedMotion } from "@/os/window";
 
 import { DockIcon } from "./DockIcon";
 import { DOCK_ITEMS } from "./dock-config";
 import { useDeviceType } from "./useDeviceType";
+
+export interface DockProps {
+	/** Whether the system is currently booting (delays entrance animation) */
+	isBooting?: boolean;
+}
 
 /**
  * Position-based CSS classes for dock placement.
@@ -34,7 +41,7 @@ const POSITION_CLASSES = {
  * Exit animations slide the dock out in the direction of its edge.
  * Note: Opacity is not animated to prevent backdrop-blur glitching.
  */
-const getAnimationVariants = (position: "bottom" | "left" | "right", isFullscreen: boolean) => {
+const getAnimationVariants = (position: "bottom" | "left" | "right", shouldHide: boolean) => {
 	const hiddenOffset = 120;
 
 	switch (position) {
@@ -42,21 +49,21 @@ const getAnimationVariants = (position: "bottom" | "left" | "right", isFullscree
 			return {
 				// y: "-50%" provides vertical centering (replaces CSS -translate-y-1/2)
 				initial: { x: -hiddenOffset, y: "-50%" },
-				animate: { x: isFullscreen ? -hiddenOffset : 0, y: "-50%" },
+				animate: { x: shouldHide ? -hiddenOffset : 0, y: "-50%" },
 				exit: { x: -hiddenOffset, y: "-50%" },
 			};
 		case "right":
 			return {
 				// y: "-50%" provides vertical centering (replaces CSS -translate-y-1/2)
 				initial: { x: hiddenOffset, y: "-50%" },
-				animate: { x: isFullscreen ? hiddenOffset : 0, y: "-50%" },
+				animate: { x: shouldHide ? hiddenOffset : 0, y: "-50%" },
 				exit: { x: hiddenOffset, y: "-50%" },
 			};
 		default:
 			// "bottom" position - x: "-50%" provides horizontal centering
 			return {
 				initial: { x: "-50%", y: hiddenOffset },
-				animate: { x: "-50%", y: isFullscreen ? hiddenOffset : 0 },
+				animate: { x: "-50%", y: shouldHide ? hiddenOffset : 0 },
 				exit: { x: "-50%", y: hiddenOffset },
 			};
 	}
@@ -74,12 +81,14 @@ const getAnimationVariants = (position: "bottom" | "left" | "right", isFullscree
  * - Platform naturally expands as icons magnify
  * - Keyboard navigation via arrow keys (WCAG AA)
  * - Persisted configuration (position, size, magnification)
+ * - Staggered entrance during boot sequence
  */
-export const Dock = memo(function Dock() {
+export const Dock = memo(function Dock({ isBooting = false }: DockProps) {
 	const deviceType = useDeviceType();
 	const isMobile = deviceType === "mobile";
 	const isFullscreen = useSystemStore(selectIsAnyWindowFullscreen);
 	const hasHydrated = useHasHydrated();
+	const prefersReducedMotion = useReducedMotion();
 
 	// Get dock config from store, use defaults during SSR/hydration
 	const storedConfig = useSystemStore(selectDockConfig);
@@ -168,8 +177,14 @@ export const Dock = memo(function Dock() {
 	const maxIconSize = Math.round(baseSize * magnifyScale);
 	const platformThickness = baseSize + padding * 2;
 
+	// Calculate stagger delay based on boot state and motion preference
+	const staggerDelay = prefersReducedMotion ? 0 : BOOT_TIMING.UI_STAGGER_DELAY / 1000;
+
+	// Should hide: during boot OR when fullscreen
+	const shouldHide = isBooting || isFullscreen;
+
 	// Get animation variants based on position
-	const { initial, animate, exit } = getAnimationVariants(position, isFullscreen);
+	const { initial, animate, exit } = getAnimationVariants(position, shouldHide);
 
 	return (
 		<AnimatePresence mode="wait">
@@ -186,10 +201,11 @@ export const Dock = memo(function Dock() {
 					type: "spring",
 					stiffness: 500,
 					damping: 35,
-					delay: isFullscreen ? 0 : 0.1,
+					// Stagger delay when appearing after boot, no delay when hiding
+					delay: shouldHide ? 0 : staggerDelay,
 				}}
 				onPointerDown={handlePointerDown}
-				aria-hidden={isFullscreen}
+				aria-hidden={shouldHide}
 			>
 				{/* Dock platform container */}
 				<div

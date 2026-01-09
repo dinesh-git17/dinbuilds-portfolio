@@ -7,6 +7,7 @@ import {
 	parseURLToState,
 	renderJsonLd,
 } from "@/lib/seo";
+import { BootManager, BootScreen, WelcomeOverlay } from "@/os/boot";
 import { Stage } from "@/os/desktop";
 import { StoreHydrator } from "@/os/store";
 
@@ -53,7 +54,11 @@ export default async function Home({ searchParams }: PageProps) {
 
 	return (
 		<StoreHydrator initialState={initialState}>
-			<Stage />
+			<BootManager>
+				<BootScreen />
+				<Stage />
+				<WelcomeOverlay />
+			</BootManager>
 			{/* Schema.org JSON-LD for SoftwareSourceCode (projects only) */}
 			{projectSchema && (
 				<script

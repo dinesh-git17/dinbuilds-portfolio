@@ -1,10 +1,12 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Image from "next/image";
 import { memo, useCallback, useEffect, useRef } from "react";
 
-import { selectWallpaper, useSystemStore } from "@/os/store";
-import { WindowManager } from "@/os/window";
+import { BOOT_TIMING } from "@/os/boot";
+import { selectBootPhase, selectWallpaper, useSystemStore } from "@/os/store";
+import { useReducedMotion, WindowManager } from "@/os/window";
 
 import { DesktopIcon } from "./DesktopIcon";
 import { Dock } from "./dock";
@@ -35,11 +37,18 @@ export interface StageProps {
  * 5. SystemBar (top status bar)
  * 6. Dock (app launcher)
  * 7. Children (overlays)
+ *
+ * Boot Sequence:
+ * - Renders "behind" the BootScreen (opacity 0) during boot
+ * - Fades in when boot phase transitions to 'desktop_enter'
+ * - SystemBar and Dock have staggered entrance (200ms after wallpaper)
  */
 export const Stage = memo(function Stage({ children }: StageProps) {
 	const stageRef = useRef<HTMLDivElement>(null);
 	const wallpaper = useSystemStore(selectWallpaper);
 	const wallpaperConfig = wallpaper ? getWallpaperConfig(wallpaper) : undefined;
+	const bootPhase = useSystemStore(selectBootPhase);
+	const prefersReducedMotion = useReducedMotion();
 	const { isSelecting, selectionBox, handlePointerDown, handlePointerMove, handlePointerUp } =
 		useSelectionBox(stageRef);
 	const {
@@ -50,6 +59,14 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 		registerIconRef,
 		updateSelectionFromBox,
 	} = useDesktop();
+
+	// Stage is visible once boot enters desktop phase
+	const isDesktopVisible = bootPhase === "desktop_enter" || bootPhase === "complete";
+
+	// Calculate animation duration based on motion preference
+	const stageFadeDuration = prefersReducedMotion
+		? BOOT_TIMING.REDUCED_MOTION_DELAY / 1000
+		: BOOT_TIMING.STAGE_FADE_DURATION / 1000;
 
 	// Wrap the original pointer down to also clear desktop selection
 	const handleStagePointerDown = useCallback(
@@ -73,9 +90,12 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 	}, [isSelecting, selectionBox, updateSelectionFromBox]);
 
 	return (
-		<div
+		<motion.div
 			ref={stageRef}
 			className="relative h-screen w-screen select-none overflow-hidden bg-background"
+			initial={{ opacity: 0 }}
+			animate={{ opacity: isDesktopVisible ? 1 : 0 }}
+			transition={{ duration: stageFadeDuration, ease: "easeOut" }}
 			onPointerDown={handleStagePointerDown}
 			onPointerMove={handlePointerMove}
 			onPointerUp={handlePointerUp}
@@ -130,12 +150,12 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 			{/* Window layer */}
 			<WindowManager />
 
-			{/* System UI */}
-			<SystemBar />
-			<Dock />
+			{/* System UI - staggered entrance during boot */}
+			<SystemBar isBooting={!isDesktopVisible} />
+			<Dock isBooting={!isDesktopVisible} />
 
 			{/* Additional UI layers */}
 			{children && <div className="relative z-10 h-full w-full">{children}</div>}
-		</div>
+		</motion.div>
 	);
 });
