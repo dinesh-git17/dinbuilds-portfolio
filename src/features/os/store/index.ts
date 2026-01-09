@@ -10,6 +10,7 @@ export { StoreHydrator, type StoreHydratorProps } from "./StoreHydrator";
 // Store
 export {
 	selectActiveWindowId,
+	selectBootPhase,
 	selectDockConfig,
 	selectFullscreenWindowId,
 	selectIsAnyWindowFullscreen,
@@ -26,6 +27,7 @@ export {
 export {
 	AppID,
 	AUTO_FULLSCREEN_APPS,
+	type BootPhase,
 	DEFAULT_DOCK_CONFIG,
 	DEFAULT_WINDOW_SIZES,
 	DOCK_SIZE_MAP,
