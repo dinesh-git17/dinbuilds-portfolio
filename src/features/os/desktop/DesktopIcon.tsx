@@ -1,18 +1,25 @@
 "use client";
 
 import { motion, useAnimation } from "framer-motion";
-import { Folder } from "lucide-react";
+import { FileText, Folder } from "lucide-react";
 import { memo, useCallback, useRef } from "react";
 
 import { type AppID, useSystemStore } from "@/os/store";
+import type { DesktopIconType } from "./useDesktop";
 
 export interface DesktopIconProps {
 	/** App ID to launch on double-click */
 	appId: AppID;
 	/** Display label shown under the icon */
 	label: string;
+	/** Icon type: folder or file */
+	iconType: DesktopIconType;
 	/** Folder ID for VFS lookup (passed to FolderApp) */
 	folderId?: string;
+	/** Content URL for file items (used by MarkdownViewer) */
+	contentUrl?: string;
+	/** Title override for file items */
+	title?: string;
 	/** Whether this icon is currently selected */
 	isSelected: boolean;
 	/** Callback when icon is single-clicked (for selection) */
@@ -24,7 +31,7 @@ export interface DesktopIconProps {
 }
 
 /**
- * DesktopIcon — Clickable folder icon for the desktop.
+ * DesktopIcon — Clickable icon for desktop items (folders or files).
  *
  * Interactions:
  * - Single click: Selects the icon (visual highlight)
@@ -36,17 +43,27 @@ export interface DesktopIconProps {
 export const DesktopIcon = memo(function DesktopIcon({
 	appId,
 	label,
+	iconType,
 	folderId,
+	contentUrl,
+	title,
 	isSelected,
 	onSelect,
 	onExecute,
 	onRegisterRef,
 }: DesktopIconProps) {
 	const launchApp = useSystemStore((s) => s.launchApp);
+	const isFile = iconType === "file";
 
 	const launchWithProps = useCallback(() => {
-		launchApp(appId, folderId ? { props: { folderId } } : undefined);
-	}, [appId, folderId, launchApp]);
+		if (isFile && contentUrl) {
+			launchApp(appId, { props: { url: contentUrl, title } });
+		} else if (folderId) {
+			launchApp(appId, { props: { folderId } });
+		} else {
+			launchApp(appId);
+		}
+	}, [appId, isFile, contentUrl, title, folderId, launchApp]);
 	const controls = useAnimation();
 	const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const clickCountRef = useRef(0);
@@ -135,11 +152,11 @@ export const DesktopIcon = memo(function DesktopIcon({
 			whileHover={{ scale: 1.02 }}
 			whileTap={{ scale: 0.98 }}
 			className="pointer-events-auto group flex w-20 flex-col items-center gap-1.5 rounded-lg p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-			aria-label={`Open ${label} folder`}
+			aria-label={`Open ${label} ${isFile ? "file" : "folder"}`}
 			aria-pressed={isSelected}
 			data-desktop-icon
 		>
-			{/* Folder icon */}
+			{/* Icon */}
 			<div
 				className={`
 					flex h-14 w-14 items-center justify-center rounded-lg
@@ -147,14 +164,24 @@ export const DesktopIcon = memo(function DesktopIcon({
 					${isSelected ? "bg-white/10" : "bg-transparent group-hover:bg-white/5"}
 				`}
 			>
-				<Folder
-					className={`
-						h-10 w-10 transition-colors duration-150
-						${isSelected ? "text-blue-400" : "text-yellow-400/80 group-hover:text-yellow-400"}
-					`}
-					strokeWidth={1.5}
-					fill={isSelected ? "rgba(96, 165, 250, 0.15)" : "rgba(250, 204, 21, 0.1)"}
-				/>
+				{isFile ? (
+					<FileText
+						className={`
+							h-10 w-10 transition-colors duration-150
+							${isSelected ? "text-blue-400" : "text-blue-400/80 group-hover:text-blue-400"}
+						`}
+						strokeWidth={1.5}
+					/>
+				) : (
+					<Folder
+						className={`
+							h-10 w-10 transition-colors duration-150
+							${isSelected ? "text-blue-400" : "text-yellow-400/80 group-hover:text-yellow-400"}
+						`}
+						strokeWidth={1.5}
+						fill={isSelected ? "rgba(96, 165, 250, 0.15)" : "rgba(250, 204, 21, 0.1)"}
+					/>
+				)}
 			</div>
 
 			{/* Label with selection highlight */}

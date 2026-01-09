@@ -86,9 +86,39 @@ const PROJECT_FILES: VirtualFile[] = [
 ];
 
 /**
- * Experience file definitions (placeholder for future content).
+ * Experience file definitions.
+ * Each entry represents a work experience README in /public/readmes/.
  */
-const EXPERIENCE_FILES: VirtualFile[] = [];
+const EXPERIENCE_FILES: VirtualFile[] = [
+	{
+		id: "file.meridian",
+		name: "Meridian Credit Union",
+		type: "md",
+		icon: FileText,
+		contentUrl: "/readmes/meridian.md",
+	},
+	{
+		id: "file.slice-labs",
+		name: "Slice Labs",
+		type: "md",
+		icon: FileText,
+		contentUrl: "/readmes/slice-labs.md",
+	},
+	{
+		id: "file.carleton",
+		name: "Carleton University",
+		type: "md",
+		icon: FileText,
+		contentUrl: "/readmes/carleton.md",
+	},
+	{
+		id: "file.absa",
+		name: "Absa Group",
+		type: "md",
+		icon: FileText,
+		contentUrl: "/readmes/absa.md",
+	},
+];
 
 /**
  * VFS Registry mapping folder IDs to their file contents.

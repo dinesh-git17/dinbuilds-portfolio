@@ -107,7 +107,10 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 							key={item.id}
 							appId={item.appId}
 							label={item.label}
+							iconType={item.iconType}
 							folderId={item.folderId}
+							contentUrl={item.contentUrl}
+							title={item.title}
 							isSelected={selectedItemIds.has(item.id)}
 							onSelect={() => selectItem(item.id)}
 							onExecute={clearSelection}

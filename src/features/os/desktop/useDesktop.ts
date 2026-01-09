@@ -5,8 +5,14 @@ import { useCallback, useRef, useState } from "react";
 import { AppID } from "@/os/store";
 
 /**
+ * Icon type for desktop items.
+ * "folder" renders a folder icon, "file" renders a document icon.
+ */
+export type DesktopIconType = "folder" | "file";
+
+/**
  * Desktop item configuration.
- * Each item represents a folder icon on the desktop.
+ * Supports both folder icons and file icons on the desktop.
  */
 export interface DesktopItem {
 	/** Unique identifier for the item */
@@ -15,8 +21,14 @@ export interface DesktopItem {
 	label: string;
 	/** App ID to launch when double-clicked */
 	appId: AppID;
+	/** Icon type: folder or file */
+	iconType: DesktopIconType;
 	/** Folder ID for VFS lookup (used by FolderApp) */
 	folderId?: string;
+	/** Content URL for file items (used by MarkdownViewer) */
+	contentUrl?: string;
+	/** Title override for file items */
+	title?: string;
 }
 
 /**
@@ -31,20 +43,30 @@ export interface SelectionRect {
 
 /**
  * Initial desktop items configuration.
- * Two folders: Projects and Experience.
+ * Two folders (Projects, Experience) and a resume file.
  */
 export const DESKTOP_ITEMS: DesktopItem[] = [
 	{
 		id: "projects",
 		label: "Projects",
 		appId: AppID.FolderProjects,
+		iconType: "folder",
 		folderId: "projects",
 	},
 	{
 		id: "experience",
 		label: "Experience",
 		appId: AppID.FolderExperience,
+		iconType: "folder",
 		folderId: "experience",
+	},
+	{
+		id: "resume",
+		label: "Resume",
+		appId: AppID.MarkdownViewer,
+		iconType: "file",
+		contentUrl: "/readmes/resume.md",
+		title: "Resume",
 	},
 ];
 
