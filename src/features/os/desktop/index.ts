@@ -34,3 +34,10 @@ export {
 	useSelectionBox,
 } from "./useSelectionBox";
 export { Vignette, type VignetteProps } from "./Vignette";
+export {
+	DEFAULT_WALLPAPER_PATH,
+	getWallpaperConfig,
+	WALLPAPER_MAP,
+	WALLPAPERS,
+	type WallpaperConfig,
+} from "./wallpapers";

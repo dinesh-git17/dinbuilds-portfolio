@@ -3,8 +3,10 @@
 import { type MotionValue, motion, useSpring, useTransform } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { memo, useCallback, useRef, useState } from "react";
 
+import { APP_ID_TO_SLUG } from "@/lib/seo";
 import { type AppID, useSystemStore } from "@/os/store";
 
 export interface DockIconProps {
@@ -66,8 +68,10 @@ export const DockIcon = memo(function DockIcon({
 	onClick,
 }: DockIconProps) {
 	const ref = useRef<HTMLButtonElement>(null);
+	const router = useRouter();
 	const launchApp = useSystemStore((s) => s.launchApp);
 	const [isHovered, setIsHovered] = useState(false);
+	const [hasPrefetched, setHasPrefetched] = useState(false);
 
 	const isVertical = dockPosition === "left" || dockPosition === "right";
 
@@ -102,6 +106,25 @@ export const DockIcon = memo(function DockIcon({
 		damping: 28,
 		mass: 0.5,
 	});
+
+	/**
+	 * Speculatively prefetch the app route on hover.
+	 * This preloads the JS chunk and RSC payload for instant navigation.
+	 */
+	const handlePrefetch = useCallback(() => {
+		if (hasPrefetched) return;
+
+		const slug = APP_ID_TO_SLUG[appId];
+		if (slug) {
+			router.prefetch(`/?app=${slug}`);
+			setHasPrefetched(true);
+		}
+	}, [appId, hasPrefetched, router]);
+
+	const handleMouseEnter = useCallback(() => {
+		setIsHovered(true);
+		handlePrefetch();
+	}, [handlePrefetch]);
 
 	const handleClick = useCallback(() => {
 		// Reset magnification and focus BEFORE launching app to prevent stuck state
@@ -181,7 +204,7 @@ export const DockIcon = memo(function DockIcon({
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}
 				onFocus={onFocus}
-				onMouseEnter={() => setIsHovered(true)}
+				onMouseEnter={handleMouseEnter}
 				onMouseLeave={() => setIsHovered(false)}
 				aria-label={`Open ${label}`}
 				className={`

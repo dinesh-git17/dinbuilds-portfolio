@@ -4,35 +4,8 @@ import clsx from "clsx";
 import Image from "next/image";
 import { memo, useCallback } from "react";
 
+import { WALLPAPERS } from "@/os/desktop/wallpapers";
 import { selectWallpaper, useSystemStore } from "@/os/store";
-
-/**
- * Available wallpaper configuration.
- */
-interface WallpaperOption {
-	/** Unique identifier */
-	id: string;
-	/** Display name */
-	name: string;
-	/** Path to the wallpaper image */
-	path: string;
-}
-
-/**
- * Predefined wallpapers from /public/assets/wallpapers/.
- */
-const WALLPAPERS: WallpaperOption[] = [
-	{ id: "wall-1", name: "Monterey Dark", path: "/assets/wallpapers/wall-1.jpg" },
-	{ id: "wall-2", name: "Sonoma", path: "/assets/wallpapers/wall-2.jpg" },
-	{ id: "wall-3", name: "Late Night Coding", path: "/assets/wallpapers/wall-3.jpg" },
-	{ id: "wall-4", name: "Fluid Blue", path: "/assets/wallpapers/wall-4.jpg" },
-	{ id: "wall-5", name: "VS Code", path: "/assets/wallpapers/wall-5.jpg" },
-	{ id: "wall-6", name: "Yosemite Sunrise", path: "/assets/wallpapers/wall-6.jpg" },
-	{ id: "wall-7", name: "Do Something Great", path: "/assets/wallpapers/wall-7.jpg" },
-	{ id: "wall-8", name: "Ventura Night", path: "/assets/wallpapers/wall-8.jpg" },
-	{ id: "wall-9", name: "Dark Bloom", path: "/assets/wallpapers/wall-9.jpg" },
-	{ id: "wall-10", name: "Blue Bloom", path: "/assets/wallpapers/wall-10.jpg" },
-];
 
 /**
  * Wallpaper Panel - Desktop background picker.
@@ -89,6 +62,8 @@ export const WallpaperPanel = memo(function WallpaperPanel() {
 								fill
 								sizes="(max-width: 640px) 50vw, 33vw"
 								className="object-cover transition-transform group-hover:scale-105"
+								placeholder="blur"
+								blurDataURL={wallpaper.blurDataURL}
 							/>
 							{/* Hover overlay with name */}
 							<div

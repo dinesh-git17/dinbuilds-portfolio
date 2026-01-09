@@ -6,11 +6,13 @@ import "./globals.css";
 const geistSans = Geist({
 	variable: "--font-geist-sans",
 	subsets: ["latin"],
+	display: "swap",
 });
 
 const geistMono = Geist_Mono({
 	variable: "--font-geist-mono",
 	subsets: ["latin"],
+	display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -18,6 +20,9 @@ export const metadata: Metadata = {
 	title: {
 		default: "Dinesh Dawonauth | Data Engineer",
 		template: "%s | DinBuilds OS",
+	},
+	other: {
+		"color-scheme": "dark",
 	},
 	description:
 		"Data Engineer specializing in building scalable data pipelines, ETL workflows, and analytics infrastructure. Turning raw data into actionable insights.",
