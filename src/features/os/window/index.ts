@@ -5,7 +5,12 @@
  * Import via '@/os/window'.
  */
 
-export { APP_REGISTRY, type AppManifest, getAppManifest } from "./app-registry";
+export {
+	APP_REGISTRY,
+	type AppComponentProps,
+	type AppManifest,
+	getAppManifest,
+} from "./app-registry";
 export { useReducedMotion } from "./useReducedMotion";
 export { WindowControls, type WindowControlsProps } from "./WindowControls";
 export { WindowFrame, type WindowFrameProps } from "./WindowFrame";

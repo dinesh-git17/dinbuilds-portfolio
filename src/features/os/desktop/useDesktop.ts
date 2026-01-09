@@ -15,6 +15,8 @@ export interface DesktopItem {
 	label: string;
 	/** App ID to launch when double-clicked */
 	appId: AppID;
+	/** Folder ID for VFS lookup (used by FolderApp) */
+	folderId?: string;
 }
 
 /**
@@ -36,11 +38,13 @@ export const DESKTOP_ITEMS: DesktopItem[] = [
 		id: "projects",
 		label: "Projects",
 		appId: AppID.FolderProjects,
+		folderId: "projects",
 	},
 	{
 		id: "experience",
 		label: "Experience",
 		appId: AppID.FolderExperience,
+		folderId: "experience",
 	},
 ];
 

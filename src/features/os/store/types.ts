@@ -19,6 +19,7 @@ export enum AppID {
 	Settings = "app.settings",
 	FolderProjects = "app.folder.projects",
 	FolderExperience = "app.folder.experience",
+	MarkdownViewer = "app.markdown",
 }
 
 /**
@@ -43,6 +44,19 @@ export interface WindowSize {
 }
 
 /**
+ * App-specific props passed to window components.
+ * Each app can define its own props shape.
+ */
+export interface WindowProps {
+	/** URL to content for MarkdownViewer */
+	url?: string;
+	/** Display title override (e.g., file name) */
+	title?: string;
+	/** Folder ID for FolderApp to load files from VFS */
+	folderId?: string;
+}
+
+/**
  * Runtime instance of an open window.
  * Each window in the stack is represented by this type.
  */
@@ -55,6 +69,8 @@ export interface WindowInstance {
 	position: WindowPosition;
 	/** Current dimensions */
 	size: WindowSize;
+	/** App-specific props passed to the component */
+	props?: WindowProps;
 }
 
 /**
@@ -64,6 +80,8 @@ export interface WindowInstance {
 export interface WindowSpawnConfig {
 	position?: WindowPosition;
 	size?: WindowSize;
+	/** App-specific props to pass to the component */
+	props?: WindowProps;
 }
 
 /**
@@ -80,19 +98,30 @@ export const DEFAULT_WINDOW_SIZES: Record<AppID, WindowSize> = {
 	[AppID.Settings]: { width: 680, height: 480 },
 	[AppID.FolderProjects]: { width: 700, height: 450 },
 	[AppID.FolderExperience]: { width: 700, height: 450 },
+	[AppID.MarkdownViewer]: { width: 900, height: 650 },
 };
 
 /**
  * Apps that should maximize to fill the viewport.
  * These windows will be sized to viewport minus padding.
  */
-export const MAXIMIZED_APPS: Set<AppID> = new Set([AppID.Yield, AppID.Debate, AppID.PassFX]);
+export const MAXIMIZED_APPS: Set<AppID> = new Set([
+	AppID.Yield,
+	AppID.Debate,
+	AppID.PassFX,
+	AppID.MarkdownViewer,
+]);
 
 /**
  * Apps that should automatically enter fullscreen when launched.
  * These apps will open in fullscreen mode, hiding the dock and system bar.
  */
-export const AUTO_FULLSCREEN_APPS: Set<AppID> = new Set([AppID.Yield, AppID.Debate, AppID.PassFX]);
+export const AUTO_FULLSCREEN_APPS: Set<AppID> = new Set([
+	AppID.Yield,
+	AppID.Debate,
+	AppID.PassFX,
+	AppID.MarkdownViewer,
+]);
 
 /**
  * Dock position options.

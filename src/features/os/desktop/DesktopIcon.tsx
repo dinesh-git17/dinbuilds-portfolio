@@ -11,6 +11,8 @@ export interface DesktopIconProps {
 	appId: AppID;
 	/** Display label shown under the icon */
 	label: string;
+	/** Folder ID for VFS lookup (passed to FolderApp) */
+	folderId?: string;
 	/** Whether this icon is currently selected */
 	isSelected: boolean;
 	/** Callback when icon is single-clicked (for selection) */
@@ -34,12 +36,17 @@ export interface DesktopIconProps {
 export const DesktopIcon = memo(function DesktopIcon({
 	appId,
 	label,
+	folderId,
 	isSelected,
 	onSelect,
 	onExecute,
 	onRegisterRef,
 }: DesktopIconProps) {
 	const launchApp = useSystemStore((s) => s.launchApp);
+
+	const launchWithProps = useCallback(() => {
+		launchApp(appId, folderId ? { props: { folderId } } : undefined);
+	}, [appId, folderId, launchApp]);
 	const controls = useAnimation();
 	const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const clickCountRef = useRef(0);
@@ -88,11 +95,11 @@ export const DesktopIcon = memo(function DesktopIcon({
 
 				// Launch app after short delay for animation feedback
 				setTimeout(() => {
-					launchApp(appId);
+					launchWithProps();
 				}, 100);
 			}
 		},
-		[appId, controls, launchApp, onSelect, onExecute],
+		[controls, launchWithProps, onSelect, onExecute],
 	);
 
 	const handleKeyDown = useCallback(
@@ -111,11 +118,11 @@ export const DesktopIcon = memo(function DesktopIcon({
 					},
 				});
 				setTimeout(() => {
-					launchApp(appId);
+					launchWithProps();
 				}, 100);
 			}
 		},
-		[appId, controls, launchApp, onExecute],
+		[controls, launchWithProps, onExecute],
 	);
 
 	return (

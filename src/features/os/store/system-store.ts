@@ -166,6 +166,7 @@ export const useSystemStore = create<SystemStore>()(
 						status: "open",
 						position: config?.position ?? defaultPosition,
 						size: windowSize,
+						props: config?.props,
 					};
 
 					set({
