@@ -69,6 +69,14 @@ const INDEXABLE_APPS: AppID[] = [
 	AppID.FolderExperience,
 ];
 
+/**
+ * Escapes special XML characters in a string.
+ * Required because Next.js sitemap doesn't properly escape ampersands in URLs.
+ */
+function escapeXml(str: string): string {
+	return str.replace(/&/g, "&amp;");
+}
+
 export default function sitemap(): MetadataRoute.Sitemap {
 	const now = new Date();
 
@@ -104,7 +112,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			const fileSlug = FILE_ID_TO_SLUG[file.id];
 			if (fileSlug) {
 				entries.push({
-					url: `${BASE_URL}?app=markdown&file=${fileSlug}`,
+					url: escapeXml(`${BASE_URL}?app=markdown&file=${fileSlug}`),
 					lastModified: now,
 					changeFrequency: "weekly",
 					priority: basePriority,
