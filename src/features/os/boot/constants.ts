@@ -124,16 +124,29 @@ export function markBootComplete(): void {
 }
 
 /**
+ * Device-aware timing value.
+ * Mobile timings use +200ms offset to accommodate mobile contexts
+ * (commute, multitasking) without feeling sluggish.
+ */
+export interface DeviceTiming {
+	desktop: number;
+	mobile: number;
+}
+
+/**
  * Onboarding Tour Timing Configuration
  *
  * Timing constants for the "Ghost in the Machine" desktop onboarding tour.
  * All values in milliseconds unless otherwise noted.
+ *
+ * Device differentiation: Mobile timings have +200ms offset from desktop
+ * to prevent users from feeling rushed in distracted contexts.
  */
 export const ONBOARDING_TIMING = {
 	/** Delay after About app opens before starting tour */
-	START_DELAY: 1500,
+	START_DELAY: { desktop: 800, mobile: 1000 } satisfies DeviceTiming,
 	/** Duration for tooltip display at each step */
-	TOOLTIP_DURATION: 2000,
+	TOOLTIP_DURATION: { desktop: 1400, mobile: 1600 } satisfies DeviceTiming,
 	/** Duration for glow transition between targets */
 	GLOW_TRANSITION: 300,
 	/** Duration for the ghost drag demonstration */
@@ -145,6 +158,17 @@ export const ONBOARDING_TIMING = {
 	/** Reduced motion timing (instant transitions) */
 	REDUCED_MOTION_DELAY: 50,
 } as const;
+
+/**
+ * Get device-appropriate timing value.
+ * Resolves DeviceTiming objects or returns raw numbers unchanged.
+ */
+export function getDeviceTiming(timing: DeviceTiming | number, isMobile: boolean): number {
+	if (typeof timing === "number") {
+		return timing;
+	}
+	return isMobile ? timing.mobile : timing.desktop;
+}
 
 /**
  * Onboarding animation configuration for spring physics.
@@ -166,34 +190,36 @@ export const ONBOARDING_SPRING = {
 /**
  * Step-specific timing overrides.
  * Allows fine-tuning individual step durations.
+ *
+ * Device-aware timings (marked with DeviceTiming) follow the +200ms mobile offset rule.
  */
 export const ONBOARDING_STEP_TIMING = {
 	window_controls: {
-		glowDuration: 2000,
-		tooltipDuration: 2000,
+		glowDuration: 600,
+		tooltipDuration: 1200,
 	},
 	window_drag: {
-		glowDuration: 1000,
-		dragDuration: 1400,
-		tooltipDuration: 2000,
+		glowDuration: 600,
+		dragDuration: 1200,
+		tooltipDuration: { desktop: 1000, mobile: 1200 } satisfies DeviceTiming,
 	},
 	dock: {
-		glowDuration: 2500,
-		rippleDuration: 800,
-		tooltipDuration: 2000,
+		glowDuration: 800,
+		rippleDuration: 600,
+		tooltipDuration: 1200,
 	},
 	/** Mobile-only step: highlights the Projects stack in the dock */
 	dock_projects_stack: {
-		glowDuration: 2500,
-		tooltipDuration: 2000,
+		glowDuration: 800,
+		tooltipDuration: 1200,
 	},
 	desktop_icons: {
-		glowDuration: 2000,
-		tooltipDuration: 2000,
+		glowDuration: 600,
+		tooltipDuration: 1200,
 	},
 	outro: {
-		fadeInDuration: 400,
-		holdDuration: 1500,
-		fadeOutDuration: 600,
+		fadeInDuration: 300,
+		holdDuration: { desktop: 800, mobile: 1000 } satisfies DeviceTiming,
+		fadeOutDuration: 400,
 	},
 } as const;

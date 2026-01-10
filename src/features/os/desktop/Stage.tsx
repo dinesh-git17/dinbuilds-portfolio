@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { Fragment, memo, useCallback, useEffect, useRef, useState } from "react";
 
-import { BOOT_TIMING, ONBOARDING_TIMING, UI_REVEAL } from "@/os/boot";
+import { BOOT_TIMING, getDeviceTiming, ONBOARDING_TIMING, UI_REVEAL } from "@/os/boot";
 import { NotificationLayer, useNotificationTriggers } from "@/os/notification";
 import { OnboardingController, SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
 import {
@@ -22,6 +22,7 @@ import { AboutSystemModal } from "./AboutSystemModal";
 import { DesktopContextMenu } from "./DesktopContextMenu";
 import { DesktopIcon } from "./DesktopIcon";
 import { Dock } from "./dock";
+import { useDeviceType } from "./dock/useDeviceType";
 import { GridPattern } from "./GridPattern";
 import { LockScreen } from "./LockScreen";
 import { SelectionBox } from "./SelectionBox";
@@ -75,6 +76,8 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 	const bootPhase = useSystemStore(selectBootPhase);
 	const desktopRefreshKey = useSystemStore(selectDesktopRefreshKey);
 	const prefersReducedMotion = useReducedMotion();
+	const deviceType = useDeviceType();
+	const isMobile = deviceType === "mobile";
 	const { isSelecting, selectionBox, handlePointerDown, handlePointerMove, handlePointerUp } =
 		useSelectionBox(stageRef);
 	const {
@@ -189,7 +192,7 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 					// Delay to let the About window animation complete
 					const delay = prefersReducedMotion
 						? ONBOARDING_TIMING.REDUCED_MOTION_DELAY
-						: ONBOARDING_TIMING.START_DELAY;
+						: getDeviceTiming(ONBOARDING_TIMING.START_DELAY, isMobile);
 					setTimeout(() => {
 						startTour();
 					}, delay);

@@ -9,6 +9,8 @@ export { BootManager, type BootManagerProps } from "./BootManager";
 export { BootScreen } from "./BootScreen";
 export {
 	BOOT_TIMING,
+	type DeviceTiming,
+	getDeviceTiming,
 	hasBootedThisSession,
 	markBootComplete,
 	ONBOARDING_SPRING,

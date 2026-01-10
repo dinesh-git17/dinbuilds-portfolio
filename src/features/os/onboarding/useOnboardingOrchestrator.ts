@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 
-import { ONBOARDING_STEP_TIMING, ONBOARDING_TIMING } from "@/os/boot";
+import { getDeviceTiming, ONBOARDING_STEP_TIMING, ONBOARDING_TIMING } from "@/os/boot";
 import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
 import {
 	AppID,
@@ -135,8 +135,9 @@ function getTooltipForStep(step: OnboardingStep, isMobile: boolean): OnboardingT
 
 /**
  * Get step duration in milliseconds.
+ * Uses device-aware timings for mobile vs desktop contexts.
  */
-function getStepDuration(step: OnboardingStep, reducedMotion: boolean): number {
+function getStepDuration(step: OnboardingStep, reducedMotion: boolean, isMobile: boolean): number {
 	if (reducedMotion) {
 		return ONBOARDING_TIMING.REDUCED_MOTION_DELAY;
 	}
@@ -165,7 +166,7 @@ function getStepDuration(step: OnboardingStep, reducedMotion: boolean): number {
 		case "outro":
 			return (
 				ONBOARDING_STEP_TIMING.outro.fadeInDuration +
-				ONBOARDING_STEP_TIMING.outro.holdDuration +
+				getDeviceTiming(ONBOARDING_STEP_TIMING.outro.holdDuration, isMobile) +
 				ONBOARDING_STEP_TIMING.outro.fadeOutDuration
 			);
 		default:
@@ -293,7 +294,7 @@ export function useOnboardingOrchestrator(): UseOnboardingOrchestratorReturn {
 			return;
 		}
 
-		const duration = getStepDuration(currentStep, reducedMotion);
+		const duration = getStepDuration(currentStep, reducedMotion, isMobile);
 		if (duration > 0) {
 			timerRef.current = setTimeout(() => {
 				advanceStep();
@@ -306,7 +307,7 @@ export function useOnboardingOrchestrator(): UseOnboardingOrchestratorReturn {
 				timerRef.current = null;
 			}
 		};
-	}, [currentStep, isActive, reducedMotion, advanceStep]);
+	}, [currentStep, isActive, reducedMotion, isMobile, advanceStep]);
 
 	// Reset ghost drag completed flag when step changes
 	useEffect(() => {
