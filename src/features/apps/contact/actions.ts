@@ -30,7 +30,7 @@ export async function sendEmail(data: ContactFormData): Promise<ContactFormResul
 	const headersList = await headers();
 	const clientIP = getClientIP(headersList);
 
-	const rateLimitResult = checkRateLimit(clientIP);
+	const rateLimitResult = await checkRateLimit(clientIP);
 	if (!rateLimitResult.allowed) {
 		const resetMinutes = Math.ceil((rateLimitResult.resetAt - Date.now()) / 60000);
 		return {

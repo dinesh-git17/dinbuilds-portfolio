@@ -9,6 +9,8 @@
 		"lint": "biome check --write .",
 		"lint:check": "biome check .",
 		"format": "biome format --write .",
+		"test": "vitest",
+		"test:run": "vitest run",
 		"prepare": "husky"
 	},
 	"lint-staged": {
@@ -31,6 +33,7 @@
 		"react-dom": "19.2.3",
 		"react-hook-form": "^7.70.0",
 		"react-markdown": "^10.1.0",
+		"redis": "^5.10.0",
 		"remark-gfm": "^4.0.1",
 		"resend": "^6.7.0",
 		"zod": "^4.3.5",
@@ -42,9 +45,11 @@
 		"@types/node": "^25",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",
+		"@vitejs/plugin-react": "^5.1.2",
 		"husky": "^9.1.7",
 		"lint-staged": "^16.2.7",
 		"tailwindcss": "^4",
-		"typescript": "^5"
+		"typescript": "^5",
+		"vitest": "^4.0.16"
 	}
 }
