@@ -1,10 +1,12 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { memo } from "react";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { memo, useCallback, useEffect, useRef } from "react";
 
+import { ONBOARDING_EVENTS, trackEvent } from "@/lib/analytics";
 import { ONBOARDING_STEP_TIMING, ONBOARDING_TIMING } from "@/os/boot";
 import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
+import type { OnboardingStep } from "@/os/store";
 import { useReducedMotion } from "@/os/window";
 
 import { OnboardingOverlay, SPOTLIGHT_Z_INDEX } from "./OnboardingOverlay";
@@ -146,36 +148,149 @@ const OnboardingOutro = memo(function OnboardingOutro({ visible }: { visible: bo
 });
 
 /**
- * Skip button to dismiss the tour early.
- * Positioned in the top-right corner near the SystemBar for subtle presence.
+ * Z-index for skip button: above spotlight backdrop and highlighted elements.
  */
-const SkipButton = memo(function SkipButton({
-	visible,
-	onSkip,
-}: {
+const SKIP_BUTTON_Z_INDEX = 101;
+
+/**
+ * Props for the SkipTourCapsule component.
+ */
+interface SkipTourCapsuleProps {
+	/** Whether the button is visible */
 	visible: boolean;
+	/** Current onboarding step (for analytics) */
+	currentStep: OnboardingStep;
+	/** Tour start timestamp (for elapsed time calculation) */
+	tourStartTime: number | null;
+	/** Whether this is a mobile device */
+	isMobile: boolean;
+	/** Callback when user clicks skip */
 	onSkip: () => void;
-}) {
+}
+
+/**
+ * Animation variants for the Skip Tour capsule.
+ * Full motion: fade + slide down entrance, scale on hover/tap.
+ */
+const skipButtonVariants: Variants = {
+	initial: { opacity: 0, y: -10 },
+	animate: {
+		opacity: 1,
+		y: 0,
+		transition: { delay: 0.2, duration: 0.3, ease: "easeOut" },
+	},
+	exit: {
+		opacity: 0,
+		y: -10,
+		transition: { duration: 0.2, ease: "easeOut" },
+	},
+	hover: {
+		scale: 1.05,
+		backgroundColor: "rgba(255, 255, 255, 0.2)",
+		borderColor: "rgba(255, 255, 255, 0.5)",
+		transition: { duration: 0.15, ease: "easeOut" },
+	},
+	tap: {
+		scale: 0.95,
+		transition: { duration: 0.1, ease: "easeOut" },
+	},
+};
+
+/**
+ * Animation variants for reduced motion preference.
+ * Instant state changes without animations.
+ */
+const skipButtonReducedVariants: Variants = {
+	initial: { opacity: 1, y: 0 },
+	animate: { opacity: 1, y: 0 },
+	exit: { opacity: 0 },
+	hover: {},
+	tap: {},
+};
+
+/**
+ * SkipTourCapsule — Glassmorphic "Skip Tour" button.
+ *
+ * A prominent, accessible skip button that empowers users to exit
+ * the onboarding tour at any time. Designed to be immediately
+ * recognizable as interactive.
+ *
+ * Visual Design:
+ * - Pill/capsule shape with glassmorphic styling
+ * - Positioned top-right, above all onboarding elements
+ * - Clear "Skip Tour" text (not just an icon)
+ *
+ * Motion:
+ * - Entrance: Fade + slide down with 200ms delay
+ * - Hover: Scale up 1.05, brighter border/background
+ * - Tap: Scale down 0.95
+ *
+ * Accessibility:
+ * - Respects prefers-reduced-motion
+ * - Keyboard focusable with visible ring
+ * - ARIA label for screen readers
+ * - 44px min-height on mobile for touch targets
+ */
+const SkipTourCapsule = memo(function SkipTourCapsule({
+	visible,
+	currentStep,
+	tourStartTime,
+	isMobile,
+	onSkip,
+}: SkipTourCapsuleProps) {
 	const reducedMotion = useReducedMotion();
+
+	const handleSkip = useCallback(() => {
+		// Calculate elapsed time since tour started
+		const timeElapsed = tourStartTime ? Date.now() - tourStartTime : 0;
+
+		// Fire analytics event
+		trackEvent(ONBOARDING_EVENTS.SKIPPED, {
+			step: currentStep,
+			timeElapsed,
+		});
+
+		// Execute skip action
+		onSkip();
+	}, [currentStep, tourStartTime, onSkip]);
+
+	const variants = reducedMotion ? skipButtonReducedVariants : skipButtonVariants;
+
+	// Position classes: safe from notch on mobile
+	const positionClasses = isMobile
+		? "fixed top-14 right-4" // Below status bar/notch area
+		: "fixed top-6 right-6";
+
+	// Size classes: 44px min-height on mobile for touch targets
+	const sizeClasses = isMobile ? "min-h-[44px] px-4 py-2.5" : "px-4 py-2";
 
 	return (
 		<AnimatePresence>
 			{visible && (
 				<motion.button
 					type="button"
-					onClick={onSkip}
-					className="fixed top-1.5 right-2 rounded px-2 py-1 font-mono text-[10px] text-white/40 hover:text-white/70 transition-colors pointer-events-auto"
-					style={{ zIndex: SPOTLIGHT_Z_INDEX.highlighted + 10 }}
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-					transition={{
-						duration: reducedMotion ? 0.05 : 0.3,
-						ease: "easeOut",
-					}}
+					onClick={handleSkip}
+					className={`
+						${positionClasses}
+						${sizeClasses}
+						rounded-full
+						bg-white/10 backdrop-blur-md
+						border border-white/20
+						text-sm text-white/80
+						font-sans
+						pointer-events-auto
+						focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50
+					`}
+					style={{ zIndex: SKIP_BUTTON_Z_INDEX }}
+					variants={variants}
+					initial="initial"
+					animate="animate"
+					exit="exit"
+					whileHover={reducedMotion ? undefined : "hover"}
+					whileTap={reducedMotion ? undefined : "tap"}
 					aria-label="Skip onboarding tour"
 				>
-					Skip
+					Skip Tour
 				</motion.button>
 			)}
 		</AnimatePresence>
@@ -218,6 +333,18 @@ export const OnboardingController = memo(function OnboardingController({
 	const deviceType = useDeviceType();
 	const isMobile = deviceType === "mobile";
 
+	// Track when the tour started for analytics elapsed time calculation
+	const tourStartTimeRef = useRef<number | null>(null);
+
+	// Set tour start time when tour becomes active
+	useEffect(() => {
+		if (isActive && tourStartTimeRef.current === null) {
+			tourStartTimeRef.current = Date.now();
+		} else if (!isActive) {
+			tourStartTimeRef.current = null;
+		}
+	}, [isActive]);
+
 	// Show skip button during active steps (not during outro)
 	const showSkipButton = isActive && currentStep !== "outro";
 
@@ -244,8 +371,14 @@ export const OnboardingController = memo(function OnboardingController({
 			{/* Outro message */}
 			<OnboardingOutro visible={currentStep === "outro"} />
 
-			{/* Skip button */}
-			<SkipButton visible={showSkipButton} onSkip={skipTour} />
+			{/* Skip Tour capsule */}
+			<SkipTourCapsule
+				visible={showSkipButton}
+				currentStep={currentStep}
+				tourStartTime={tourStartTimeRef.current}
+				isMobile={isMobile}
+				onSkip={skipTour}
+			/>
 		</>
 	);
 });
