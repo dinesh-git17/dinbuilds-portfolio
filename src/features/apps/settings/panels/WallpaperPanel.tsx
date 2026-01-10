@@ -4,6 +4,7 @@ import clsx from "clsx";
 import Image from "next/image";
 import { memo, useCallback } from "react";
 
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
 import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
 import { MOBILE_WALLPAPERS, WALLPAPERS, type WallpaperConfig } from "@/os/desktop/wallpapers";
 import { NotificationID, selectWallpaper, useNotificationStore, useSystemStore } from "@/os/store";
@@ -38,6 +39,10 @@ export const WallpaperPanel = memo(function WallpaperPanel({ className }: Wallpa
 		(path: string) => {
 			setWallpaper(path);
 			addNotification(NotificationID.WallpaperChanged);
+			trackEvent(AnalyticsEvent.SETTINGS_CHANGED, {
+				setting_category: "wallpaper",
+				setting_key: "background",
+			});
 		},
 		[setWallpaper, addNotification],
 	);

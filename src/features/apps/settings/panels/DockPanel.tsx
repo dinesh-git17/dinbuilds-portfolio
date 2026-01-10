@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { memo, useCallback, useId } from "react";
 
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
 import {
 	type DockPosition,
 	type DockSize,
@@ -96,6 +97,10 @@ export const DockPanel = memo(function DockPanel() {
 		(position: DockPosition) => {
 			setDockConfig({ position });
 			addNotification(NotificationID.DockConfigChanged);
+			trackEvent(AnalyticsEvent.SETTINGS_CHANGED, {
+				setting_category: "dock",
+				setting_key: "position",
+			});
 		},
 		[setDockConfig, addNotification],
 	);
@@ -104,6 +109,10 @@ export const DockPanel = memo(function DockPanel() {
 		(size: DockSize) => {
 			setDockConfig({ size });
 			addNotification(NotificationID.DockConfigChanged);
+			trackEvent(AnalyticsEvent.SETTINGS_CHANGED, {
+				setting_category: "dock",
+				setting_key: "size",
+			});
 		},
 		[setDockConfig, addNotification],
 	);
@@ -111,6 +120,10 @@ export const DockPanel = memo(function DockPanel() {
 	const handleMagnificationToggle = useCallback(() => {
 		setDockConfig({ magnification: !dockConfig.magnification });
 		addNotification(NotificationID.DockConfigChanged);
+		trackEvent(AnalyticsEvent.SETTINGS_CHANGED, {
+			setting_category: "dock",
+			setting_key: "magnification",
+		});
 	}, [dockConfig.magnification, setDockConfig, addNotification]);
 
 	return (

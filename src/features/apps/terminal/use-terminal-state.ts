@@ -7,6 +7,8 @@
 
 import { useCallback, useState } from "react";
 
+import { type AllowlistedCommand, AnalyticsEvent, trackEvent } from "@/lib/analytics";
+
 import type { CommandDefinition, HistoryEntry, TerminalState } from "./types";
 
 /**
@@ -191,6 +193,44 @@ const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
 };
 
 /**
+ * Allowlisted commands for analytics tracking.
+ * Commands not in this set are tracked as "unknown".
+ */
+const ALLOWLISTED_COMMANDS = new Set<AllowlistedCommand>([
+	// Visible commands
+	"help",
+	"clear",
+	"whoami",
+	"pwd",
+	"ls",
+	"echo",
+	"date",
+	"uname",
+	"status",
+	"stack",
+	"exit",
+	"about",
+	// Hidden commands (easter eggs)
+	"git",
+	"coffee",
+	"sudo",
+	"rm",
+	"matrix",
+]);
+
+/**
+ * Map a command name to an allowlisted command for analytics.
+ * Returns "unknown" for unrecognized commands.
+ */
+function toAllowlistedCommand(commandName: string): AllowlistedCommand {
+	const normalized = commandName.toLowerCase();
+	if (ALLOWLISTED_COMMANDS.has(normalized as AllowlistedCommand)) {
+		return normalized as AllowlistedCommand;
+	}
+	return "unknown";
+}
+
+/**
  * Initial state for the terminal.
  */
 const INITIAL_STATE: TerminalState = {
@@ -314,6 +354,11 @@ export function useTerminalState(options: UseTerminalStateOptions = {}) {
 
 		const parts = currentInput.split(/\s+/);
 		const commandName = (parts[0] ?? "").toLowerCase();
+
+		// Track command execution for analytics
+		trackEvent(AnalyticsEvent.TERMINAL_COMMAND_EXECUTED, {
+			command: toAllowlistedCommand(commandName),
+		});
 
 		// Handle exit command - close window
 		if (commandName === "exit") {
