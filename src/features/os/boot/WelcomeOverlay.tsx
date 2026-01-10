@@ -6,64 +6,65 @@ import { memo, useCallback, useEffect, useState } from "react";
 import { AppID, selectBootPhase, useSystemStore } from "@/os/store";
 import { useReducedMotion } from "@/os/window";
 
-import { BOOT_TIMING, SESSION_BOOT_KEY, WELCOME_SPRING } from "./constants";
-
-/**
- * Check if user has already seen boot sequence this session.
- */
-function hasBootedThisSession(): boolean {
-	if (typeof window === "undefined") return false;
-	try {
-		return sessionStorage.getItem(SESSION_BOOT_KEY) === "true";
-	} catch {
-		return false;
-	}
-}
+import {
+	BOOT_TIMING,
+	hasBootedThisSession,
+	markBootComplete,
+	UI_REVEAL,
+	WELCOME_SPRING,
+} from "./constants";
 
 /**
  * WelcomeOverlay — "Spotify Wrapped" style hero text.
  *
- * A typographic overlay that appears after the OS desktop has loaded,
+ * A typographic overlay that appears during the 'welcome' boot phase,
  * providing a warm welcome with bouncy spring animations.
  *
+ * This component drives the transition from 'welcome' to 'complete' phase,
+ * creating a clean "stage reveal" effect where the wallpaper is visible
+ * but functional UI (Dock, SystemBar) remains hidden until dismissal.
+ *
  * Features:
- * - Triggers only when bootPhase reaches 'complete' (first visit only)
+ * - Triggers only when bootPhase reaches 'welcome' (first visit only)
  * - Skips entirely on page refresh within same session
  * - Main text scales up with heavy spring bounce (stiffness: 300, damping: 20)
  * - Subtext fades in 400ms after main text
- * - Auto-dismisses after 4 seconds
+ * - Auto-dismisses after 2.5 seconds
  * - Click anywhere to dismiss early
  * - Exit animation: blur out + fade away
+ * - Triggers setBootPhase('complete') on dismiss for UI reveal
  *
  * Z-Index: 40 (above desktop, below boot screen)
  */
 export const WelcomeOverlay = memo(function WelcomeOverlay() {
 	const bootPhase = useSystemStore(selectBootPhase);
+	const setBootPhase = useSystemStore((s) => s.setBootPhase);
 	const launchApp = useSystemStore((s) => s.launchApp);
 	const prefersReducedMotion = useReducedMotion();
 	const [isVisible, setIsVisible] = useState(false);
 	// Skip welcome if returning within same session
 	const [isDismissed, setIsDismissed] = useState(() => hasBootedThisSession());
 
-	// Show welcome when boot completes
-	const shouldShow = bootPhase === "complete" && !isDismissed;
+	// Show welcome during the 'welcome' phase (not 'complete')
+	const shouldShow = bootPhase === "welcome" && !isDismissed;
 
-	// Trigger visibility when boot completes
+	// Trigger visibility when entering welcome phase
 	useEffect(() => {
-		if (bootPhase === "complete" && !isDismissed) {
+		if (bootPhase === "welcome" && !isDismissed) {
 			setIsVisible(true);
 		}
 	}, [bootPhase, isDismissed]);
 
-	// Launch About window with delay after dismissal
+	// Launch About window with delay after UI reveal settles
 	const launchAboutWithDelay = useCallback(() => {
-		const delay = prefersReducedMotion ? 0 : BOOT_TIMING.ABOUT_LAUNCH_DELAY;
+		// Convert seconds to ms; skip delay for reduced motion
+		const delayMs = prefersReducedMotion ? 0 : UI_REVEAL.aboutLaunch.delay * 1000;
 		setTimeout(() => {
 			launchApp(AppID.About);
-		}, delay);
+		}, delayMs);
 	}, [launchApp, prefersReducedMotion]);
 
-	// Auto-dismiss timer
+	// Auto-dismiss timer — triggers phase transition to 'complete'
 	useEffect(() => {
 		if (!isVisible) return;
 
@@ -74,18 +75,24 @@ export const WelcomeOverlay = memo(function WelcomeOverlay() {
 		const timer = setTimeout(() => {
 			setIsVisible(false);
 			setIsDismissed(true);
+			// Transition to 'complete' phase — triggers UI reveal animation
+			setBootPhase("complete");
+			markBootComplete();
 			launchAboutWithDelay();
 		}, displayDuration);
 
 		return () => clearTimeout(timer);
-	}, [isVisible, prefersReducedMotion, launchAboutWithDelay]);
+	}, [isVisible, prefersReducedMotion, launchAboutWithDelay, setBootPhase]);
 
-	// Click to dismiss
+	// Click to dismiss — triggers phase transition to 'complete'
 	const handleDismiss = useCallback(() => {
 		setIsVisible(false);
 		setIsDismissed(true);
+		// Transition to 'complete' phase — triggers UI reveal animation
+		setBootPhase("complete");
+		markBootComplete();
 		launchAboutWithDelay();
-	}, [launchAboutWithDelay]);
+	}, [launchAboutWithDelay, setBootPhase]);
 
 	// Calculate timing based on motion preference
 	const subtextDelay = prefersReducedMotion ? 0 : BOOT_TIMING.WELCOME_SUBTEXT_DELAY / 1000;

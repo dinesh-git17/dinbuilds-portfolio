@@ -7,9 +7,14 @@
 
 /**
  * Boot sequence phases for system initialization.
- * Transitions: hidden -> booting -> desktop_enter -> complete
+ * Transitions: hidden -> booting -> welcome -> complete
+ *
+ * - hidden: Initial render, nothing visible
+ * - booting: Boot screen with progress bar
+ * - welcome: Wallpaper + welcome typography (no functional UI)
+ * - complete: Full desktop with all UI elements
  */
-export type BootPhase = "hidden" | "booting" | "desktop_enter" | "complete";
+export type BootPhase = "hidden" | "booting" | "welcome" | "complete";
 
 /**
  * Application identifiers for all installable apps.

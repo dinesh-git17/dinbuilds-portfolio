@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { memo, useCallback } from "react";
 
-import { BOOT_TIMING } from "@/os/boot";
+import { UI_REVEAL } from "@/os/boot";
 import { selectIsAnyWindowFullscreen, useSystemStore } from "@/os/store";
 import { useReducedMotion } from "@/os/window";
 
@@ -43,11 +43,15 @@ export const SystemBar = memo(function SystemBar({ className, isBooting = false 
 	// Height: 32px on mobile, 36px on desktop
 	const barHeight = isMobile ? 32 : 36;
 
-	// Calculate stagger delay based on boot state and motion preference
-	const staggerDelay = prefersReducedMotion ? 0 : BOOT_TIMING.UI_STAGGER_DELAY / 1000;
-
 	// Should hide: during boot OR when fullscreen
 	const shouldHide = isBooting || isFullscreen;
+
+	// Animation config: Use mobile simplified animation or desktop reveal
+	const animationConfig = prefersReducedMotion
+		? { duration: 0.05, ease: "linear" as const }
+		: isMobile
+			? UI_REVEAL.mobile
+			: UI_REVEAL.systemBar;
 
 	// Prevent selection box from triggering when interacting with system bar
 	const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -62,11 +66,10 @@ export const SystemBar = memo(function SystemBar({ className, isBooting = false 
 			initial={{ y: -barHeight, opacity: 0 }}
 			animate={{ y: shouldHide ? -barHeight : 0, opacity: shouldHide ? 0 : 1 }}
 			transition={{
-				type: "spring",
-				stiffness: 300,
-				damping: 30,
-				// Stagger delay when appearing after boot, no delay when hiding
-				delay: shouldHide ? 0 : staggerDelay,
+				duration: animationConfig.duration,
+				ease: animationConfig.ease,
+				// Delay entrance animation, no delay when hiding
+				delay: shouldHide ? 0 : "delay" in animationConfig ? animationConfig.delay : 0,
 			}}
 			onPointerDown={handlePointerDown}
 			aria-hidden={shouldHide}

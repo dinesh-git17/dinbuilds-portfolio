@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useSystemStore } from "@/os/store";
 import { useReducedMotion } from "@/os/window";
 
-import { BOOT_TIMING, SESSION_BOOT_KEY } from "./constants";
+import { BOOT_TIMING, hasBootedThisSession } from "./constants";
 
 export interface BootManagerProps {
 	/** Content to render (Desktop, windows, etc.) */
@@ -13,35 +13,10 @@ export interface BootManagerProps {
 }
 
 /**
- * Check if user has already seen boot sequence this session.
- */
-function hasBootedThisSession(): boolean {
-	if (typeof window === "undefined") return false;
-	try {
-		return sessionStorage.getItem(SESSION_BOOT_KEY) === "true";
-	} catch {
-		// sessionStorage may be unavailable (private browsing, etc.)
-		return false;
-	}
-}
-
-/**
- * Mark boot sequence as completed for this session.
- */
-function markBootComplete(): void {
-	if (typeof window === "undefined") return;
-	try {
-		sessionStorage.setItem(SESSION_BOOT_KEY, "true");
-	} catch {
-		// Silently fail if sessionStorage unavailable
-	}
-}
-
-/**
  * BootManager — System Initialization Orchestrator
  *
  * Manages the boot sequence state machine transitions:
- * hidden -> booting -> desktop_enter -> complete
+ * hidden -> booting -> welcome -> complete
  *
  * This component wraps the entire OS and controls the timing
  * of transitions between boot phases. The actual visual components
@@ -53,11 +28,12 @@ function markBootComplete(): void {
  *
  * Timing sequence (first visit):
  * 1. Mount: Immediately transition to 'booting'
- * 2. After 2.5s: Transition to 'desktop_enter'
- * 3. After 1s more: Transition to 'complete'
+ * 2. After 2.5s: Transition to 'welcome'
+ * 3. WelcomeOverlay controls transition to 'complete' (user interaction or timer)
  *
  * The desktop Stage renders behind the boot screen (opacity: 0)
- * and fades in during the 'desktop_enter' phase.
+ * and fades in during the 'welcome' phase with only wallpaper visible.
+ * Full UI (Dock, SystemBar) appears when 'complete'.
  */
 export function BootManager({ children }: BootManagerProps) {
 	const setBootPhase = useSystemStore((s) => s.setBootPhase);
@@ -73,13 +49,11 @@ export function BootManager({ children }: BootManagerProps) {
 			return {
 				startDelay: BOOT_TIMING.REDUCED_MOTION_DELAY,
 				bootDuration: BOOT_TIMING.REDUCED_MOTION_DELAY,
-				desktopDuration: BOOT_TIMING.REDUCED_MOTION_DELAY,
 			};
 		}
 		return {
 			startDelay: BOOT_TIMING.START_DELAY,
 			bootDuration: BOOT_TIMING.BOOT_DURATION,
-			desktopDuration: BOOT_TIMING.DESKTOP_ENTER_DURATION,
 		};
 	}, [prefersReducedMotion]);
 
@@ -107,21 +81,12 @@ export function BootManager({ children }: BootManagerProps) {
 		}, timing.startDelay);
 		timeouts.push(startBootTimeout);
 
-		// Phase 2: booting -> desktop_enter
-		const desktopEnterTimeout = setTimeout(() => {
-			setBootPhase("desktop_enter");
+		// Phase 2: booting -> welcome
+		// The WelcomeOverlay component handles the transition to 'complete'
+		const welcomeTimeout = setTimeout(() => {
+			setBootPhase("welcome");
 		}, timing.startDelay + timing.bootDuration);
-		timeouts.push(desktopEnterTimeout);
-
-		// Phase 3: desktop_enter -> complete + mark session
-		const completeTimeout = setTimeout(
-			() => {
-				setBootPhase("complete");
-				markBootComplete();
-			},
-			timing.startDelay + timing.bootDuration + timing.desktopDuration,
-		);
-		timeouts.push(completeTimeout);
+		timeouts.push(welcomeTimeout);
 
 		return () => {
 			for (const timeout of timeouts) {
