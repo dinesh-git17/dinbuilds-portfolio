@@ -35,6 +35,7 @@ const APP_PRIORITIES: Record<AppID, number> = {
 	[AppID.FolderProjects]: 0.6,
 	[AppID.FolderExperience]: 0.6,
 	[AppID.MarkdownViewer]: 0.9,
+	[AppID.FAQ]: 0.6,
 };
 
 /**
@@ -53,6 +54,7 @@ const APP_CHANGE_FREQ: Record<AppID, ChangeFrequency> = {
 	[AppID.FolderProjects]: "weekly",
 	[AppID.FolderExperience]: "monthly",
 	[AppID.MarkdownViewer]: "weekly",
+	[AppID.FAQ]: "monthly",
 };
 
 /**

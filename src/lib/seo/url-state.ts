@@ -38,6 +38,8 @@ export const APP_SLUG_MAP: Record<string, AppID> = {
 	projects: AppID.FolderProjects,
 	experience: AppID.FolderExperience,
 	markdown: AppID.MarkdownViewer,
+	faq: AppID.FAQ,
+	help: AppID.FAQ,
 };
 
 /**
@@ -55,6 +57,7 @@ export const APP_ID_TO_SLUG: Record<AppID, string> = {
 	[AppID.FolderProjects]: "projects",
 	[AppID.FolderExperience]: "experience",
 	[AppID.MarkdownViewer]: "markdown",
+	[AppID.FAQ]: "faq",
 };
 
 /**

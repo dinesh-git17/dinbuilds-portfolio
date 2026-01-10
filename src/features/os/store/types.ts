@@ -56,6 +56,7 @@ export enum AppID {
 	FolderProjects = "app.folder.projects",
 	FolderExperience = "app.folder.experience",
 	MarkdownViewer = "app.markdown",
+	FAQ = "app.faq",
 }
 
 /**
@@ -143,6 +144,7 @@ export const DEFAULT_WINDOW_SIZES: Record<AppID, WindowSize> = {
 	[AppID.FolderProjects]: { width: 700, height: 450 },
 	[AppID.FolderExperience]: { width: 700, height: 450 },
 	[AppID.MarkdownViewer]: { width: 900, height: 650 },
+	[AppID.FAQ]: { width: 800, height: 600 },
 };
 
 /**
@@ -175,6 +177,7 @@ export const MOBILE_MAXIMIZED_APPS: Set<AppID> = new Set([
 	AppID.About,
 	AppID.Terminal,
 	AppID.Contact,
+	AppID.FAQ,
 ]);
 
 /**

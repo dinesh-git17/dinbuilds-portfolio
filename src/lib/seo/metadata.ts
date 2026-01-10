@@ -86,6 +86,11 @@ const APP_METADATA: Record<AppID, { title: string; description: string; ogImage?
 		title: "Document",
 		description: "View project documentation and detailed information.",
 	},
+	[AppID.FAQ]: {
+		title: "System Manual",
+		description:
+			"Documentation and reference for DinBuilds OS. Learn about the creator, the technology stack, and how to navigate the portfolio.",
+	},
 };
 
 /**

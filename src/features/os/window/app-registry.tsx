@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import { AboutApp } from "@/apps/about";
 import { ContactApp } from "@/apps/contact";
 import { DebateApp } from "@/apps/debate";
+import { FAQApp } from "@/apps/faq";
 import { FolderApp } from "@/apps/folder";
 import { MarkdownViewerApp } from "@/apps/markdown";
 import { PassFXApp } from "@/apps/passfx";
@@ -76,6 +77,10 @@ export const APP_REGISTRY: Record<AppID, AppManifest> = {
 	[AppID.MarkdownViewer]: {
 		name: "Markdown",
 		component: MarkdownViewerApp,
+	},
+	[AppID.FAQ]: {
+		name: "System Manual",
+		component: FAQApp,
 	},
 };
 
