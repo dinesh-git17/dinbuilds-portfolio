@@ -5,6 +5,17 @@
  * Import from '@/os/store' for clean access.
  */
 
+// Notification Store
+export {
+	selectCurrentNotification,
+	selectHasNotification,
+	selectOpenedProjectApps,
+	selectQueueLength,
+	selectSeenIds,
+	useNotificationHasHydrated,
+	useNotificationStore,
+} from "./notification-store";
+
 // Onboarding Store
 export {
 	selectCurrentStep,
@@ -50,11 +61,21 @@ export {
 	MAXIMIZED_APPS,
 	MOBILE_MAXIMIZED_APPS,
 	MOBILE_STEP_ORDER,
+	NOTIFICATION_AUTO_DISMISS,
+	NOTIFICATION_QUEUE_DELAY,
+	NOTIFICATION_REGISTRY,
+	type NotificationActions,
+	type NotificationContent,
+	NotificationID,
+	type NotificationInstance,
+	type NotificationState,
+	type NotificationStore,
 	ONBOARDING_STEP_ORDER,
 	type OnboardingActions,
 	type OnboardingState,
 	type OnboardingStep,
 	type OnboardingStore,
+	PROJECT_APP_IDS,
 	type SystemActions,
 	type SystemState,
 	type SystemStore,
