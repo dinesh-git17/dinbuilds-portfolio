@@ -15,8 +15,9 @@ import { SelectionBox } from "./SelectionBox";
 import { SystemBar } from "./system-bar";
 import { useDesktop } from "./useDesktop";
 import { useSelectionBox } from "./useSelectionBox";
+import { useWallpaperSync } from "./useWallpaperSync";
 import { Vignette } from "./Vignette";
-import { getWallpaperConfig } from "./wallpapers";
+import { getAnyWallpaperConfig } from "./wallpapers";
 import { WeatherWidget } from "./weather";
 
 export interface StageProps {
@@ -49,7 +50,10 @@ export interface StageProps {
 export const Stage = memo(function Stage({ children }: StageProps) {
 	const stageRef = useRef<HTMLDivElement>(null);
 	const wallpaper = useSystemStore(selectWallpaper);
-	const wallpaperConfig = wallpaper ? getWallpaperConfig(wallpaper) : undefined;
+	const wallpaperConfig = wallpaper ? getAnyWallpaperConfig(wallpaper) : undefined;
+
+	// Sync wallpaper with device type (mobile vs desktop)
+	useWallpaperSync();
 	const bootPhase = useSystemStore(selectBootPhase);
 	const prefersReducedMotion = useReducedMotion();
 	const { isSelecting, selectionBox, handlePointerDown, handlePointerMove, handlePointerUp } =

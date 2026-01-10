@@ -1,3 +1,3 @@
 export { AboutPanel } from "./AboutPanel";
 export { DockPanel } from "./DockPanel";
-export { WallpaperPanel } from "./WallpaperPanel";
+export { WallpaperPanel, type WallpaperPanelProps } from "./WallpaperPanel";

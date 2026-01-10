@@ -33,10 +33,18 @@ export {
 	type UseSelectionBoxReturn,
 	useSelectionBox,
 } from "./useSelectionBox";
+export { useWallpaperSync } from "./useWallpaperSync";
 export { Vignette, type VignetteProps } from "./Vignette";
 export {
+	DEFAULT_MOBILE_WALLPAPER_PATH,
 	DEFAULT_WALLPAPER_PATH,
+	getAnyWallpaperConfig,
+	getMobileWallpaperConfig,
 	getWallpaperConfig,
+	isDesktopWallpaper,
+	isMobileWallpaper,
+	MOBILE_WALLPAPER_MAP,
+	MOBILE_WALLPAPERS,
 	WALLPAPER_MAP,
 	WALLPAPERS,
 	type WallpaperConfig,
