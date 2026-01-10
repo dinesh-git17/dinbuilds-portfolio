@@ -1,6 +1,8 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useCallback, useState } from "react";
+
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
 
 import { ProfileSidebar } from "./ProfileSidebar";
 import { TabContent } from "./TabContent";
@@ -16,6 +18,19 @@ import { type AboutTabId, TabNavigation } from "./TabNavigation";
 export const AboutApp = memo(function AboutApp() {
 	const [activeTab, setActiveTab] = useState<AboutTabId>("overview");
 
+	const handleTabChange = useCallback(
+		(newTab: AboutTabId) => {
+			if (newTab !== activeTab) {
+				trackEvent(AnalyticsEvent.ABOUT_TAB_SWITCHED, {
+					from_tab: activeTab,
+					to_tab: newTab,
+				});
+			}
+			setActiveTab(newTab);
+		},
+		[activeTab],
+	);
+
 	return (
 		<div className="flex h-full flex-col md:flex-row">
 			{/* Top (Mobile) / Left (Desktop) - Player Card */}
@@ -23,7 +38,7 @@ export const AboutApp = memo(function AboutApp() {
 
 			{/* Right Column - Tabbed Content Area */}
 			<main className="flex flex-1 flex-col overflow-hidden">
-				<TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+				<TabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
 				<TabContent activeTab={activeTab} />
 			</main>
 		</div>

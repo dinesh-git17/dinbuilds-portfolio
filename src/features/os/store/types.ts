@@ -442,6 +442,13 @@ export interface OnboardingState {
 	 * Set based on device type (desktop vs mobile) when tour starts.
 	 */
 	stepOrder: OnboardingStep[];
+
+	/**
+	 * Timestamp when the tour started.
+	 * Used for analytics duration calculations.
+	 * null when tour is not active.
+	 */
+	tourStartTime: number | null;
 }
 
 /**

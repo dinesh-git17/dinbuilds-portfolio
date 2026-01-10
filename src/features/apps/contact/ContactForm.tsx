@@ -7,6 +7,8 @@ import { Check, Loader2, Send } from "lucide-react";
 import { memo, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { AnalyticsEvent, trackEvent, trackSimpleEvent } from "@/lib/analytics";
+
 import { sendEmail } from "./actions";
 import { type ContactFormData, contactFormSchema } from "./schema";
 
@@ -134,15 +136,42 @@ export const ContactForm = memo(function ContactForm({ onSuccess }: ContactFormP
 		setStatus("sending");
 		setServerError(null);
 
+		// Track form submission attempt
+		trackSimpleEvent(AnalyticsEvent.CONTACT_FORM_SUBMITTED);
+
 		const result = await sendEmail(data);
 
 		if (result.success) {
 			setStatus("success");
 			reset();
 			onSuccess?.();
+
+			// Track successful submission
+			trackEvent(AnalyticsEvent.CONTACT_FORM_RESULT, {
+				success: true,
+			});
 		} else {
 			setStatus("error");
-			setServerError(result.error ?? "Transmission failed");
+			const errorMessage = result.error ?? "Transmission failed";
+			setServerError(errorMessage);
+
+			// Derive error code from error message for analytics
+			let errorCode = "unknown";
+			if (errorMessage.includes("Rate limit")) {
+				errorCode = "rate_limit";
+			} else if (errorMessage.includes("Validation")) {
+				errorCode = "validation";
+			} else if (errorMessage.includes("Failed to send")) {
+				errorCode = "send_failed";
+			} else if (errorMessage.includes("unexpected")) {
+				errorCode = "unexpected";
+			}
+
+			// Track failed submission
+			trackEvent(AnalyticsEvent.CONTACT_FORM_RESULT, {
+				success: false,
+				error_code: errorCode,
+			});
 		}
 	};
 

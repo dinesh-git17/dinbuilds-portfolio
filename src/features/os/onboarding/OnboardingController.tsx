@@ -1,9 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion, type Variants } from "framer-motion";
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback } from "react";
 
-import { ONBOARDING_EVENTS, trackLegacyEvent } from "@/lib/analytics";
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
 import { ONBOARDING_STEP_TIMING, ONBOARDING_TIMING } from "@/os/boot";
 import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
 import type { OnboardingStep } from "@/os/store";
@@ -160,6 +160,8 @@ interface SkipTourCapsuleProps {
 	visible: boolean;
 	/** Current onboarding step (for analytics) */
 	currentStep: OnboardingStep;
+	/** Current step index in the tour sequence */
+	currentStepIndex: number;
 	/** Tour start timestamp (for elapsed time calculation) */
 	tourStartTime: number | null;
 	/** Whether this is a mobile device */
@@ -234,6 +236,7 @@ const skipButtonReducedVariants: Variants = {
 const SkipTourCapsule = memo(function SkipTourCapsule({
 	visible,
 	currentStep,
+	currentStepIndex,
 	tourStartTime,
 	isMobile,
 	onSkip,
@@ -242,17 +245,18 @@ const SkipTourCapsule = memo(function SkipTourCapsule({
 
 	const handleSkip = useCallback(() => {
 		// Calculate elapsed time since tour started
-		const timeElapsed = tourStartTime ? Date.now() - tourStartTime : 0;
+		const elapsedMs = tourStartTime ? Date.now() - tourStartTime : 0;
 
-		// Fire analytics event (legacy format, will be updated in Story 2)
-		trackLegacyEvent(ONBOARDING_EVENTS.SKIPPED, {
-			step: currentStep,
-			timeElapsed,
+		// Fire analytics event
+		trackEvent(AnalyticsEvent.TOUR_SKIPPED, {
+			skipped_at_step: currentStep,
+			step_index: currentStepIndex,
+			elapsed_ms: elapsedMs,
 		});
 
 		// Execute skip action
 		onSkip();
-	}, [currentStep, tourStartTime, onSkip]);
+	}, [currentStep, currentStepIndex, tourStartTime, onSkip]);
 
 	const variants = reducedMotion ? skipButtonReducedVariants : skipButtonVariants;
 
@@ -327,23 +331,20 @@ const SkipTourCapsule = memo(function SkipTourCapsule({
 export const OnboardingController = memo(function OnboardingController({
 	children,
 }: OnboardingControllerProps) {
-	const { isActive, currentStep, highlights, tooltip, skipTour, startTour, onGhostDragComplete } =
-		useOnboardingOrchestrator();
+	const {
+		isActive,
+		currentStep,
+		currentStepIndex,
+		tourStartTime,
+		highlights,
+		tooltip,
+		skipTour,
+		startTour,
+		onGhostDragComplete,
+	} = useOnboardingOrchestrator();
 
 	const deviceType = useDeviceType();
 	const isMobile = deviceType === "mobile";
-
-	// Track when the tour started for analytics elapsed time calculation
-	const tourStartTimeRef = useRef<number | null>(null);
-
-	// Set tour start time when tour becomes active
-	useEffect(() => {
-		if (isActive && tourStartTimeRef.current === null) {
-			tourStartTimeRef.current = Date.now();
-		} else if (!isActive) {
-			tourStartTimeRef.current = null;
-		}
-	}, [isActive]);
 
 	// Show skip button during active steps (not during outro)
 	const showSkipButton = isActive && currentStep !== "outro";
@@ -375,7 +376,8 @@ export const OnboardingController = memo(function OnboardingController({
 			<SkipTourCapsule
 				visible={showSkipButton}
 				currentStep={currentStep}
-				tourStartTime={tourStartTimeRef.current}
+				currentStepIndex={currentStepIndex}
+				tourStartTime={tourStartTime}
 				isMobile={isMobile}
 				onSkip={skipTour}
 			/>

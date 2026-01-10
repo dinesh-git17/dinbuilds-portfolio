@@ -3,6 +3,8 @@
 import { ExternalLink, RefreshCw, WifiOff } from "lucide-react";
 import { memo, useCallback, useRef, useState } from "react";
 
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
+
 import { BrowserChrome } from "./BrowserChrome";
 
 const YIELD_URL = "https://yield.dineshd.dev";
@@ -26,21 +28,43 @@ export const YieldApp = memo(function YieldApp() {
 	const [loadState, setLoadState] = useState<LoadState>("loading");
 	const [iframeKey, setIframeKey] = useState(0);
 	const iframeRef = useRef<HTMLIFrameElement>(null);
+	const loadStartTimeRef = useRef<number>(Date.now());
 
 	const handleLoad = useCallback(() => {
+		const loadTime = Date.now() - loadStartTimeRef.current;
 		setLoadState("loaded");
+
+		trackEvent(AnalyticsEvent.IFRAME_LOADED, {
+			project_id: "yield",
+			success: true,
+			load_time_ms: loadTime,
+		});
 	}, []);
 
 	const handleError = useCallback(() => {
 		setLoadState("error");
+
+		trackEvent(AnalyticsEvent.IFRAME_LOADED, {
+			project_id: "yield",
+			success: false,
+		});
 	}, []);
 
 	const handleRefresh = useCallback(() => {
+		trackEvent(AnalyticsEvent.IFRAME_REFRESHED, {
+			project_id: "yield",
+		});
+
+		loadStartTimeRef.current = Date.now();
 		setLoadState("loading");
 		setIframeKey((prev) => prev + 1);
 	}, []);
 
 	const handleOpenExternal = useCallback(() => {
+		trackEvent(AnalyticsEvent.EXTERNAL_PROJECT_CLICKED, {
+			app_id: "yield",
+			destination_url: YIELD_URL,
+		});
 		window.open(YIELD_URL, "_blank", "noopener,noreferrer");
 	}, []);
 

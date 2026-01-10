@@ -4,6 +4,7 @@ import { ExternalLink, RefreshCw, WifiOff } from "lucide-react";
 import { memo, useCallback, useRef, useState } from "react";
 
 import { BrowserChrome } from "@/apps/yield/BrowserChrome";
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
 
 const DEBATE_LAB_URL = "https://debatelab.dineshd.dev";
 
@@ -26,21 +27,43 @@ export const DebateApp = memo(function DebateApp() {
 	const [loadState, setLoadState] = useState<LoadState>("loading");
 	const [iframeKey, setIframeKey] = useState(0);
 	const iframeRef = useRef<HTMLIFrameElement>(null);
+	const loadStartTimeRef = useRef<number>(Date.now());
 
 	const handleLoad = useCallback(() => {
+		const loadTime = Date.now() - loadStartTimeRef.current;
 		setLoadState("loaded");
+
+		trackEvent(AnalyticsEvent.IFRAME_LOADED, {
+			project_id: "debate_lab",
+			success: true,
+			load_time_ms: loadTime,
+		});
 	}, []);
 
 	const handleError = useCallback(() => {
 		setLoadState("error");
+
+		trackEvent(AnalyticsEvent.IFRAME_LOADED, {
+			project_id: "debate_lab",
+			success: false,
+		});
 	}, []);
 
 	const handleRefresh = useCallback(() => {
+		trackEvent(AnalyticsEvent.IFRAME_REFRESHED, {
+			project_id: "debate_lab",
+		});
+
+		loadStartTimeRef.current = Date.now();
 		setLoadState("loading");
 		setIframeKey((prev) => prev + 1);
 	}, []);
 
 	const handleOpenExternal = useCallback(() => {
+		trackEvent(AnalyticsEvent.EXTERNAL_PROJECT_CLICKED, {
+			app_id: "debate_lab",
+			destination_url: DEBATE_LAB_URL,
+		});
 		window.open(DEBATE_LAB_URL, "_blank", "noopener,noreferrer");
 	}, []);
 

@@ -2,6 +2,8 @@ import * as React from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
+
 import type { OnboardingStep, OnboardingStore } from "./types";
 import { DESKTOP_STEP_ORDER } from "./types";
 
@@ -73,6 +75,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
 			hasCompletedTour: false,
 			isInteractionBlocked: false,
 			stepOrder: DESKTOP_STEP_ORDER,
+			tourStartTime: null,
 
 			// Actions
 			startTour: (stepOrder: OnboardingStep[]) => {
@@ -84,38 +87,66 @@ export const useOnboardingStore = create<OnboardingStore>()(
 				}
 
 				const firstStep = stepOrder[0] ?? "complete";
+				const startTime = Date.now();
+
+				// Track tour started (exclude "complete" from step count)
+				trackEvent(AnalyticsEvent.TOUR_STARTED, {
+					total_steps: stepOrder.length - 1,
+				});
 
 				set({
 					stepOrder,
 					currentStep: firstStep,
 					isInteractionBlocked: true,
+					tourStartTime: startTime,
 				});
 			},
 
 			advanceStep: () => {
-				const { currentStep, stepOrder } = get();
+				const { currentStep, stepOrder, tourStartTime } = get();
 
 				// Can't advance from idle without calling startTour
 				if (currentStep === "idle") {
 					return;
 				}
 
+				// Track step completion before advancing (if not already complete)
+				if (currentStep !== "complete") {
+					const stepIndex = stepOrder.indexOf(currentStep);
+					trackEvent(AnalyticsEvent.TOUR_STEP_COMPLETED, {
+						step_id: currentStep,
+						step_index: stepIndex,
+					});
+				}
+
 				const nextStep = getNextStep(currentStep, stepOrder);
 				const isComplete = nextStep === "complete";
+
+				// Track tour completion
+				if (isComplete && tourStartTime) {
+					trackEvent(AnalyticsEvent.TOUR_COMPLETED, {
+						total_duration_ms: Date.now() - tourStartTime,
+					});
+				}
 
 				set({
 					currentStep: nextStep,
 					hasCompletedTour: isComplete,
 					// Unblock interaction on completion
 					isInteractionBlocked: isComplete ? false : get().isInteractionBlocked,
+					// Clear start time on completion
+					tourStartTime: isComplete ? null : tourStartTime,
 				});
 			},
 
 			skipTour: () => {
+				// Note: tour_skipped tracking is handled in OnboardingController
+				// where we have access to the current step and elapsed time
 				set({
 					currentStep: "complete",
 					hasCompletedTour: true,
 					isInteractionBlocked: false,
+					tourStartTime: null,
 				});
 			},
 
@@ -129,6 +160,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
 					hasCompletedTour: false,
 					isInteractionBlocked: false,
 					stepOrder: DESKTOP_STEP_ORDER,
+					tourStartTime: null,
 				});
 			},
 		}),
