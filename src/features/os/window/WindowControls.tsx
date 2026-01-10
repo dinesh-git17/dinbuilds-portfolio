@@ -1,12 +1,19 @@
 "use client";
 
+import clsx from "clsx";
+import { motion } from "framer-motion";
 import { memo, useCallback } from "react";
 
+import { ONBOARDING_TIMING } from "@/os/boot";
+import { SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
 import { type AppID, selectIsWindowFullscreen, useSystemStore } from "@/os/store";
+import { useReducedMotion } from "@/os/window";
 
 export interface WindowControlsProps {
 	/** Window identifier for store actions */
 	windowId: AppID;
+	/** Whether controls are highlighted during onboarding */
+	isHighlighted?: boolean;
 }
 
 /**
@@ -14,12 +21,17 @@ export interface WindowControlsProps {
  * Close (red), Minimize (yellow), Fullscreen (green).
  *
  * Buttons are keyboard accessible with proper ARIA labels.
+ * Supports spotlight highlighting during onboarding tour.
  */
-export const WindowControls = memo(function WindowControls({ windowId }: WindowControlsProps) {
+export const WindowControls = memo(function WindowControls({
+	windowId,
+	isHighlighted = false,
+}: WindowControlsProps) {
 	const closeWindow = useSystemStore((s) => s.closeWindow);
 	const minimizeWindow = useSystemStore((s) => s.minimizeWindow);
 	const toggleFullscreen = useSystemStore((s) => s.toggleFullscreen);
 	const isFullscreen = useSystemStore(selectIsWindowFullscreen(windowId));
+	const prefersReducedMotion = useReducedMotion();
 
 	const handleClose = useCallback(
 		(e: React.MouseEvent | React.KeyboardEvent) => {
@@ -45,8 +57,29 @@ export const WindowControls = memo(function WindowControls({ windowId }: WindowC
 		[toggleFullscreen, windowId],
 	);
 
+	// Animation duration for glow effect
+	const glowDuration = prefersReducedMotion
+		? ONBOARDING_TIMING.REDUCED_MOTION_DELAY / 1000
+		: ONBOARDING_TIMING.GLOW_TRANSITION / 1000;
+
 	return (
-		<fieldset className="flex items-center gap-2 border-none p-0" aria-label="Window controls">
+		<motion.fieldset
+			className={clsx(
+				"flex items-center gap-2 border-none p-0 rounded-full",
+				isHighlighted && "px-1.5 py-1 -mx-1.5 -my-1",
+			)}
+			aria-label="Window controls"
+			animate={{
+				boxShadow: isHighlighted
+					? "0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)"
+					: "0 0 0px rgba(59, 130, 246, 0)",
+			}}
+			style={{
+				position: isHighlighted ? "relative" : undefined,
+				zIndex: isHighlighted ? SPOTLIGHT_Z_INDEX.highlighted : undefined,
+			}}
+			transition={{ duration: glowDuration, ease: "easeOut" }}
+		>
 			{/* Close */}
 			<button
 				type="button"
@@ -85,6 +118,6 @@ export const WindowControls = memo(function WindowControls({ windowId }: WindowC
 					{isFullscreen ? "−" : "+"}
 				</span>
 			</button>
-		</fieldset>
+		</motion.fieldset>
 	);
 });

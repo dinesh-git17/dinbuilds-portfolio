@@ -1,9 +1,12 @@
 "use client";
 
+import clsx from "clsx";
 import { motion, type PanInfo, useDragControls, useMotionValue } from "framer-motion";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
+import { ONBOARDING_TIMING } from "@/os/boot";
 import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
+import { SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
 import {
 	FULL_HEIGHT_MOBILE_APPS,
 	MOBILE_MAXIMIZED_APPS,
@@ -13,6 +16,7 @@ import {
 	type WindowInstance,
 } from "@/os/store";
 
+import { useGhostDrag } from "./useGhostDrag";
 import { WindowControls } from "./WindowControls";
 
 export interface WindowFrameProps {
@@ -24,6 +28,16 @@ export interface WindowFrameProps {
 	children: React.ReactNode;
 	/** Whether to respect reduced motion preferences */
 	reducedMotion?: boolean;
+	/** Whether window controls should be highlighted (onboarding) */
+	isControlsHighlighted?: boolean;
+	/** Whether the header/drag area should be highlighted (onboarding) */
+	isHeaderHighlighted?: boolean;
+	/** Callback to trigger ghost drag animation externally */
+	onGhostDragRequest?: () => void;
+	/** Whether to run ghost drag animation */
+	shouldGhostDrag?: boolean;
+	/** Callback when ghost drag animation completes */
+	onGhostDragComplete?: () => void;
 }
 
 /**
@@ -43,11 +57,16 @@ const SYSTEM_BAR_HEIGHT_MOBILE = 32;
 const SYSTEM_BAR_HEIGHT_DESKTOP = 36;
 const DOCK_HEIGHT = 80;
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: WindowFrame manages drag, resize, and fullscreen states
 export const WindowFrame = memo(function WindowFrame({
 	window,
 	title,
 	children,
 	reducedMotion = false,
+	isControlsHighlighted = false,
+	isHeaderHighlighted = false,
+	shouldGhostDrag = false,
+	onGhostDragComplete,
 }: WindowFrameProps) {
 	const { id, position, size } = window;
 
@@ -61,6 +80,11 @@ export const WindowFrame = memo(function WindowFrame({
 
 	const constraintsRef = useRef<HTMLDivElement>(null);
 	const dragControls = useDragControls();
+
+	// Animation duration for glow effect
+	const glowDuration = reducedMotion
+		? ONBOARDING_TIMING.REDUCED_MOTION_DELAY / 1000
+		: ONBOARDING_TIMING.GLOW_TRANSITION / 1000;
 
 	// Track viewport dimensions with state (updates on mount and resize)
 	const [viewport, setViewport] = useState({ width: 375, height: 667 });
@@ -145,6 +169,28 @@ export const WindowFrame = memo(function WindowFrame({
 		x.set(responsiveLayout.x);
 		y.set(responsiveLayout.y);
 	}, [responsiveLayout.x, responsiveLayout.y, x, y]);
+
+	// Ghost drag animation for onboarding
+	const { trigger: triggerGhostDrag } = useGhostDrag({
+		x,
+		distance: 60,
+		disabled: reducedMotion || isFullscreen || isFullHeightMobile,
+		onComplete: onGhostDragComplete,
+	});
+
+	// Trigger ghost drag when requested
+	const ghostDragTriggeredRef = useRef(false);
+	useEffect(() => {
+		if (shouldGhostDrag && !ghostDragTriggeredRef.current) {
+			ghostDragTriggeredRef.current = true;
+			triggerGhostDrag();
+		} else if (!shouldGhostDrag) {
+			ghostDragTriggeredRef.current = false;
+		}
+	}, [shouldGhostDrag, triggerGhostDrag]);
+
+	// Determine if any onboarding highlight is active
+	const isOnboardingHighlighted = isControlsHighlighted || isHeaderHighlighted;
 
 	const handleFocus = useCallback(
 		(e: React.PointerEvent) => {
@@ -237,7 +283,14 @@ export const WindowFrame = memo(function WindowFrame({
 					y,
 					width: responsiveLayout.width,
 					height: responsiveLayout.height,
-					zIndex: isFullscreen ? 100 : isActive ? 50 : 10,
+					// During onboarding, promote to spotlight z-index
+					zIndex: isOnboardingHighlighted
+						? SPOTLIGHT_Z_INDEX.highlighted
+						: isFullscreen
+							? 100
+							: isActive
+								? 50
+								: 10,
 				}}
 				drag={!isFullscreen && !isFullHeightMobile}
 				dragControls={dragControls}
@@ -273,11 +326,23 @@ export const WindowFrame = memo(function WindowFrame({
 				>
 					{/* Header / Drag Handle */}
 					<header
-						className={`flex h-11 shrink-0 items-center gap-3 border-b border-white/5 px-4 ${isFullscreen || isFullHeightMobile ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+						className={clsx(
+							"flex h-11 shrink-0 items-center gap-3 border-b border-white/5 px-4",
+							isFullscreen || isFullHeightMobile
+								? "cursor-default"
+								: "cursor-grab active:cursor-grabbing",
+							isHeaderHighlighted && "rounded-t-xl",
+						)}
 						onPointerDown={isFullscreen || isFullHeightMobile ? undefined : handleHeaderPointerDown}
-						style={{ touchAction: "none" }}
+						style={{
+							touchAction: "none",
+							boxShadow: isHeaderHighlighted
+								? "0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)"
+								: "none",
+							transition: `box-shadow ${glowDuration}s ease-out`,
+						}}
 					>
-						<WindowControls windowId={id} />
+						<WindowControls windowId={id} isHighlighted={isControlsHighlighted} />
 
 						<h2 className="flex-1 truncate text-center font-mono text-xs text-white/50">{title}</h2>
 

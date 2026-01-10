@@ -11,7 +11,14 @@ export {
 	type AppManifest,
 	getAppManifest,
 } from "./app-registry";
+export {
+	GHOST_DRAG_EASINGS,
+	type GhostDragPhase,
+	type UseGhostDragOptions,
+	type UseGhostDragReturn,
+	useGhostDrag,
+} from "./useGhostDrag";
 export { useReducedMotion } from "./useReducedMotion";
 export { WindowControls, type WindowControlsProps } from "./WindowControls";
 export { WindowFrame, type WindowFrameProps } from "./WindowFrame";
-export { WindowManager } from "./WindowManager";
+export { WindowManager, type WindowManagerProps } from "./WindowManager";

@@ -5,9 +5,19 @@
  * Import from '@/os/store' for clean access.
  */
 
+// Onboarding Store
+export {
+	selectCurrentStep,
+	selectHasCompletedTour,
+	selectIsInteractionBlocked,
+	selectIsOnboarding,
+	selectIsOnboardingStep,
+	useOnboardingHasHydrated,
+	useOnboardingStore,
+} from "./onboarding-store";
 // Hydration
 export { StoreHydrator, type StoreHydratorProps } from "./StoreHydrator";
-// Store
+// System Store
 export {
 	selectActiveWindowId,
 	selectBootPhase,
@@ -38,6 +48,11 @@ export {
 	FULL_HEIGHT_MOBILE_APPS,
 	MAXIMIZED_APPS,
 	MOBILE_MAXIMIZED_APPS,
+	ONBOARDING_STEP_ORDER,
+	type OnboardingActions,
+	type OnboardingState,
+	type OnboardingStep,
+	type OnboardingStore,
 	type SystemActions,
 	type SystemState,
 	type SystemStore,

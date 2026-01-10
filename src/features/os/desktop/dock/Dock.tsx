@@ -4,7 +4,8 @@ import clsx from "clsx";
 import { AnimatePresence, motion, useMotionValue } from "framer-motion";
 import { memo, useCallback, useRef, useState } from "react";
 
-import { UI_REVEAL } from "@/os/boot";
+import { ONBOARDING_TIMING, UI_REVEAL } from "@/os/boot";
+import { SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
 import {
 	DEFAULT_DOCK_CONFIG,
 	DOCK_SIZE_MAP,
@@ -25,6 +26,8 @@ import { useDeviceType } from "./useDeviceType";
 export interface DockProps {
 	/** Whether the system is currently booting (delays entrance animation) */
 	isBooting?: boolean;
+	/** Whether the dock is highlighted during onboarding */
+	isHighlighted?: boolean;
 }
 
 /**
@@ -120,12 +123,18 @@ const getAnimationVariants = (position: "bottom" | "left" | "right", shouldHide:
  * - Persisted configuration (position, size, magnification)
  * - Staggered entrance during boot sequence
  */
-export const Dock = memo(function Dock({ isBooting = false }: DockProps) {
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Dock handles multiple interaction modes
+export const Dock = memo(function Dock({ isBooting = false, isHighlighted = false }: DockProps) {
 	const deviceType = useDeviceType();
 	const isMobile = deviceType === "mobile";
 	const isFullscreen = useSystemStore(selectIsAnyWindowFullscreen);
 	const hasHydrated = useHasHydrated();
 	const prefersReducedMotion = useReducedMotion();
+
+	// Animation duration for glow effect
+	const glowDuration = prefersReducedMotion
+		? ONBOARDING_TIMING.REDUCED_MOTION_DELAY / 1000
+		: ONBOARDING_TIMING.GLOW_TRANSITION / 1000;
 
 	// Get dock config from store, use defaults during SSR/hydration
 	const storedConfig = useSystemStore(selectDockConfig);
@@ -257,15 +266,28 @@ export const Dock = memo(function Dock({ isBooting = false }: DockProps) {
 					ref={dockRef}
 					role="navigation"
 					aria-label="Application dock"
-					className={clsx("fixed z-50", POSITION_CLASSES[position])}
+					className={clsx(
+						"fixed",
+						isHighlighted ? "rounded-2xl" : "z-50",
+						POSITION_CLASSES[position],
+					)}
+					style={{
+						zIndex: isHighlighted ? SPOTLIGHT_Z_INDEX.highlighted : undefined,
+					}}
 					initial={initial}
-					animate={animate}
+					animate={{
+						...animate,
+						boxShadow: isHighlighted
+							? "0 0 30px rgba(59, 130, 246, 0.6), 0 0 60px rgba(59, 130, 246, 0.4)"
+							: "none",
+					}}
 					exit={exit}
 					transition={{
 						duration: animationConfig.duration,
 						ease: animationConfig.ease,
 						// Delay entrance animation, no delay when hiding
 						delay: shouldHide ? 0 : animationConfig.delay,
+						boxShadow: { duration: glowDuration, ease: "easeOut" },
 					}}
 					onPointerDown={handlePointerDown}
 					aria-hidden={shouldHide}

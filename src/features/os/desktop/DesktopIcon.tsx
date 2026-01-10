@@ -1,10 +1,15 @@
 "use client";
 
+import clsx from "clsx";
 import { motion, useAnimation } from "framer-motion";
 import { FileText, Folder } from "lucide-react";
 import { memo, useCallback, useRef } from "react";
 
+import { ONBOARDING_TIMING } from "@/os/boot";
+import { SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
 import { type AppID, useSystemStore } from "@/os/store";
+import { useReducedMotion } from "@/os/window";
+
 import type { DesktopIconType } from "./useDesktop";
 
 export interface DesktopIconProps {
@@ -28,6 +33,8 @@ export interface DesktopIconProps {
 	onExecute: () => void;
 	/** Callback to register the button ref for intersection testing */
 	onRegisterRef?: (element: HTMLButtonElement | null) => void;
+	/** Whether this icon is highlighted during onboarding */
+	isHighlighted?: boolean;
 }
 
 /**
@@ -39,6 +46,7 @@ export interface DesktopIconProps {
  *
  * Styled like macOS Finder icons with selection state
  * and text shadow for visibility against any wallpaper.
+ * Supports spotlight highlighting during onboarding tour.
  */
 export const DesktopIcon = memo(function DesktopIcon({
 	appId,
@@ -51,9 +59,16 @@ export const DesktopIcon = memo(function DesktopIcon({
 	onSelect,
 	onExecute,
 	onRegisterRef,
+	isHighlighted = false,
 }: DesktopIconProps) {
 	const launchApp = useSystemStore((s) => s.launchApp);
 	const isFile = iconType === "file";
+	const prefersReducedMotion = useReducedMotion();
+
+	// Animation duration for glow effect
+	const glowDuration = prefersReducedMotion
+		? ONBOARDING_TIMING.REDUCED_MOTION_DELAY / 1000
+		: ONBOARDING_TIMING.GLOW_TRANSITION / 1000;
 
 	const launchWithProps = useCallback(() => {
 		if (isFile && contentUrl) {
@@ -151,7 +166,17 @@ export const DesktopIcon = memo(function DesktopIcon({
 			animate={controls}
 			whileHover={{ scale: 1.02 }}
 			whileTap={{ scale: 0.98 }}
-			className="pointer-events-auto group flex w-20 flex-col items-center gap-1.5 rounded-lg p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+			className={clsx(
+				"pointer-events-auto group flex w-20 flex-col items-center gap-1.5 rounded-lg p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+			)}
+			style={{
+				position: isHighlighted ? "relative" : undefined,
+				zIndex: isHighlighted ? SPOTLIGHT_Z_INDEX.highlighted : undefined,
+				boxShadow: isHighlighted
+					? "0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)"
+					: "none",
+				transition: `box-shadow ${glowDuration}s ease-out`,
+			}}
 			aria-label={`Open ${label} ${isFile ? "file" : "folder"}`}
 			aria-pressed={isSelected}
 			data-desktop-icon
