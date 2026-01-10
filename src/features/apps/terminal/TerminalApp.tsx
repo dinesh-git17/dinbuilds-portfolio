@@ -10,7 +10,7 @@
 import clsx from "clsx";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
-import { AppID, useSystemStore } from "@/os/store";
+import { AppID, NotificationID, useNotificationStore, useSystemStore } from "@/os/store";
 
 import { MatrixRain } from "./MatrixRain";
 import { P10kPrompt } from "./P10kPrompt";
@@ -58,7 +58,15 @@ export const TerminalApp = memo(function TerminalApp() {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const closeWindow = useSystemStore((s) => s.closeWindow);
+	const addNotification = useNotificationStore((s) => s.addNotification);
 	const [showMatrix, setShowMatrix] = useState(false);
+
+	/**
+	 * Fire "Command line active" notification on terminal mount.
+	 */
+	useEffect(() => {
+		addNotification(NotificationID.TerminalOpened);
+	}, [addNotification]);
 
 	const handleExit = useCallback(() => {
 		closeWindow(AppID.Terminal);
@@ -66,7 +74,12 @@ export const TerminalApp = memo(function TerminalApp() {
 
 	const handleMatrix = useCallback(() => {
 		setShowMatrix(true);
-	}, []);
+		addNotification(NotificationID.MatrixEnabled);
+	}, [addNotification]);
+
+	const handleHiddenCommand = useCallback(() => {
+		addNotification(NotificationID.HiddenFeature);
+	}, [addNotification]);
 
 	const {
 		currentInput,
@@ -76,7 +89,11 @@ export const TerminalApp = memo(function TerminalApp() {
 		navigateHistoryUp,
 		navigateHistoryDown,
 		clearHistory,
-	} = useTerminalState({ onExit: handleExit, onMatrix: handleMatrix });
+	} = useTerminalState({
+		onExit: handleExit,
+		onMatrix: handleMatrix,
+		onHiddenCommand: handleHiddenCommand,
+	});
 
 	const handleMatrixComplete = useCallback(() => {
 		setShowMatrix(false);

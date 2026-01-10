@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import {
 	type AppID,
@@ -15,6 +15,8 @@ import {
 	useOnboardingStore,
 	useSystemStore,
 } from "@/os/store";
+
+import { useIdle } from "./useIdle";
 
 /**
  * Delay after onboarding outro completes before showing welcome notification.
@@ -35,7 +37,13 @@ const WELCOME_BACK_DELAY = 1200;
 const APP_NOTIFICATION_DELAY = 600;
 
 /**
- * useNotificationTriggers — Boot & App Exploration Triggers
+ * Idle timeout before showing "Take your time" notification.
+ * 5 minutes of no pointer/keyboard activity.
+ */
+const IDLE_TIMEOUT = 5 * 60 * 1000;
+
+/**
+ * useNotificationTriggers — Boot, App & Idle Triggers
  *
  * Listens for system events and triggers appropriate notifications:
  *
@@ -46,6 +54,9 @@ const APP_NOTIFICATION_DELAY = 600;
  * App Exploration:
  * - First project app opened: Shows "You're in"
  * - All 3 project apps opened: Shows "Nice. You found them all."
+ *
+ * Idle State:
+ * - 5 minutes of inactivity: Shows "Take your time"
  *
  * This hook should be rendered once at the top level (e.g., in Stage).
  */
@@ -147,4 +158,19 @@ export function useNotificationTriggers(): void {
 			}
 		}
 	}, [windows, hasHydrated, trackProjectAppOpen]);
+
+	// Idle notification trigger - fires after 5 minutes of inactivity
+	const handleIdle = useCallback(() => {
+		addNotification(NotificationID.IdleMessage);
+	}, [addNotification]);
+
+	// Only enable idle detection after boot completes and if notification hasn't been seen
+	const idleEnabled =
+		hasHydrated && bootPhase === "complete" && !hasSeen(NotificationID.IdleMessage);
+
+	useIdle({
+		timeout: IDLE_TIMEOUT,
+		onIdle: handleIdle,
+		enabled: idleEnabled,
+	});
 }

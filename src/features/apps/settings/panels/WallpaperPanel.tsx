@@ -6,7 +6,7 @@ import { memo, useCallback } from "react";
 
 import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
 import { MOBILE_WALLPAPERS, WALLPAPERS, type WallpaperConfig } from "@/os/desktop/wallpapers";
-import { selectWallpaper, useSystemStore } from "@/os/store";
+import { NotificationID, selectWallpaper, useNotificationStore, useSystemStore } from "@/os/store";
 
 export interface WallpaperPanelProps {
 	/** Optional className for container styling */
@@ -29,6 +29,7 @@ export const WallpaperPanel = memo(function WallpaperPanel({ className }: Wallpa
 	const deviceType = useDeviceType();
 	const currentWallpaper = useSystemStore(selectWallpaper);
 	const setWallpaper = useSystemStore((s) => s.setWallpaper);
+	const addNotification = useNotificationStore((s) => s.addNotification);
 
 	const isMobile = deviceType === "mobile";
 	const wallpapers: WallpaperConfig[] = isMobile ? MOBILE_WALLPAPERS : WALLPAPERS;
@@ -36,8 +37,9 @@ export const WallpaperPanel = memo(function WallpaperPanel({ className }: Wallpa
 	const handleSelect = useCallback(
 		(path: string) => {
 			setWallpaper(path);
+			addNotification(NotificationID.WallpaperChanged);
 		},
-		[setWallpaper],
+		[setWallpaper, addNotification],
 	);
 
 	return (

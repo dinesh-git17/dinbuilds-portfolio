@@ -7,4 +7,5 @@
 
 export { NotificationLayer } from "./NotificationLayer";
 export { NotificationPill, type NotificationPillProps } from "./NotificationPill";
+export { type UseIdleOptions, useIdle } from "./useIdle";
 export { useNotificationTriggers } from "./useNotificationTriggers";
