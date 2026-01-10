@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { AnimatePresence, motion, useMotionValue } from "framer-motion";
 import { memo, useCallback, useRef, useState } from "react";
 
-import { BOOT_TIMING } from "@/os/boot";
+import { UI_REVEAL } from "@/os/boot";
 import {
 	DEFAULT_DOCK_CONFIG,
 	DOCK_SIZE_MAP,
@@ -236,11 +236,15 @@ export const Dock = memo(function Dock({ isBooting = false }: DockProps) {
 	const maxIconSize = Math.round(baseSize * magnifyScale);
 	const platformThickness = baseSize + padding * 2;
 
-	// Calculate stagger delay based on boot state and motion preference
-	const staggerDelay = prefersReducedMotion ? 0 : BOOT_TIMING.UI_STAGGER_DELAY / 1000;
-
 	// Should hide: during boot OR when fullscreen
 	const shouldHide = isBooting || isFullscreen;
+
+	// Animation config: Use mobile simplified animation or desktop reveal with backOut bounce
+	const animationConfig = prefersReducedMotion
+		? { duration: 0.05, ease: "linear" as const, delay: 0 }
+		: isMobile
+			? { ...UI_REVEAL.mobile, delay: 0 }
+			: UI_REVEAL.dock;
 
 	// Get animation variants based on position
 	const { initial, animate, exit } = getAnimationVariants(position, shouldHide);
@@ -258,11 +262,10 @@ export const Dock = memo(function Dock({ isBooting = false }: DockProps) {
 					animate={animate}
 					exit={exit}
 					transition={{
-						type: "spring",
-						stiffness: 500,
-						damping: 35,
-						// Stagger delay when appearing after boot, no delay when hiding
-						delay: shouldHide ? 0 : staggerDelay,
+						duration: animationConfig.duration,
+						ease: animationConfig.ease,
+						// Delay entrance animation, no delay when hiding
+						delay: shouldHide ? 0 : animationConfig.delay,
 					}}
 					onPointerDown={handlePointerDown}
 					aria-hidden={shouldHide}

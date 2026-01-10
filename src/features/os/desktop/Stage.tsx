@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { memo, useCallback, useEffect, useRef } from "react";
 
-import { BOOT_TIMING } from "@/os/boot";
+import { BOOT_TIMING, UI_REVEAL } from "@/os/boot";
 import { selectBootPhase, selectWallpaper, useSystemStore } from "@/os/store";
 import { useReducedMotion, WindowManager } from "@/os/window";
 
@@ -44,8 +44,9 @@ export interface StageProps {
  *
  * Boot Sequence:
  * - Renders "behind" the BootScreen (opacity 0) during boot
- * - Fades in when boot phase transitions to 'desktop_enter'
- * - SystemBar and Dock have staggered entrance (200ms after wallpaper)
+ * - Fades in when boot phase transitions to 'welcome'
+ * - During 'welcome': Only wallpaper visible, functional UI hidden
+ * - SystemBar and Dock animate in when phase transitions to 'complete'
  */
 export const Stage = memo(function Stage({ children }: StageProps) {
 	const stageRef = useRef<HTMLDivElement>(null);
@@ -67,13 +68,22 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 		updateSelectionFromBox,
 	} = useDesktop();
 
-	// Stage is visible once boot enters desktop phase
-	const isDesktopVisible = bootPhase === "desktop_enter" || bootPhase === "complete";
+	// Stage is visible once boot enters welcome phase (wallpaper shows)
+	const isDesktopVisible = bootPhase === "welcome" || bootPhase === "complete";
+
+	// Functional UI (Dock, SystemBar, Icons, Windows) only visible after welcome
+	// During 'welcome' phase: only wallpaper + vignette visible for "zero-distraction" effect
+	const isUIVisible = bootPhase === "complete";
 
 	// Calculate animation duration based on motion preference
 	const stageFadeDuration = prefersReducedMotion
 		? BOOT_TIMING.REDUCED_MOTION_DELAY / 1000
 		: BOOT_TIMING.STAGE_FADE_DURATION / 1000;
+
+	// Content reveal animation config (Desktop Icons, WeatherWidget)
+	const contentAnimation = prefersReducedMotion
+		? { duration: 0.05, ease: "linear" as const, delay: 0 }
+		: UI_REVEAL.content;
 
 	// Wrap the original pointer down to also clear desktop selection
 	const handleStagePointerDown = useCallback(
@@ -127,44 +137,70 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 			)}
 			<Vignette />
 
-			{/* Weather widget layer (desktop only, top-left) */}
-			<div className="absolute top-14 left-6 z-[1] hidden lg:block">
-				<WeatherWidget />
-			</div>
+			{/* Weather widget layer (desktop only, top-left) — animated entrance */}
+			{isUIVisible && (
+				<motion.div
+					className="absolute top-14 left-6 z-[1] hidden lg:block"
+					initial={{
+						opacity: 0,
+						scale: contentAnimation === UI_REVEAL.content ? UI_REVEAL.content.scale.from : 1,
+					}}
+					animate={{ opacity: 1, scale: 1 }}
+					transition={{
+						duration: contentAnimation.duration,
+						ease: contentAnimation.ease,
+						delay: contentAnimation.delay,
+					}}
+				>
+					<WeatherWidget />
+				</motion.div>
+			)}
 
-			{/* Desktop icons layer (above background, below windows) */}
-			<section
-				className="pointer-events-none absolute inset-0 z-[1] pt-12 pr-4"
-				aria-label="Desktop"
-			>
-				<div className="ml-auto flex flex-col items-end gap-2">
-					{items.map((item) => (
-						<DesktopIcon
-							key={item.id}
-							appId={item.appId}
-							label={item.label}
-							iconType={item.iconType}
-							folderId={item.folderId}
-							contentUrl={item.contentUrl}
-							title={item.title}
-							isSelected={selectedItemIds.has(item.id)}
-							onSelect={() => selectItem(item.id)}
-							onExecute={clearSelection}
-							onRegisterRef={(el) => registerIconRef(item.id, el)}
-						/>
-					))}
-				</div>
-			</section>
+			{/* Desktop icons layer (above background, below windows) — animated entrance */}
+			{isUIVisible && (
+				<motion.section
+					className="pointer-events-none absolute inset-0 z-[1] pt-12 pr-4"
+					aria-label="Desktop"
+					initial={{
+						opacity: 0,
+						scale: contentAnimation === UI_REVEAL.content ? UI_REVEAL.content.scale.from : 1,
+					}}
+					animate={{ opacity: 1, scale: 1 }}
+					transition={{
+						duration: contentAnimation.duration,
+						ease: contentAnimation.ease,
+						delay: contentAnimation.delay,
+					}}
+				>
+					<div className="ml-auto flex flex-col items-end gap-2">
+						{items.map((item) => (
+							<DesktopIcon
+								key={item.id}
+								appId={item.appId}
+								label={item.label}
+								iconType={item.iconType}
+								folderId={item.folderId}
+								contentUrl={item.contentUrl}
+								title={item.title}
+								isSelected={selectedItemIds.has(item.id)}
+								onSelect={() => selectItem(item.id)}
+								onExecute={clearSelection}
+								onRegisterRef={(el) => registerIconRef(item.id, el)}
+							/>
+						))}
+					</div>
+				</motion.section>
+			)}
 
-			{/* Selection box layer (z-0, above background, below windows) */}
-			{isSelecting && selectionBox && <SelectionBox box={selectionBox} />}
+			{/* Selection box layer — hidden during welcome */}
+			{isUIVisible && isSelecting && selectionBox && <SelectionBox box={selectionBox} />}
 
-			{/* Window layer */}
-			<WindowManager />
+			{/* Window layer — hidden during welcome */}
+			{isUIVisible && <WindowManager />}
 
-			{/* System UI - staggered entrance during boot */}
-			<SystemBar isBooting={!isDesktopVisible} />
-			<Dock isBooting={!isDesktopVisible} />
+			{/* System UI — hidden during welcome, animated entrance on complete */}
+			<SystemBar isBooting={!isUIVisible} />
+			<Dock isBooting={!isUIVisible} />
 
 			{/* Additional UI layers */}
 			{children && <div className="relative z-10 h-full w-full">{children}</div>}

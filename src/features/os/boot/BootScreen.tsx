@@ -18,7 +18,7 @@ import { BOOT_TIMING } from "./constants";
  *
  * Visibility:
  * - Shows during 'hidden' and 'booting' phases
- * - Fades out when transitioning to 'desktop_enter'
+ * - Fades out when transitioning to 'welcome' phase
  *
  * Z-Index: 50 (above everything except modals)
  */
