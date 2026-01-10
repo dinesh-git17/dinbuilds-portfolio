@@ -5,6 +5,7 @@ import Image from "next/image";
 import { memo, useCallback, useEffect, useRef } from "react";
 
 import { BOOT_TIMING, ONBOARDING_TIMING, UI_REVEAL } from "@/os/boot";
+import { NotificationLayer, useNotificationTriggers } from "@/os/notification";
 import { OnboardingController, SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
 import {
 	AppID,
@@ -63,6 +64,10 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 
 	// Sync wallpaper with device type (mobile vs desktop)
 	useWallpaperSync();
+
+	// Initialize notification triggers for boot and app exploration events
+	useNotificationTriggers();
+
 	const bootPhase = useSystemStore(selectBootPhase);
 	const prefersReducedMotion = useReducedMotion();
 	const { isSelecting, selectionBox, handlePointerDown, handlePointerMove, handlePointerUp } =
@@ -252,6 +257,9 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 							isHighlighted={highlights.dock}
 							highlightedStackId={highlights.dockProjectsStack ? DockStackID.Projects : null}
 						/>
+
+						{/* Notification layer — shows system voice notifications */}
+						{isUIVisible && <NotificationLayer />}
 
 						{/* Additional UI layers */}
 						{children && <div className="relative z-10 h-full w-full">{children}</div>}

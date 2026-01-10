@@ -455,3 +455,215 @@ export const MOBILE_STEP_ORDER: OnboardingStep[] = [
  * @deprecated Use DESKTOP_STEP_ORDER or MOBILE_STEP_ORDER instead.
  */
 export const ONBOARDING_STEP_ORDER = DESKTOP_STEP_ORDER;
+
+// ============================================================================
+// NOTIFICATION SYSTEM TYPES
+// ============================================================================
+
+/**
+ * Unique identifiers for system notifications.
+ * Each ID corresponds to a specific "delight moment" in the user journey.
+ * Notifications with the same ID will only fire once per user lifetime.
+ */
+export enum NotificationID {
+	// Boot & Session
+	Welcome = "sys.welcome",
+	WelcomeBack = "sys.welcome_back",
+
+	// App Exploration
+	FirstAppOpened = "sys.first_app",
+	AllAppsExplored = "sys.all_apps",
+
+	// Customization
+	DockConfigChanged = "sys.dock_config",
+	WallpaperChanged = "sys.wallpaper",
+
+	// Terminal & Hacker
+	TerminalOpened = "sys.terminal_open",
+	HiddenFeature = "sys.hidden_feature",
+	MatrixEnabled = "sys.matrix",
+
+	// Idle State
+	IdleMessage = "sys.idle",
+}
+
+/**
+ * Content definition for a notification.
+ */
+export interface NotificationContent {
+	/** Short headline for the notification */
+	title: string;
+	/** Optional longer description */
+	message?: string;
+}
+
+/**
+ * Registry mapping notification IDs to their content.
+ * The "personality" of the system voice lives here.
+ */
+export const NOTIFICATION_REGISTRY: Record<NotificationID, NotificationContent> = {
+	[NotificationID.Welcome]: {
+		title: "Welcome to DinBuilds OS",
+		message: "Explore the desktop. Click around.",
+	},
+	[NotificationID.WelcomeBack]: {
+		title: "Welcome back",
+		message: "Right where you left off.",
+	},
+	[NotificationID.FirstAppOpened]: {
+		title: "You're in",
+		message: "Explore. Everything is interactive.",
+	},
+	[NotificationID.AllAppsExplored]: {
+		title: "Nice. You found them all.",
+		message: "Curiosity noted.",
+	},
+	[NotificationID.DockConfigChanged]: {
+		title: "Everything here is customizable",
+		message: "Make it yours.",
+	},
+	[NotificationID.WallpaperChanged]: {
+		title: "Visual preferences updated",
+	},
+	[NotificationID.TerminalOpened]: {
+		title: "Command line active",
+		message: "Type 'help' to see available commands.",
+	},
+	[NotificationID.HiddenFeature]: {
+		title: "Hidden feature accessed",
+		message: "You found something.",
+	},
+	[NotificationID.MatrixEnabled]: {
+		title: "Visual protocol enabled",
+		message: "Follow the white rabbit.",
+	},
+	[NotificationID.IdleMessage]: {
+		title: "Take your time",
+		message: "No rush. Explore at your own pace.",
+	},
+};
+
+/**
+ * Runtime representation of a notification in the queue.
+ */
+export interface NotificationInstance {
+	/** Unique notification type */
+	id: NotificationID;
+	/** Content resolved from the registry */
+	content: NotificationContent;
+	/** Timestamp when added to queue */
+	timestamp: number;
+}
+
+/**
+ * Project app IDs for exploration tracking.
+ * Used to trigger "You're in" and "Found them all" notifications.
+ */
+export const PROJECT_APP_IDS = [AppID.Yield, AppID.Debate, AppID.PassFX] as const;
+
+/**
+ * State slice for the notification store.
+ */
+export interface NotificationState {
+	/**
+	 * Queue of pending notifications.
+	 * Processed one at a time with a delay buffer.
+	 */
+	queue: NotificationInstance[];
+
+	/**
+	 * Currently visible notification.
+	 * null when no notification is being displayed.
+	 */
+	current: NotificationInstance | null;
+
+	/**
+	 * Set of notification IDs that have been shown.
+	 * Persisted to localStorage to prevent repeat notifications.
+	 */
+	seenIds: Set<NotificationID>;
+
+	/**
+	 * Whether the queue is actively being processed.
+	 * Used to prevent concurrent processing.
+	 */
+	isProcessing: boolean;
+
+	/**
+	 * Set of project app IDs opened this session.
+	 * Used to track exploration progress for "You're in" and "Found them all".
+	 * NOT persisted - resets on page refresh.
+	 */
+	openedProjectApps: Set<AppID>;
+}
+
+/**
+ * Actions available on the notification store.
+ */
+export interface NotificationActions {
+	/**
+	 * Queue a notification for display.
+	 * No-op if the notification has already been seen.
+	 *
+	 * @param id - The notification identifier
+	 */
+	addNotification: (id: NotificationID) => void;
+
+	/**
+	 * Dismiss the currently visible notification.
+	 * Triggers processing of the next queued item.
+	 */
+	dismissCurrent: () => void;
+
+	/**
+	 * Mark a notification as seen without displaying it.
+	 * Useful for programmatic completion tracking.
+	 *
+	 * @param id - The notification identifier
+	 */
+	markAsSeen: (id: NotificationID) => void;
+
+	/**
+	 * Check if a notification has been seen.
+	 *
+	 * @param id - The notification identifier
+	 * @returns true if the notification has been shown before
+	 */
+	hasSeen: (id: NotificationID) => boolean;
+
+	/**
+	 * Process the next notification in the queue.
+	 * Called internally after dismiss or delay.
+	 */
+	processQueue: () => void;
+
+	/**
+	 * Track a project app being opened.
+	 * Triggers FirstAppOpened on first project app, AllAppsExplored when all 3 opened.
+	 *
+	 * @param appId - The app ID being opened
+	 */
+	trackProjectAppOpen: (appId: AppID) => void;
+
+	/**
+	 * Reset all seen notifications (for development/testing).
+	 */
+	resetSeen: () => void;
+}
+
+/**
+ * Complete notification store type combining state and actions.
+ */
+export type NotificationStore = NotificationState & NotificationActions;
+
+/**
+ * Delay in milliseconds between consecutive notifications.
+ * Prevents notification spam by adding a buffer.
+ */
+export const NOTIFICATION_QUEUE_DELAY = 800;
+
+/**
+ * Duration in milliseconds before auto-dismissing a notification.
+ * User can dismiss earlier via interaction.
+ */
+export const NOTIFICATION_AUTO_DISMISS = 5500;

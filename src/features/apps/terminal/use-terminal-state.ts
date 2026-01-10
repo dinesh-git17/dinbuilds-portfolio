@@ -248,6 +248,8 @@ export interface UseTerminalStateOptions {
 	onExit?: () => void;
 	/** Callback when matrix command is executed */
 	onMatrix?: () => void;
+	/** Callback when a hidden easter egg command is executed (not in help) */
+	onHiddenCommand?: () => void;
 }
 
 /**
@@ -260,7 +262,7 @@ export interface UseTerminalStateOptions {
  * - Output/error handling
  */
 export function useTerminalState(options: UseTerminalStateOptions = {}) {
-	const { onExit, onMatrix } = options;
+	const { onExit, onMatrix, onHiddenCommand } = options;
 	const [state, setState] = useState<TerminalState>(INITIAL_STATE);
 
 	/**
@@ -319,10 +321,16 @@ export function useTerminalState(options: UseTerminalStateOptions = {}) {
 			return;
 		}
 
-		// Handle matrix command - trigger animation
+		// Handle matrix command - trigger animation and notification
 		if (commandName === "matrix") {
 			onMatrix?.();
 			return;
+		}
+
+		// Check if this is a hidden easter egg command (not in help menu)
+		const command = COMMAND_REGISTRY[commandName];
+		if (command?.hidden) {
+			onHiddenCommand?.();
 		}
 
 		setState((prev) => {
@@ -359,7 +367,7 @@ export function useTerminalState(options: UseTerminalStateOptions = {}) {
 				savedInput: "",
 			};
 		});
-	}, [state.currentInput, onExit, onMatrix]);
+	}, [state.currentInput, onExit, onMatrix, onHiddenCommand]);
 
 	/**
 	 * Navigate to previous command in history (Up arrow).

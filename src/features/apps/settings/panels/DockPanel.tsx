@@ -3,7 +3,14 @@
 import clsx from "clsx";
 import { memo, useCallback, useId } from "react";
 
-import { type DockPosition, type DockSize, selectDockConfig, useSystemStore } from "@/os/store";
+import {
+	type DockPosition,
+	type DockSize,
+	NotificationID,
+	selectDockConfig,
+	useNotificationStore,
+	useSystemStore,
+} from "@/os/store";
 
 /**
  * Position option with visual representation.
@@ -79,6 +86,7 @@ function DockPositionPreview({
 export const DockPanel = memo(function DockPanel() {
 	const dockConfig = useSystemStore(selectDockConfig);
 	const setDockConfig = useSystemStore((s) => s.setDockConfig);
+	const addNotification = useNotificationStore((s) => s.addNotification);
 
 	const positionGroupId = useId();
 	const sizeGroupId = useId();
@@ -87,20 +95,23 @@ export const DockPanel = memo(function DockPanel() {
 	const handlePositionChange = useCallback(
 		(position: DockPosition) => {
 			setDockConfig({ position });
+			addNotification(NotificationID.DockConfigChanged);
 		},
-		[setDockConfig],
+		[setDockConfig, addNotification],
 	);
 
 	const handleSizeChange = useCallback(
 		(size: DockSize) => {
 			setDockConfig({ size });
+			addNotification(NotificationID.DockConfigChanged);
 		},
-		[setDockConfig],
+		[setDockConfig, addNotification],
 	);
 
 	const handleMagnificationToggle = useCallback(() => {
 		setDockConfig({ magnification: !dockConfig.magnification });
-	}, [dockConfig.magnification, setDockConfig]);
+		addNotification(NotificationID.DockConfigChanged);
+	}, [dockConfig.magnification, setDockConfig, addNotification]);
 
 	return (
 		<div className="flex flex-col gap-6">
