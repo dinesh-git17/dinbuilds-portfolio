@@ -16,7 +16,7 @@ const cspDirectives = isDev
 			"style-src 'self' 'unsafe-inline'",
 			"img-src 'self' data: blob:",
 			"font-src 'self'",
-			"frame-src 'self'",
+			"frame-src 'self' https://*.dineshd.dev",
 			"connect-src 'self' https://api.open-meteo.com ws://localhost:* http://localhost:*",
 		].join("; ")
 	: [
@@ -25,7 +25,7 @@ const cspDirectives = isDev
 			"style-src 'self' 'unsafe-inline'",
 			"img-src 'self' data:",
 			"font-src 'self'",
-			"frame-src 'self'",
+			"frame-src 'self' https://*.dineshd.dev",
 			"frame-ancestors 'none'",
 			"connect-src 'self' https://api.open-meteo.com",
 		].join("; ");
