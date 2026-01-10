@@ -56,14 +56,15 @@ function OnlineIndicator() {
 
 /**
  * Avatar component with status indicator overlay.
+ * Responsive: smaller on mobile (64px), larger on desktop (80px).
  */
 function Avatar() {
 	return (
-		<div className="relative">
+		<div className="relative shrink-0">
 			{/* Profile picture */}
 			<div
 				className={clsx(
-					"relative h-20 w-20 overflow-hidden rounded-full",
+					"relative h-16 w-16 overflow-hidden rounded-full md:h-20 md:w-20",
 					"ring-2 ring-white/10 ring-offset-2 ring-offset-black/40",
 				)}
 			>
@@ -71,7 +72,7 @@ function Avatar() {
 					src="/assets/profile_picture/din.png"
 					alt="Dinesh Dawonauth"
 					fill
-					sizes="80px"
+					sizes="(max-width: 768px) 64px, 80px"
 					className="object-cover"
 					priority
 				/>
@@ -101,7 +102,8 @@ function ActionButton({ action }: ActionButtonProps) {
 			rel={action.href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
 			aria-label={action.ariaLabel}
 			className={clsx(
-				"flex w-full items-center justify-center gap-2 rounded-md px-4 py-2",
+				"flex min-h-[44px] items-center justify-center gap-2 rounded-md",
+				"h-11 w-11 md:h-auto md:w-full md:px-4 md:py-2",
 				"bg-white/5 text-white/70",
 				"transition-colors duration-150",
 				"hover:bg-white/10 hover:text-white",
@@ -109,7 +111,7 @@ function ActionButton({ action }: ActionButtonProps) {
 			)}
 		>
 			<Icon className="h-4 w-4" />
-			<span className="text-xs font-medium">{action.label}</span>
+			<span className="hidden text-xs font-medium md:inline">{action.label}</span>
 		</a>
 	);
 }
@@ -130,37 +132,45 @@ export const ProfileSidebar = memo(function ProfileSidebar({ className }: Profil
 	return (
 		<aside
 			className={clsx(
-				"flex flex-col items-center gap-4 border-r border-white/5 p-5",
+				"flex flex-col gap-4 p-4 md:items-center md:p-5",
+				"border-b border-white/5 md:border-b-0 md:border-r",
 				"bg-white/[0.02]",
 				className,
 			)}
 		>
-			{/* Avatar Section */}
-			<Avatar />
+			{/* Identity Section - Horizontal on mobile, vertical on desktop */}
+			<div className="flex items-center gap-4 md:flex-col md:gap-4">
+				<Avatar />
 
-			{/* Identity */}
-			<div className="text-center">
-				<h2 className="text-base font-semibold text-white">Dinesh Dawonauth</h2>
-				<p className="mt-0.5 text-xs text-white/50">Data Engineer</p>
-			</div>
+				{/* Name, Title & Metadata */}
+				<div className="flex flex-col gap-1.5 md:items-center md:gap-2">
+					{/* Identity */}
+					<div className="md:text-center">
+						<h2 className="text-base font-semibold text-white">Dinesh Dawonauth</h2>
+						<p className="mt-0.5 text-xs text-white/50">Data Engineer</p>
+					</div>
 
-			{/* Metadata */}
-			<div className="flex flex-col gap-1.5 text-xs text-white/40">
-				<div className="flex items-center gap-1.5">
-					<MapPin className="h-3 w-3" />
-					<span>Toronto, Canada</span>
-				</div>
-				<div className="flex items-center gap-1.5">
-					<span className="font-mono text-[10px] uppercase tracking-wider text-white/30">TZ</span>
-					<span className="font-mono">EST (UTC-5)</span>
+					{/* Metadata - Single row on mobile, stacked on desktop */}
+					<div className="flex flex-row gap-3 text-xs text-white/40 md:flex-col md:gap-1.5">
+						<div className="flex items-center gap-1.5">
+							<MapPin className="h-3 w-3" />
+							<span>Toronto, Canada</span>
+						</div>
+						<div className="flex items-center gap-1.5">
+							<span className="font-mono text-[10px] uppercase tracking-wider text-white/30">
+								TZ
+							</span>
+							<span className="font-mono">EST (UTC-5)</span>
+						</div>
+					</div>
 				</div>
 			</div>
 
 			{/* Divider */}
 			<div className="h-px w-full bg-white/5" />
 
-			{/* Action Buttons */}
-			<div className="flex w-full flex-col gap-2">
+			{/* Action Buttons - Icon row on mobile, vertical stack on desktop */}
+			<div className="flex w-full flex-row justify-center gap-2 md:flex-col">
 				{PROFILE_ACTIONS.map((action) => (
 					<ActionButton key={action.label} action={action} />
 				))}

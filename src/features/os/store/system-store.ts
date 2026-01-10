@@ -91,6 +91,55 @@ function calculateCenteredPosition(windowSize: WindowSize, windowCount: number):
 }
 
 /**
+ * Calculate window size for a new window.
+ * Maximized apps get viewport-based sizing, others use defaults.
+ */
+function calculateWindowSize(appId: AppID, configSize?: WindowSize): WindowSize {
+	const isMaximized = MAXIMIZED_APPS.has(appId);
+	const defaultSize = isMaximized ? calculateMaximizedSize() : DEFAULT_WINDOW_SIZES[appId];
+	return configSize ?? defaultSize;
+}
+
+/**
+ * Calculate window position for a new window.
+ * Maximized apps position at top-left, others cascade from center.
+ */
+function calculateWindowPosition(
+	appId: AppID,
+	windowSize: WindowSize,
+	windowCount: number,
+	configPosition?: WindowPosition,
+): WindowPosition {
+	if (configPosition) return configPosition;
+
+	const isMaximized = MAXIMIZED_APPS.has(appId);
+	if (isMaximized) {
+		return { x: MAXIMIZED_PADDING, y: 32 + MAXIMIZED_PADDING / 2 };
+	}
+	return calculateCenteredPosition(windowSize, windowCount);
+}
+
+/**
+ * Create a new window instance with calculated size and position.
+ */
+function createWindowInstance(
+	appId: AppID,
+	windowCount: number,
+	config?: WindowSpawnConfig,
+): WindowInstance {
+	const size = calculateWindowSize(appId, config?.size);
+	const position = calculateWindowPosition(appId, size, windowCount, config?.position);
+
+	return {
+		id: appId,
+		status: "open",
+		position,
+		size,
+		props: config?.props,
+	};
+}
+
+/**
  * Find the next window to focus after closing/minimizing.
  * Returns the topmost visible window, or null if none exist.
  */
@@ -135,53 +184,30 @@ export const useSystemStore = create<SystemStore>()(
 
 			launchApp: (appId: AppID, config?: WindowSpawnConfig) => {
 				const { windows } = get();
-				const existingIndex = windows.findIndex((w) => w.id === appId);
+				const existingWindow = windows.find((w) => w.id === appId);
 				const shouldAutoFullscreen = AUTO_FULLSCREEN_APPS.has(appId);
+				const fullscreenId = shouldAutoFullscreen ? appId : get().fullscreenWindowId;
 
-				if (existingIndex !== -1) {
+				if (existingWindow) {
 					// Window exists - restore if minimized and bring to front
-					const existingWindow = windows[existingIndex];
-					if (!existingWindow) return;
-
 					const updatedWindows = windows.filter((w) => w.id !== appId);
-					updatedWindows.push({
-						...existingWindow,
-						status: "open",
-					});
+					updatedWindows.push({ ...existingWindow, status: "open" });
 
 					set({
 						windows: updatedWindows,
 						activeWindowId: appId,
-						// Auto-enter fullscreen for designated apps
-						fullscreenWindowId: shouldAutoFullscreen ? appId : get().fullscreenWindowId,
+						fullscreenWindowId: fullscreenId,
 					});
-				} else {
-					// Create new window instance
-					// Use maximized size for designated apps, otherwise use defaults
-					const isMaximized = MAXIMIZED_APPS.has(appId);
-					const defaultSize = isMaximized ? calculateMaximizedSize() : DEFAULT_WINDOW_SIZES[appId];
-					const windowSize = config?.size ?? defaultSize;
-
-					// Maximized windows position at top-left with padding, others cascade
-					const defaultPosition = isMaximized
-						? { x: MAXIMIZED_PADDING, y: 32 + MAXIMIZED_PADDING / 2 }
-						: calculateCenteredPosition(windowSize, windows.length);
-
-					const newWindow: WindowInstance = {
-						id: appId,
-						status: "open",
-						position: config?.position ?? defaultPosition,
-						size: windowSize,
-						props: config?.props,
-					};
-
-					set({
-						windows: [...windows, newWindow],
-						activeWindowId: appId,
-						// Auto-enter fullscreen for designated apps
-						fullscreenWindowId: shouldAutoFullscreen ? appId : get().fullscreenWindowId,
-					});
+					return;
 				}
+
+				// Create new window instance
+				const newWindow = createWindowInstance(appId, windows.length, config);
+				set({
+					windows: [...windows, newWindow],
+					activeWindowId: appId,
+					fullscreenWindowId: fullscreenId,
+				});
 			},
 
 			closeWindow: (id: AppID) => {
