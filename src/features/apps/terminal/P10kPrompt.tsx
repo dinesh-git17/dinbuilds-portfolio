@@ -3,10 +3,13 @@
  *
  * TERM-01: Powerlevel10k-style command prompt.
  * Features connected segments with integrated arrow separators.
+ * Mobile: Simplified prompt to prevent line wrapping.
  */
 
 import { Folder, GitBranch } from "lucide-react";
 import { memo } from "react";
+
+import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
 
 export interface P10kPromptProps {
 	/** Current working directory path */
@@ -25,6 +28,8 @@ export interface P10kPromptProps {
 	onHistoryDown: () => void;
 	/** Reference to the input element */
 	inputRef: React.RefObject<HTMLInputElement | null>;
+	/** Focus handler - called when input receives focus (e.g., keyboard opens) */
+	onFocus?: () => void;
 }
 
 /** Arrow width in pixels for consistent sizing */
@@ -104,11 +109,17 @@ export const P10kPrompt = memo(function P10kPrompt({
 	onHistoryUp,
 	onHistoryDown,
 	inputRef,
+	onFocus,
 }: P10kPromptProps) {
+	const deviceType = useDeviceType();
+	const isMobile = deviceType === "mobile";
+
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
 		if (event.key === "Enter") {
 			event.preventDefault();
 			onSubmit();
+			// Blur input to close mobile keyboard after command submission
+			inputRef.current?.blur();
 		} else if (event.key === "ArrowUp") {
 			event.preventDefault();
 			onHistoryUp();
@@ -120,22 +131,27 @@ export const P10kPrompt = memo(function P10kPrompt({
 
 	return (
 		<div className="flex items-center">
-			{/* Connected segments */}
-			<div className="flex items-center">
-				<PathSegment path={path} hasNext={Boolean(gitBranch)} />
-				{gitBranch && <GitSegment branch={gitBranch} />}
-			</div>
+			{/* Desktop: Full P10k segments | Mobile: Simplified ~ prompt */}
+			{!isMobile && (
+				<div className="flex items-center">
+					<PathSegment path={path} hasNext={Boolean(gitBranch)} />
+					{gitBranch && <GitSegment branch={gitBranch} />}
+				</div>
+			)}
 
 			{/* Input area */}
-			<div className="ml-4 flex flex-1 items-center">
-				<span className="mr-1 font-mono text-sm text-green-500">❯</span>
+			<div className={`flex h-8 flex-1 items-center ${isMobile ? "" : "ml-4"}`}>
+				{/* Mobile: Show ~ prefix for context */}
+				{isMobile && <span className="mr-1 font-mono text-base leading-none text-blue-400">~</span>}
+				<span className="mr-1 font-mono text-base leading-none text-green-500 md:text-sm">❯</span>
 				<input
 					ref={inputRef}
 					type="text"
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
 					onKeyDown={handleKeyDown}
-					className="flex-1 bg-transparent font-mono text-sm text-green-400 caret-green-400 outline-none placeholder:text-green-700"
+					onFocus={onFocus}
+					className="h-8 flex-1 bg-transparent font-mono text-base leading-none text-green-400 caret-green-400 outline-none placeholder:text-green-700 md:text-sm"
 					placeholder=""
 					spellCheck={false}
 					autoComplete="off"

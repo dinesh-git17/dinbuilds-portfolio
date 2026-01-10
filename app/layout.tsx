@@ -1,7 +1,20 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { generateProfilePageSchema, renderJsonLd } from "@/lib/seo";
 import "./globals.css";
+
+/**
+ * Viewport configuration for mobile OS experience.
+ * - Prevents iOS zoom on input focus (requires user-scalable=no + max-scale=1)
+ * - Uses interactive-widget=resizes-content for proper virtual keyboard handling
+ */
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	maximumScale: 1,
+	userScalable: false,
+	interactiveWidget: "resizes-content",
+};
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",

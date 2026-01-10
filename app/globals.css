@@ -89,7 +89,9 @@ body {
 	overflow: hidden;
 	position: fixed;
 	width: 100%;
+	/* iOS Safari fix: use dvh with fallback for proper viewport height */
 	height: 100%;
+	height: 100dvh;
 	/* Prevent pull-to-refresh and overscroll */
 	overscroll-behavior: none;
 }

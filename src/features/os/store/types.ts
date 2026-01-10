@@ -141,7 +141,14 @@ export const AUTO_FULLSCREEN_APPS: Set<AppID> = new Set([
  * Apps that should fill the available viewport on mobile.
  * These windows will expand from system bar to dock on mobile devices.
  */
-export const MOBILE_MAXIMIZED_APPS: Set<AppID> = new Set([AppID.About]);
+export const MOBILE_MAXIMIZED_APPS: Set<AppID> = new Set([AppID.About, AppID.Terminal]);
+
+/**
+ * Apps that should be full-height and edge-to-edge on mobile.
+ * These windows have NO padding - they snap directly to system bar and dock.
+ * Used for productivity apps that need maximum screen real estate.
+ */
+export const FULL_HEIGHT_MOBILE_APPS: Set<AppID> = new Set([]);
 
 /**
  * Dock position options.
