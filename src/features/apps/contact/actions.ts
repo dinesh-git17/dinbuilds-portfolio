@@ -2,6 +2,8 @@
 
 import { headers } from "next/headers";
 import { Resend } from "resend";
+import { sanitizeForEmail } from "./html-sanitizer";
+import { resolveClientIP } from "./ip-resolver";
 import { checkRateLimit } from "./rate-limiter";
 import { type ContactFormData, type ContactFormResult, contactFormSchema } from "./schema";
 
@@ -16,21 +18,11 @@ function getResendClient(): Resend {
 	return new Resend(apiKey);
 }
 
-function getClientIP(headersList: Headers): string {
-	const forwarded = headersList.get("x-forwarded-for");
-	if (forwarded) {
-		const firstIP = forwarded.split(",")[0];
-		return firstIP?.trim() ?? "unknown";
-	}
-
-	return headersList.get("x-real-ip") ?? headersList.get("cf-connecting-ip") ?? "unknown";
-}
-
 export async function sendEmail(data: ContactFormData): Promise<ContactFormResult> {
 	const headersList = await headers();
-	const clientIP = getClientIP(headersList);
+	const clientIP = resolveClientIP(headersList);
 
-	const rateLimitResult = checkRateLimit(clientIP);
+	const rateLimitResult = await checkRateLimit(clientIP);
 	if (!rateLimitResult.allowed) {
 		const resetMinutes = Math.ceil((rateLimitResult.resetAt - Date.now()) / 60000);
 		return {
@@ -67,12 +59,12 @@ export async function sendEmail(data: ContactFormData): Promise<ContactFormResul
 					<h2 style="color: #666; border-bottom: 1px solid #eee; padding-bottom: 10px;">
 						New Contact Form Submission
 					</h2>
-					<p><strong>Name:</strong> ${escapeHtml(name)}</p>
-					<p><strong>Email:</strong> ${escapeHtml(email)}</p>
+					<p><strong>Name:</strong> ${sanitizeForEmail(name)}</p>
+					<p><strong>Email:</strong> ${sanitizeForEmail(email)}</p>
 					<div style="margin-top: 20px;">
 						<strong>Message:</strong>
 						<div style="background: #f5f5f5; padding: 15px; margin-top: 10px; white-space: pre-wrap;">
-							${escapeHtml(message)}
+							${sanitizeForEmail(message)}
 						</div>
 					</div>
 				</div>
@@ -93,16 +85,4 @@ export async function sendEmail(data: ContactFormData): Promise<ContactFormResul
 			error: "An unexpected error occurred. Please try again later.",
 		};
 	}
-}
-
-function escapeHtml(text: string): string {
-	const htmlEntities: Record<string, string> = {
-		"&": "&amp;",
-		"<": "&lt;",
-		">": "&gt;",
-		'"': "&quot;",
-		"'": "&#39;",
-	};
-
-	return text.replace(/[&<>"']/g, (char) => htmlEntities[char] ?? char);
 }
