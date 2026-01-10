@@ -34,6 +34,7 @@ export {
 	type DockConfig,
 	type DockPosition,
 	type DockSize,
+	DockStackID,
 	MAXIMIZED_APPS,
 	type SystemActions,
 	type SystemState,

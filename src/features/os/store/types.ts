@@ -29,6 +29,14 @@ export enum AppID {
 }
 
 /**
+ * Dock stack identifiers for grouped items (mobile only).
+ * These are NOT apps - they represent collapsible folders in the dock.
+ */
+export enum DockStackID {
+	Projects = "stack.projects",
+}
+
+/**
  * Window visibility states
  */
 export type WindowStatus = "open" | "minimized";
