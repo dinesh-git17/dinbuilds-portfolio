@@ -3,7 +3,10 @@
 import { type MotionValue, motion, useSpring, useTransform } from "framer-motion";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
+import { ONBOARDING_TIMING } from "@/os/boot";
+import { SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
 import type { DockStackID } from "@/os/store";
+import { useReducedMotion } from "@/os/window";
 
 import type { DockStackItem } from "./dock-config";
 
@@ -12,6 +15,8 @@ export interface DockStackIconProps {
 	stack: DockStackItem;
 	/** Whether the stack is currently expanded */
 	isOpen: boolean;
+	/** Whether this stack is highlighted during onboarding */
+	isHighlighted?: boolean;
 	/** Callback to toggle stack open/close */
 	onToggle: (stackId: DockStackID) => void;
 	/** Mouse position relative to dock (motion value) */
@@ -103,6 +108,7 @@ function getTooltipAnimateState(dockPosition: "bottom" | "left" | "right", isVis
 export const DockStackIcon = memo(function DockStackIcon({
 	stack,
 	isOpen,
+	isHighlighted = false,
 	onToggle,
 	mousePosition,
 	magnify,
@@ -115,6 +121,12 @@ export const DockStackIcon = memo(function DockStackIcon({
 }: DockStackIconProps) {
 	const ref = useRef<HTMLButtonElement>(null);
 	const [isHovered, setIsHovered] = useState(false);
+	const prefersReducedMotion = useReducedMotion();
+
+	// Animation duration for glow effect
+	const glowDuration = prefersReducedMotion
+		? ONBOARDING_TIMING.REDUCED_MOTION_DELAY / 1000
+		: ONBOARDING_TIMING.GLOW_TRANSITION / 1000;
 
 	const isVertical = dockPosition === "left" || dockPosition === "right";
 	const maxSize = Math.round(baseSize * MAGNIFY_SCALE);
@@ -185,8 +197,20 @@ export const DockStackIcon = memo(function DockStackIcon({
 		<motion.div
 			ref={containerRef}
 			data-stack-id={stack.id}
-			className="relative flex flex-col items-center"
-			style={{ width: size, height: size }}
+			className="relative flex flex-col items-center rounded-[22.5%]"
+			style={{
+				width: size,
+				height: size,
+				zIndex: isHighlighted ? SPOTLIGHT_Z_INDEX.highlighted : undefined,
+			}}
+			animate={{
+				boxShadow: isHighlighted
+					? "0 0 20px rgba(59, 130, 246, 0.7), 0 0 40px rgba(59, 130, 246, 0.5), 0 0 60px rgba(59, 130, 246, 0.3)"
+					: "none",
+			}}
+			transition={{
+				boxShadow: { duration: glowDuration, ease: "easeOut" },
+			}}
 		>
 			{/* Tooltip */}
 			<motion.div

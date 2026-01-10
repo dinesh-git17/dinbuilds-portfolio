@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { OnboardingStep, OnboardingStore } from "./types";
-import { ONBOARDING_STEP_ORDER } from "./types";
+import { DESKTOP_STEP_ORDER } from "./types";
 
 /**
  * localStorage key for onboarding persistence.
@@ -22,34 +22,40 @@ interface PersistedOnboardingState {
 /**
  * Get the next step in the onboarding sequence.
  * Returns 'complete' if already at the final step.
+ *
+ * @param currentStep - The current onboarding step
+ * @param stepOrder - The ordered list of steps for this device type
  */
-function getNextStep(currentStep: OnboardingStep): OnboardingStep {
+function getNextStep(currentStep: OnboardingStep, stepOrder: OnboardingStep[]): OnboardingStep {
 	if (currentStep === "idle") {
-		return "window_controls";
+		return stepOrder[0] ?? "complete";
 	}
 
 	if (currentStep === "complete") {
 		return "complete";
 	}
 
-	const currentIndex = ONBOARDING_STEP_ORDER.indexOf(currentStep);
-	if (currentIndex === -1 || currentIndex >= ONBOARDING_STEP_ORDER.length - 1) {
+	const currentIndex = stepOrder.indexOf(currentStep);
+	if (currentIndex === -1 || currentIndex >= stepOrder.length - 1) {
 		return "complete";
 	}
 
-	const nextStep = ONBOARDING_STEP_ORDER[currentIndex + 1];
+	const nextStep = stepOrder[currentIndex + 1];
 	return nextStep ?? "complete";
 }
 
 /**
- * Onboarding Store — Desktop Tour Orchestrator
+ * Onboarding Store — Tour Orchestrator
  *
  * Manages the "Ghost in the Machine" onboarding experience.
  * This store controls the state machine for the guided tour
- * that demonstrates OS mechanics to first-time desktop users.
+ * that demonstrates OS mechanics to first-time users.
+ *
+ * The tour runs on both desktop and mobile with device-specific steps:
+ * - Desktop: Includes window drag physics demonstration
+ * - Mobile: Includes dock stack highlight (Projects folder)
  *
  * The tour only runs:
- * - On desktop devices (not mobile)
  * - For users who haven't completed the tour before
  * - After the About app finishes its opening animation
  *
@@ -66,9 +72,10 @@ export const useOnboardingStore = create<OnboardingStore>()(
 			currentStep: "idle" as OnboardingStep,
 			hasCompletedTour: false,
 			isInteractionBlocked: false,
+			stepOrder: DESKTOP_STEP_ORDER,
 
 			// Actions
-			startTour: () => {
+			startTour: (stepOrder: OnboardingStep[]) => {
 				const { hasCompletedTour, currentStep } = get();
 
 				// Don't start if already completed or already running
@@ -76,21 +83,24 @@ export const useOnboardingStore = create<OnboardingStore>()(
 					return;
 				}
 
+				const firstStep = stepOrder[0] ?? "complete";
+
 				set({
-					currentStep: "window_controls",
+					stepOrder,
+					currentStep: firstStep,
 					isInteractionBlocked: true,
 				});
 			},
 
 			advanceStep: () => {
-				const { currentStep } = get();
+				const { currentStep, stepOrder } = get();
 
 				// Can't advance from idle without calling startTour
 				if (currentStep === "idle") {
 					return;
 				}
 
-				const nextStep = getNextStep(currentStep);
+				const nextStep = getNextStep(currentStep, stepOrder);
 				const isComplete = nextStep === "complete";
 
 				set({
@@ -118,6 +128,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
 					currentStep: "idle",
 					hasCompletedTour: false,
 					isInteractionBlocked: false,
+					stepOrder: DESKTOP_STEP_ORDER,
 				});
 			},
 		}),

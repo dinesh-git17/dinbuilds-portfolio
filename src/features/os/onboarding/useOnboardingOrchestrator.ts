@@ -5,13 +5,29 @@ import { useCallback, useEffect, useRef } from "react";
 import { ONBOARDING_STEP_TIMING, ONBOARDING_TIMING } from "@/os/boot";
 import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
 import {
+	AppID,
+	DESKTOP_STEP_ORDER,
+	MOBILE_STEP_ORDER,
 	type OnboardingStep,
 	selectCurrentStep,
 	selectHasCompletedTour,
 	useOnboardingHasHydrated,
 	useOnboardingStore,
+	useSystemStore,
 } from "@/os/store";
 import { useReducedMotion } from "@/os/window";
+
+/**
+ * Timing constants for mobile window management during onboarding.
+ */
+const MOBILE_WINDOW_TIMING = {
+	/** Delay before closing window to allow step transition to settle */
+	CLOSE_DELAY: 100,
+	/** Duration to wait for window exit animation before showing desktop icons */
+	EXIT_ANIMATION_DURATION: 300,
+	/** Delay before reopening window after tour completes */
+	RESTORE_DELAY: 400,
+} as const;
 
 /**
  * Highlight states for each onboarding target.
@@ -25,6 +41,8 @@ export interface OnboardingHighlights {
 	shouldGhostDrag: boolean;
 	/** Dock should glow */
 	dock: boolean;
+	/** Projects stack in dock should glow (mobile only) */
+	dockProjectsStack: boolean;
 	/** Desktop icons should glow */
 	desktopIcons: boolean;
 }
@@ -64,14 +82,15 @@ export interface UseOnboardingOrchestratorReturn {
 
 /**
  * Get tooltip content for each step.
+ * Mobile-specific steps have touch-optimized copy.
  */
-function getTooltipForStep(step: OnboardingStep): OnboardingTooltip {
+function getTooltipForStep(step: OnboardingStep, isMobile: boolean): OnboardingTooltip {
 	switch (step) {
 		case "window_controls":
 			return {
 				visible: true,
 				text: "Close, minimize, or maximize windows",
-				position: "above-window",
+				position: isMobile ? "bottom" : "above-window",
 			};
 		case "window_drag":
 			return {
@@ -82,13 +101,19 @@ function getTooltipForStep(step: OnboardingStep): OnboardingTooltip {
 		case "dock":
 			return {
 				visible: true,
-				text: "Launch apps & navigate",
+				text: isMobile ? "Navigate your apps" : "Launch apps & navigate",
+				position: "top",
+			};
+		case "dock_projects_stack":
+			return {
+				visible: true,
+				text: "Try out my featured projects",
 				position: "top",
 			};
 		case "desktop_icons":
 			return {
 				visible: true,
-				text: "Explore my projects & details",
+				text: isMobile ? "Tap files to view details" : "Explore my projects & details",
 				position: "left",
 			};
 		case "outro":
@@ -125,6 +150,11 @@ function getStepDuration(step: OnboardingStep, reducedMotion: boolean): number {
 			return 0;
 		case "dock":
 			return ONBOARDING_STEP_TIMING.dock.glowDuration + ONBOARDING_STEP_TIMING.dock.tooltipDuration;
+		case "dock_projects_stack":
+			return (
+				ONBOARDING_STEP_TIMING.dock_projects_stack.glowDuration +
+				ONBOARDING_STEP_TIMING.dock_projects_stack.tooltipDuration
+			);
 		case "desktop_icons":
 			return (
 				ONBOARDING_STEP_TIMING.desktop_icons.glowDuration +
@@ -167,18 +197,25 @@ export function useOnboardingOrchestrator(): UseOnboardingOrchestratorReturn {
 	const reducedMotion = useReducedMotion();
 	const hasHydrated = useOnboardingHasHydrated();
 
-	// Store state
+	// Onboarding store state
 	const currentStep = useOnboardingStore(selectCurrentStep);
 	const hasCompletedTour = useOnboardingStore(selectHasCompletedTour);
 	const storeStartTour = useOnboardingStore((s) => s.startTour);
 	const storeAdvanceStep = useOnboardingStore((s) => s.advanceStep);
 	const storeSkipTour = useOnboardingStore((s) => s.skipTour);
 
+	// System store actions for window management
+	const closeWindow = useSystemStore((s) => s.closeWindow);
+	const launchApp = useSystemStore((s) => s.launchApp);
+
 	// Timer ref for step advancement
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// Track if ghost drag has completed (for window_drag step)
 	const ghostDragCompletedRef = useRef(false);
+
+	// Track previous step for detecting transitions (mobile window management)
+	const previousStepRef = useRef<OnboardingStep>(currentStep);
 
 	// Determine if onboarding is active
 	const isActive = currentStep !== "idle" && currentStep !== "complete";
@@ -189,19 +226,23 @@ export function useOnboardingOrchestrator(): UseOnboardingOrchestratorReturn {
 		windowHeader: currentStep === "window_drag",
 		shouldGhostDrag: currentStep === "window_drag" && !ghostDragCompletedRef.current,
 		dock: currentStep === "dock",
+		dockProjectsStack: currentStep === "dock_projects_stack",
 		desktopIcons: currentStep === "desktop_icons",
 	};
 
-	// Get tooltip for current step
-	const tooltip = getTooltipForStep(currentStep);
+	// Get tooltip for current step (mobile-aware for copy and positioning)
+	const tooltip = getTooltipForStep(currentStep, isMobile);
 
-	// Start tour with delay check
+	// Start tour with device-specific step order
 	const startTour = useCallback(() => {
-		// Don't start on mobile or if already completed
-		if (isMobile || hasCompletedTour || !hasHydrated) {
+		// Don't start if already completed or not hydrated
+		if (hasCompletedTour || !hasHydrated) {
 			return;
 		}
-		storeStartTour();
+
+		// Use device-specific step sequence
+		const stepOrder = isMobile ? MOBILE_STEP_ORDER : DESKTOP_STEP_ORDER;
+		storeStartTour(stepOrder);
 	}, [isMobile, hasCompletedTour, hasHydrated, storeStartTour]);
 
 	// Advance to next step
@@ -271,6 +312,45 @@ export function useOnboardingOrchestrator(): UseOnboardingOrchestratorReturn {
 			ghostDragCompletedRef.current = false;
 		}
 	}, [currentStep]);
+
+	// Mobile: Manage About window state during onboarding transitions
+	// - Close window when transitioning to desktop_icons to "reveal" the icons
+	// - Restore window after tour completes to return user to initial state
+	useEffect(() => {
+		const previousStep = previousStepRef.current;
+
+		// Always update the ref for next render (before any early returns)
+		previousStepRef.current = currentStep;
+
+		// Skip window management on desktop
+		if (!isMobile) {
+			return;
+		}
+
+		let actionTimer: ReturnType<typeof setTimeout> | null = null;
+
+		// Transition: dock_projects_stack → desktop_icons
+		// Close the About window to reveal the desktop icons underneath
+		if (previousStep === "dock_projects_stack" && currentStep === "desktop_icons") {
+			actionTimer = setTimeout(() => {
+				closeWindow(AppID.About);
+			}, MOBILE_WINDOW_TIMING.CLOSE_DELAY);
+		}
+
+		// Transition: outro → complete
+		// Restore the About window to return user to their starting state
+		if (previousStep === "outro" && currentStep === "complete") {
+			actionTimer = setTimeout(() => {
+				launchApp(AppID.About);
+			}, MOBILE_WINDOW_TIMING.RESTORE_DELAY);
+		}
+
+		return () => {
+			if (actionTimer) {
+				clearTimeout(actionTimer);
+			}
+		};
+	}, [currentStep, isMobile, closeWindow, launchApp]);
 
 	return {
 		isActive,

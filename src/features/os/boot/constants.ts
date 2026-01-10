@@ -173,6 +173,11 @@ export const ONBOARDING_STEP_TIMING = {
 		rippleDuration: 800,
 		tooltipDuration: 2000,
 	},
+	/** Mobile-only step: highlights the Projects stack in the dock */
+	dock_projects_stack: {
+		glowDuration: 2500,
+		tooltipDuration: 2000,
+	},
 	desktop_icons: {
 		glowDuration: 2000,
 		tooltipDuration: 2000,
