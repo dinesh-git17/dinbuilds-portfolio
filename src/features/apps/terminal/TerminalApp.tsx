@@ -104,6 +104,40 @@ export const TerminalApp = memo(function TerminalApp() {
 	}, []);
 
 	/**
+	 * Scroll to bottom helper - used on focus and viewport resize.
+	 */
+	const scrollToBottom = useCallback(() => {
+		if (scrollContainerRef.current) {
+			scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+		}
+	}, []);
+
+	/**
+	 * Handle input focus - scroll to bottom when keyboard opens.
+	 */
+	const handleInputFocus = useCallback(() => {
+		// Small delay to allow keyboard to finish opening
+		setTimeout(scrollToBottom, 100);
+	}, [scrollToBottom]);
+
+	/**
+	 * Listen to visualViewport resize for keyboard appearance.
+	 * When keyboard opens, the visual viewport shrinks - scroll to keep prompt visible.
+	 */
+	useEffect(() => {
+		const viewport = globalThis.window?.visualViewport;
+		if (!viewport) return;
+
+		const handleResize = () => {
+			// Scroll to bottom when viewport shrinks (keyboard opens)
+			scrollToBottom();
+		};
+
+		viewport.addEventListener("resize", handleResize);
+		return () => viewport.removeEventListener("resize", handleResize);
+	}, [scrollToBottom]);
+
+	/**
 	 * Focus input when clicking anywhere in terminal.
 	 */
 	const handleContainerClick = useCallback(() => {
@@ -138,7 +172,7 @@ export const TerminalApp = memo(function TerminalApp() {
 			{!showMatrix && (
 				<div
 					ref={scrollContainerRef}
-					className="flex-1 overflow-y-auto p-4 pb-2"
+					className="flex-1 overflow-y-auto overscroll-contain p-4 pb-2 [-webkit-overflow-scrolling:touch] md:[scrollbar-width:thin] md:[scrollbar-color:rgba(255,255,255,0.1)_transparent] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-1.5 md:[&::-webkit-scrollbar-track]:transparent md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-white/10"
 					role="log"
 					aria-live="polite"
 					aria-label="Terminal output"
@@ -156,7 +190,7 @@ export const TerminalApp = memo(function TerminalApp() {
 
 			{/* Input prompt (hidden during matrix animation) */}
 			{!showMatrix && (
-				<div className="shrink-0 border-t border-white/5 p-4 pt-3">
+				<div className="shrink-0 border-t border-white/5 px-4 pb-5 pt-3 md:pb-4">
 					<P10kPrompt
 						value={currentInput}
 						onChange={setInput}
@@ -164,6 +198,7 @@ export const TerminalApp = memo(function TerminalApp() {
 						onHistoryUp={navigateHistoryUp}
 						onHistoryDown={navigateHistoryDown}
 						inputRef={inputRef}
+						onFocus={handleInputFocus}
 					/>
 				</div>
 			)}

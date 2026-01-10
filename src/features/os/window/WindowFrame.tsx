@@ -5,6 +5,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
 import {
+	FULL_HEIGHT_MOBILE_APPS,
 	MOBILE_MAXIMIZED_APPS,
 	selectIsWindowActive,
 	selectIsWindowFullscreen,
@@ -80,6 +81,9 @@ export const WindowFrame = memo(function WindowFrame({
 		return () => globalThis.window.removeEventListener("resize", updateViewport);
 	}, []);
 
+	// Check if this app should be full-height on mobile (edge-to-edge, no padding)
+	const isFullHeightMobile = isMobile && FULL_HEIGHT_MOBILE_APPS.has(id);
+
 	// Calculate responsive layout based on device type, viewport, and fullscreen state
 	const responsiveLayout = (() => {
 		// Fullscreen mode: cover entire viewport
@@ -98,6 +102,16 @@ export const WindowFrame = memo(function WindowFrame({
 				height: size.height,
 				x: position.x,
 				y: position.y,
+			};
+		}
+
+		// Full-height mobile apps: edge-to-edge with no padding
+		if (isFullHeightMobile) {
+			return {
+				width: viewport.width,
+				height: viewport.height - SYSTEM_BAR_HEIGHT_MOBILE - DOCK_HEIGHT,
+				x: 0,
+				y: SYSTEM_BAR_HEIGHT_MOBILE,
 			};
 		}
 
@@ -225,7 +239,7 @@ export const WindowFrame = memo(function WindowFrame({
 					height: responsiveLayout.height,
 					zIndex: isFullscreen ? 100 : isActive ? 50 : 10,
 				}}
-				drag={!isFullscreen}
+				drag={!isFullscreen && !isFullHeightMobile}
 				dragControls={dragControls}
 				dragListener={false}
 				dragConstraints={constraintsRef}
@@ -249,15 +263,18 @@ export const WindowFrame = memo(function WindowFrame({
 						flex h-full flex-col overflow-hidden
 						border bg-black/60 backdrop-blur-xl
 						transition-[border-color,box-shadow,border-radius] duration-200
-						${isFullscreen ? "rounded-none border-transparent" : "rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]"}
+						${isFullscreen ? "rounded-none border-transparent" : ""}
+						${!isFullscreen && isFullHeightMobile ? "rounded-t-xl rounded-b-none border-x-0 border-b-0 shadow-none" : ""}
+						${!isFullscreen && !isFullHeightMobile ? "rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]" : ""}
 						${!isFullscreen && isActive ? "border-white/20 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.1)]" : ""}
 						${!isFullscreen && !isActive ? "border-white/10" : ""}
+						${isFullHeightMobile ? "border-t-white/10" : ""}
 					`}
 				>
 					{/* Header / Drag Handle */}
 					<header
-						className={`flex h-11 shrink-0 items-center gap-3 border-b border-white/5 px-4 ${isFullscreen ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
-						onPointerDown={isFullscreen ? undefined : handleHeaderPointerDown}
+						className={`flex h-11 shrink-0 items-center gap-3 border-b border-white/5 px-4 ${isFullscreen || isFullHeightMobile ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+						onPointerDown={isFullscreen || isFullHeightMobile ? undefined : handleHeaderPointerDown}
 						style={{ touchAction: "none" }}
 					>
 						<WindowControls windowId={id} />
