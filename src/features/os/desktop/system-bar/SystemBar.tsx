@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { CircleHelp } from "lucide-react";
 import Image from "next/image";
 import { memo, useCallback } from "react";
 
 import { UI_REVEAL } from "@/os/boot";
-import { selectIsAnyWindowFullscreen, useSystemStore } from "@/os/store";
+import { AppID, selectIsAnyWindowFullscreen, useSystemStore } from "@/os/store";
 import { useReducedMotion } from "@/os/window";
 
 import { useDeviceType } from "../dock/useDeviceType";
@@ -38,7 +39,12 @@ export const SystemBar = memo(function SystemBar({ className, isBooting = false 
 	const deviceType = useDeviceType();
 	const isMobile = deviceType === "mobile";
 	const isFullscreen = useSystemStore(selectIsAnyWindowFullscreen);
+	const launchApp = useSystemStore((s) => s.launchApp);
 	const prefersReducedMotion = useReducedMotion();
+
+	const handleHelpClick = useCallback(() => {
+		launchApp(AppID.FAQ);
+	}, [launchApp]);
 
 	// Height: 32px on mobile, 36px on desktop
 	const barHeight = isMobile ? 32 : 36;
@@ -112,6 +118,18 @@ export const SystemBar = memo(function SystemBar({ className, isBooting = false 
 				<div className="flex items-center gap-3">
 					{/* Status indicators: Desktop only (saves horizontal space on mobile) */}
 					{!isMobile && <StatusIndicators />}
+					{/* Help button: Mobile only (desktop has it in StatusIndicators) */}
+					{isMobile && (
+						<motion.button
+							type="button"
+							onClick={handleHelpClick}
+							whileTap={{ scale: 0.9 }}
+							className="flex items-center justify-center rounded-md p-1 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+							aria-label="Help"
+						>
+							<CircleHelp size={14} className="text-foreground-muted" strokeWidth={2} />
+						</motion.button>
+					)}
 					{/* Clock: Always visible, with mobile-specific typography */}
 					<SystemClock className={isMobile ? "text-[10px]" : undefined} />
 				</div>
