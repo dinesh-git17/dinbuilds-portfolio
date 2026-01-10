@@ -24,14 +24,14 @@ export interface SystemBarProps {
  *
  * Provides the "ceiling" to the OS illusion with:
  * - System logo (left)
- * - Status indicators (right): Spotlight, Wifi, Battery
- * - Clock/Date display (far right)
+ * - Status indicators (right, desktop only): Spotlight, Wifi, Battery
+ * - Clock/Date display (far right, always visible)
  *
  * Features:
  * - Fixed at top, full width, above all windows (z-[60])
  * - Heavy frosted glass material (backdrop-blur-xl)
  * - Responsive height: 32px mobile, 36px desktop
- * - Mobile: Logo only, no clock/status (avoids native browser chrome conflict)
+ * - Mobile: Logo (left) + Clock (right) — status indicators hidden for space
  * - Staggered entrance during boot sequence (slides in from top)
  */
 export const SystemBar = memo(function SystemBar({ className, isBooting = false }: SystemBarProps) {
@@ -106,12 +106,12 @@ export const SystemBar = memo(function SystemBar({ className, isBooting = false 
 				</div>
 
 				{/* Right utility group: Status indicators + Clock */}
-				{!isMobile && (
-					<div className="flex items-center gap-3">
-						<StatusIndicators />
-						<SystemClock />
-					</div>
-				)}
+				<div className="flex items-center gap-3">
+					{/* Status indicators: Desktop only (saves horizontal space on mobile) */}
+					{!isMobile && <StatusIndicators />}
+					{/* Clock: Always visible, with mobile-specific typography */}
+					<SystemClock className={isMobile ? "text-[10px]" : undefined} />
+				</div>
 			</div>
 		</motion.header>
 	);

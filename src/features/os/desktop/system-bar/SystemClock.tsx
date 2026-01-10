@@ -74,7 +74,7 @@ export const SystemClock = memo(function SystemClock({ className }: SystemClockP
 	return (
 		<AnimatePresence>
 			<motion.span
-				className={`font-mono text-xs text-foreground-muted ${className ?? ""}`}
+				className={`whitespace-nowrap font-mono text-xs text-foreground-muted ${className ?? ""}`}
 				initial={{ opacity: 0 }}
 				animate={{ opacity: 1 }}
 				transition={{ duration: 0.3, ease: "easeOut" }}
