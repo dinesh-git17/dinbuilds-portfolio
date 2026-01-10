@@ -6,6 +6,8 @@ import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import type { AppComponentProps } from "@/os/window/app-registry";
+import { logBlockedFetch, validateFetchUrl } from "./fetch-validator";
+import { SafeImage } from "./SafeImage";
 
 /**
  * Fetch state for markdown content.
@@ -36,8 +38,21 @@ export const MarkdownViewerApp = memo(function MarkdownViewerApp({
 			return;
 		}
 
+		// Validate URL against allowlist before fetching
+		const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+		const validation = validateFetchUrl(url, currentOrigin);
+
+		if (!validation.allowed) {
+			logBlockedFetch(url, validation.reason);
+			setFetchState({
+				status: "error",
+				message: "This file source is not allowed",
+			});
+			return;
+		}
+
 		const controller = new AbortController();
-		const targetUrl = url;
+		const targetUrl = validation.url;
 
 		async function fetchContent() {
 			setFetchState({ status: "loading" });
@@ -193,13 +208,12 @@ const markdownComponents: Components = {
 	hr: () => <hr className="my-10 border-0 border-t border-white/[0.08]" />,
 
 	// ─── Images ────────────────────────────────────────────────────────────────
-	img: (props) => (
-		// biome-ignore lint/performance/noImgElement: Markdown content may contain arbitrary external image URLs
-		<img
-			{...props}
-			alt={props.alt ?? ""}
+	img: ({ src, alt, title }) => (
+		<SafeImage
+			src={typeof src === "string" ? src : undefined}
+			alt={alt}
+			title={title}
 			className="my-6 max-w-full rounded-xl shadow-xl shadow-black/30"
-			loading="lazy"
 		/>
 	),
 
