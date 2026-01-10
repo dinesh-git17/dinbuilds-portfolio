@@ -59,7 +59,7 @@ function getTooltipPositionClasses(
 	const desktopPositions = {
 		top: "bottom-24 left-1/2 -translate-x-1/2",
 		bottom: "top-20 left-20",
-		left: "right-28 top-1/2 -translate-y-1/2",
+		left: "right-28 top-[38%] -translate-y-1/2",
 		right: "left-28 top-1/2 -translate-y-1/2",
 		center: "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
 		"above-window": "top-[18%] left-1/2 -translate-x-1/2",
