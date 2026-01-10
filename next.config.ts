@@ -9,6 +9,8 @@ const isDev = process.env.NODE_ENV === "development";
  * Development mode is more permissive to allow Next.js hot reload.
  * Production mode enforces strict CSP.
  */
+const allowedFrameSources = "'self' https://dineshd.dev https://*.dineshd.dev https://*.vercel.app";
+
 const cspDirectives = isDev
 	? [
 			"default-src 'self'",
@@ -16,7 +18,7 @@ const cspDirectives = isDev
 			"style-src 'self' 'unsafe-inline'",
 			"img-src 'self' data: blob:",
 			"font-src 'self'",
-			"frame-src 'self' https://*.dineshd.dev",
+			`frame-src ${allowedFrameSources}`,
 			"connect-src 'self' https://api.open-meteo.com ws://localhost:* http://localhost:*",
 		].join("; ")
 	: [
@@ -25,7 +27,7 @@ const cspDirectives = isDev
 			"style-src 'self' 'unsafe-inline'",
 			"img-src 'self' data:",
 			"font-src 'self'",
-			"frame-src 'self' https://*.dineshd.dev",
+			`frame-src ${allowedFrameSources}`,
 			"frame-ancestors 'none'",
 			"connect-src 'self' https://api.open-meteo.com",
 		].join("; ");
