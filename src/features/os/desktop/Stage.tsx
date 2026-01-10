@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { BOOT_TIMING, ONBOARDING_TIMING, UI_REVEAL } from "@/os/boot";
 import { NotificationLayer, useNotificationTriggers } from "@/os/notification";
@@ -11,16 +11,19 @@ import {
 	AppID,
 	DockStackID,
 	selectBootPhase,
+	selectDesktopRefreshKey,
 	selectWallpaper,
 	useOnboardingStore,
 	useSystemStore,
 } from "@/os/store";
 import { useReducedMotion, WindowManager } from "@/os/window";
 
+import { AboutSystemModal } from "./AboutSystemModal";
 import { DesktopContextMenu } from "./DesktopContextMenu";
 import { DesktopIcon } from "./DesktopIcon";
 import { Dock } from "./dock";
 import { GridPattern } from "./GridPattern";
+import { LockScreen } from "./LockScreen";
 import { SelectionBox } from "./SelectionBox";
 import { SystemBar } from "./system-bar";
 import { useDesktop } from "./useDesktop";
@@ -70,6 +73,7 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 	useNotificationTriggers();
 
 	const bootPhase = useSystemStore(selectBootPhase);
+	const desktopRefreshKey = useSystemStore(selectDesktopRefreshKey);
 	const prefersReducedMotion = useReducedMotion();
 	const { isSelecting, selectionBox, handlePointerDown, handlePointerMove, handlePointerUp } =
 		useSelectionBox(stageRef);
@@ -223,86 +227,102 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 						)}
 						<Vignette />
 
-						{/* Weather widget layer (desktop only, top-left) — animated entrance */}
-						{isUIVisible && (
-							<motion.div
-								className="absolute top-14 left-6 z-[1] hidden lg:block"
-								initial={{
-									opacity: 0,
-									scale: contentAnimation === UI_REVEAL.content ? UI_REVEAL.content.scale.from : 1,
-								}}
-								animate={{ opacity: 1, scale: 1 }}
-								transition={{
-									duration: contentAnimation.duration,
-									ease: contentAnimation.ease,
-									delay: contentAnimation.delay,
-								}}
-							>
-								<WeatherWidget />
-							</motion.div>
-						)}
+						{/* Mutable UI layer — keyed by desktopRefreshKey for "Fake Refresh" */}
+						{/* When key changes, React unmounts/remounts all children, replaying entrance animations */}
+						<Fragment key={desktopRefreshKey}>
+							{/* Weather widget layer (desktop only, top-left) — animated entrance */}
+							{isUIVisible && (
+								<motion.div
+									className="absolute top-14 left-6 z-[1] hidden lg:block"
+									initial={{
+										opacity: 0,
+										scale:
+											contentAnimation === UI_REVEAL.content ? UI_REVEAL.content.scale.from : 1,
+									}}
+									animate={{ opacity: 1, scale: 1 }}
+									transition={{
+										duration: contentAnimation.duration,
+										ease: contentAnimation.ease,
+										delay: contentAnimation.delay,
+									}}
+								>
+									<WeatherWidget />
+								</motion.div>
+							)}
 
-						{/* Desktop icons layer (above background, below windows) — animated entrance */}
-						{isUIVisible && (
-							<motion.section
-								className="pointer-events-none absolute inset-0 pt-12 pr-4"
-								aria-label="Desktop"
-								style={{
-									zIndex: highlights.desktopIcons ? SPOTLIGHT_Z_INDEX.highlighted : 1,
-								}}
-								initial={{
-									opacity: 0,
-									scale: contentAnimation === UI_REVEAL.content ? UI_REVEAL.content.scale.from : 1,
-								}}
-								animate={{ opacity: 1, scale: 1 }}
-								transition={{
-									duration: contentAnimation.duration,
-									ease: contentAnimation.ease,
-									delay: contentAnimation.delay,
-								}}
-							>
-								<div className="ml-auto flex flex-col items-end gap-2">
-									{items.map((item) => (
-										<DesktopIcon
-											key={item.id}
-											appId={item.appId}
-											label={item.label}
-											iconType={item.iconType}
-											folderId={item.folderId}
-											contentUrl={item.contentUrl}
-											title={item.title}
-											isSelected={selectedItemIds.has(item.id)}
-											onSelect={() => selectItem(item.id)}
-											onExecute={clearSelection}
-											onRegisterRef={(el) => registerIconRef(item.id, el)}
-											isHighlighted={highlights.desktopIcons}
-										/>
-									))}
-								</div>
-							</motion.section>
-						)}
+							{/* Desktop icons layer (above background, below windows) — animated entrance */}
+							{isUIVisible && (
+								<motion.section
+									className="pointer-events-none absolute inset-0 pt-12 pr-4"
+									aria-label="Desktop"
+									style={{
+										zIndex: highlights.desktopIcons ? SPOTLIGHT_Z_INDEX.highlighted : 1,
+									}}
+									initial={{
+										opacity: 0,
+										scale:
+											contentAnimation === UI_REVEAL.content ? UI_REVEAL.content.scale.from : 1,
+									}}
+									animate={{ opacity: 1, scale: 1 }}
+									transition={{
+										duration: contentAnimation.duration,
+										ease: contentAnimation.ease,
+										delay: contentAnimation.delay,
+									}}
+								>
+									<div className="ml-auto flex flex-col items-end gap-2">
+										{items.map((item) => (
+											<DesktopIcon
+												key={item.id}
+												appId={item.appId}
+												label={item.label}
+												iconType={item.iconType}
+												folderId={item.folderId}
+												contentUrl={item.contentUrl}
+												title={item.title}
+												isSelected={selectedItemIds.has(item.id)}
+												onSelect={() => selectItem(item.id)}
+												onExecute={clearSelection}
+												onRegisterRef={(el) => registerIconRef(item.id, el)}
+												isHighlighted={highlights.desktopIcons}
+											/>
+										))}
+									</div>
+								</motion.section>
+							)}
 
-						{/* Selection box layer — hidden during welcome */}
-						{isUIVisible && isSelecting && selectionBox && <SelectionBox box={selectionBox} />}
+							{/* Selection box layer — hidden during welcome */}
+							{isUIVisible && isSelecting && selectionBox && <SelectionBox box={selectionBox} />}
 
-						{/* Window layer — hidden during welcome */}
-						{isUIVisible && (
-							<WindowManager
-								onboardingHighlights={highlights}
-								onGhostDragComplete={onGhostDragComplete}
+							{/* Window layer — hidden during welcome, delayed fade-in on refresh */}
+							{isUIVisible && (
+								<motion.div
+									initial={{ opacity: 0 }}
+									animate={{ opacity: 1 }}
+									transition={{
+										duration: UI_REVEAL.windows.duration,
+										ease: UI_REVEAL.windows.ease,
+										delay: UI_REVEAL.windows.delay,
+									}}
+								>
+									<WindowManager
+										onboardingHighlights={highlights}
+										onGhostDragComplete={onGhostDragComplete}
+									/>
+								</motion.div>
+							)}
+
+							{/* System UI — hidden during welcome, animated entrance on complete */}
+							<SystemBar isBooting={!isUIVisible} />
+							<Dock
+								isBooting={!isUIVisible}
+								isHighlighted={highlights.dock}
+								highlightedStackId={highlights.dockProjectsStack ? DockStackID.Projects : null}
 							/>
-						)}
 
-						{/* System UI — hidden during welcome, animated entrance on complete */}
-						<SystemBar isBooting={!isUIVisible} />
-						<Dock
-							isBooting={!isUIVisible}
-							isHighlighted={highlights.dock}
-							highlightedStackId={highlights.dockProjectsStack ? DockStackID.Projects : null}
-						/>
-
-						{/* Notification layer — shows system voice notifications */}
-						{isUIVisible && <NotificationLayer />}
+							{/* Notification layer — shows system voice notifications */}
+							{isUIVisible && <NotificationLayer />}
+						</Fragment>
 
 						{/* Desktop context menu */}
 						<DesktopContextMenu
@@ -311,6 +331,12 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 							onClose={closeContextMenu}
 							onRequestBrowserMenu={requestBrowserMenu}
 						/>
+
+						{/* About This System modal */}
+						<AboutSystemModal />
+
+						{/* Lock Screen overlay */}
+						<LockScreen />
 
 						{/* Additional UI layers */}
 						{children && <div className="relative z-10 h-full w-full">{children}</div>}

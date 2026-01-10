@@ -176,6 +176,10 @@ export const useSystemStore = create<SystemStore>()(
 			fullscreenWindowId: null,
 			wallpaper: "/assets/wallpapers/wall-9.jpg",
 			dockConfig: DEFAULT_DOCK_CONFIG,
+			bootTime: Date.now(),
+			desktopRefreshKey: 0,
+			isAboutModalOpen: false,
+			isLocked: false,
 
 			// Actions
 			setBootPhase: (phase: BootPhase) => {
@@ -350,6 +354,24 @@ export const useSystemStore = create<SystemStore>()(
 					},
 				});
 			},
+
+			refreshDesktop: () => {
+				set((state) => ({
+					desktopRefreshKey: state.desktopRefreshKey + 1,
+				}));
+			},
+
+			lockSystem: () => {
+				set({ isLocked: true });
+			},
+
+			unlockSystem: () => {
+				set({ isLocked: false });
+			},
+
+			toggleAboutModal: (isOpen: boolean) => {
+				set({ isAboutModalOpen: isOpen });
+			},
 		}),
 		{
 			name: "dinos-preferences",
@@ -412,3 +434,7 @@ export const selectWindowById = (id: AppID) => (state: SystemStore) =>
 export const selectWallpaper = (state: SystemStore) => state.wallpaper;
 export const selectDockConfig = (state: SystemStore) => state.dockConfig;
 export const selectBootPhase = (state: SystemStore) => state.bootPhase;
+export const selectBootTime = (state: SystemStore) => state.bootTime;
+export const selectDesktopRefreshKey = (state: SystemStore) => state.desktopRefreshKey;
+export const selectIsAboutModalOpen = (state: SystemStore) => state.isAboutModalOpen;
+export const selectIsLocked = (state: SystemStore) => state.isLocked;

@@ -1,8 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Code, ImageIcon, RefreshCw, Settings } from "lucide-react";
+import { Code, ImageIcon, Info, Lock, RefreshCw, Terminal } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+
+import { AppID, NotificationID, useNotificationStore, useSystemStore } from "@/os/store";
 
 export interface DesktopContextMenuProps {
 	/** Whether the menu is open */
@@ -20,21 +22,36 @@ interface MenuItemProps {
 	label: string;
 	onClick?: () => void;
 	disabled?: boolean;
+	/** Render with danger/destructive styling (red text) */
+	danger?: boolean;
 }
 
-const MenuItem = memo(function MenuItem({ icon, label, onClick, disabled = false }: MenuItemProps) {
+const MenuItem = memo(function MenuItem({
+	icon,
+	label,
+	onClick,
+	disabled = false,
+	danger = false,
+}: MenuItemProps) {
+	const baseClasses =
+		"flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors duration-100";
+
+	const stateClasses = disabled
+		? "cursor-not-allowed text-white/30"
+		: danger
+			? "text-red-400 hover:bg-red-500/10 hover:text-red-300"
+			: "text-white/80 hover:bg-white/10 hover:text-white";
+
+	const iconOpacity = disabled ? "opacity-30" : "opacity-70";
+
 	return (
 		<button
 			type="button"
 			onClick={disabled ? undefined : onClick}
 			disabled={disabled}
-			className={`
-				flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm
-				transition-colors duration-100
-				${disabled ? "cursor-not-allowed text-white/30" : "text-white/80 hover:bg-white/10 hover:text-white"}
-			`}
+			className={`${baseClasses} ${stateClasses}`}
 		>
-			<span className={disabled ? "opacity-30" : "opacity-70"}>{icon}</span>
+			<span className={iconOpacity}>{icon}</span>
 			<span>{label}</span>
 		</button>
 	);
@@ -119,19 +136,44 @@ export const DesktopContextMenu = memo(function DesktopContextMenu({
 		};
 	}, [isOpen, onClose]);
 
-	const handleChangeWallpaper = useCallback(() => {
-		// Placeholder action - could open wallpaper picker
+	// Store actions
+	const toggleAboutModal = useSystemStore((s) => s.toggleAboutModal);
+	const launchApp = useSystemStore((s) => s.launchApp);
+	const refreshDesktop = useSystemStore((s) => s.refreshDesktop);
+	const lockSystem = useSystemStore((s) => s.lockSystem);
+	const addNotification = useNotificationStore((s) => s.addNotification);
+
+	// Menu item handlers
+	const handleAboutSystem = useCallback(() => {
+		toggleAboutModal(true);
 		onClose();
-	}, [onClose]);
+	}, [toggleAboutModal, onClose]);
+
+	const handleOpenTerminal = useCallback(() => {
+		launchApp(AppID.Terminal);
+		onClose();
+	}, [launchApp, onClose]);
+
+	const handleChangeWallpaper = useCallback(() => {
+		launchApp(AppID.Settings, { props: { initialTab: "wallpaper" } });
+		onClose();
+	}, [launchApp, onClose]);
 
 	const handleRefresh = useCallback(() => {
-		window.location.reload();
-	}, []);
+		refreshDesktop();
+		onClose();
+	}, [refreshDesktop, onClose]);
+
+	const handleLockSystem = useCallback(() => {
+		lockSystem();
+		onClose();
+	}, [lockSystem, onClose]);
 
 	const handleDeveloper = useCallback(() => {
 		onRequestBrowserMenu();
+		addNotification(NotificationID.DeveloperMode);
 		onClose();
-	}, [onRequestBrowserMenu, onClose]);
+	}, [onRequestBrowserMenu, addNotification, onClose]);
 
 	return (
 		<AnimatePresence>
@@ -149,15 +191,30 @@ export const DesktopContextMenu = memo(function DesktopContextMenu({
 					transition={{ duration: 0.1, ease: "easeOut" }}
 				>
 					<MenuItem
+						icon={<Info size={16} />}
+						label="About This System"
+						onClick={handleAboutSystem}
+					/>
+					<MenuItem
+						icon={<Terminal size={16} />}
+						label="Open Terminal"
+						onClick={handleOpenTerminal}
+					/>
+					<MenuItem
 						icon={<ImageIcon size={16} />}
 						label="Change Wallpaper"
 						onClick={handleChangeWallpaper}
 					/>
 					<MenuItem icon={<RefreshCw size={16} />} label="Refresh" onClick={handleRefresh} />
 					<div className="my-1 h-px bg-white/10" />
-					<MenuItem icon={<Settings size={16} />} label="Properties" disabled />
-					<div className="my-1 h-px bg-white/10" />
 					<MenuItem icon={<Code size={16} />} label="Developer" onClick={handleDeveloper} />
+					<div className="my-1 h-px bg-white/10" />
+					<MenuItem
+						icon={<Lock size={16} />}
+						label="Lock System"
+						onClick={handleLockSystem}
+						danger
+					/>
 				</motion.div>
 			)}
 		</AnimatePresence>

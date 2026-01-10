@@ -4,11 +4,14 @@ import { ChevronLeft } from "lucide-react";
 import { memo, useState } from "react";
 
 import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
+import type { AppComponentProps } from "@/os/window/app-registry";
 
 import { AboutPanel } from "./panels/AboutPanel";
 import { DockPanel } from "./panels/DockPanel";
 import { WallpaperPanel } from "./panels/WallpaperPanel";
 import { type SettingsPanelId, SettingsSidebar } from "./SettingsSidebar";
+
+export interface SettingsAppProps extends AppComponentProps {}
 
 type MobileViewState = "menu" | "panel";
 
@@ -18,15 +21,32 @@ const PANEL_TITLES: Record<SettingsPanelId, string> = {
 	dock: "Dock",
 };
 
+/** Valid panel IDs for type guard */
+const VALID_PANELS: SettingsPanelId[] = ["about", "wallpaper", "dock"];
+
+/** Type guard to validate initialTab value */
+function isValidPanel(value: unknown): value is SettingsPanelId {
+	return typeof value === "string" && VALID_PANELS.includes(value as SettingsPanelId);
+}
+
 /**
  * Settings App - System Preferences
  *
  * Desktop: Two-column split layout (Sidebar + Content)
  * Mobile: Drill-down navigation (Menu OR Panel, not both)
+ *
+ * Supports deep-linking via windowProps.initialTab to open directly to a specific panel.
  */
-export const SettingsApp = memo(function SettingsApp() {
-	const [activePanel, setActivePanel] = useState<SettingsPanelId>("about");
-	const [mobileViewState, setMobileViewState] = useState<MobileViewState>("menu");
+export const SettingsApp = memo(function SettingsApp({ windowProps }: SettingsAppProps) {
+	// Resolve initial panel from deep-link prop or default to "about"
+	const initialPanel = isValidPanel(windowProps?.initialTab) ? windowProps.initialTab : "about";
+	const hasDeepLink = isValidPanel(windowProps?.initialTab);
+
+	const [activePanel, setActivePanel] = useState<SettingsPanelId>(initialPanel);
+	// On mobile, start in panel view if deep-linked, otherwise show menu
+	const [mobileViewState, setMobileViewState] = useState<MobileViewState>(
+		hasDeepLink ? "panel" : "menu",
+	);
 	const deviceType = useDeviceType();
 	const isMobile = deviceType === "mobile";
 

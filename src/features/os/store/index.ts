@@ -32,9 +32,13 @@ export { StoreHydrator, type StoreHydratorProps } from "./StoreHydrator";
 export {
 	selectActiveWindowId,
 	selectBootPhase,
+	selectBootTime,
+	selectDesktopRefreshKey,
 	selectDockConfig,
 	selectFullscreenWindowId,
+	selectIsAboutModalOpen,
 	selectIsAnyWindowFullscreen,
+	selectIsLocked,
 	selectIsWindowActive,
 	selectIsWindowFullscreen,
 	selectWallpaper,
