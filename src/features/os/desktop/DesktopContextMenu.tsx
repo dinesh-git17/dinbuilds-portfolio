@@ -150,12 +150,12 @@ export const DesktopContextMenu = memo(function DesktopContextMenu({
 	}, [toggleAboutModal, onClose]);
 
 	const handleOpenTerminal = useCallback(() => {
-		launchApp(AppID.Terminal);
+		launchApp(AppID.Terminal, { launchMethod: "context_menu" });
 		onClose();
 	}, [launchApp, onClose]);
 
 	const handleChangeWallpaper = useCallback(() => {
-		launchApp(AppID.Settings, { props: { initialTab: "wallpaper" } });
+		launchApp(AppID.Settings, { props: { initialTab: "wallpaper" }, launchMethod: "context_menu" });
 		onClose();
 	}, [launchApp, onClose]);
 

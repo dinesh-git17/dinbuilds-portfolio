@@ -3,7 +3,7 @@
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { memo, useCallback, useEffect, useRef } from "react";
 
-import { ONBOARDING_EVENTS, trackEvent } from "@/lib/analytics";
+import { ONBOARDING_EVENTS, trackLegacyEvent } from "@/lib/analytics";
 import { ONBOARDING_STEP_TIMING, ONBOARDING_TIMING } from "@/os/boot";
 import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
 import type { OnboardingStep } from "@/os/store";
@@ -244,8 +244,8 @@ const SkipTourCapsule = memo(function SkipTourCapsule({
 		// Calculate elapsed time since tour started
 		const timeElapsed = tourStartTime ? Date.now() - tourStartTime : 0;
 
-		// Fire analytics event
-		trackEvent(ONBOARDING_EVENTS.SKIPPED, {
+		// Fire analytics event (legacy format, will be updated in Story 2)
+		trackLegacyEvent(ONBOARDING_EVENTS.SKIPPED, {
 			step: currentStep,
 			timeElapsed,
 		});

@@ -73,6 +73,7 @@ function FileIcon({ file }: FileIconProps) {
 				url: file.contentUrl,
 				title: file.name,
 			},
+			launchMethod: "app",
 		});
 	}, [file.contentUrl, file.name, launchApp]);
 

@@ -118,7 +118,21 @@ export interface WindowInstance {
 	size: WindowSize;
 	/** App-specific props passed to the component */
 	props?: WindowProps;
+	/** Timestamp when window was opened (for analytics session duration) */
+	openedAt: number;
 }
+
+/**
+ * Method used to launch an app window.
+ * Used for analytics to understand UI effectiveness.
+ */
+export type LaunchMethod =
+	| "dock" // Dock icon click
+	| "desktop_icon" // Desktop shortcut click
+	| "context_menu" // Right-click context menu
+	| "system" // System-initiated (boot, onboarding)
+	| "system_bar" // System bar interaction
+	| "app"; // App-initiated (e.g., folder opening markdown)
 
 /**
  * Configuration for spawning a new window.
@@ -129,6 +143,8 @@ export interface WindowSpawnConfig {
 	size?: WindowSize;
 	/** App-specific props to pass to the component */
 	props?: WindowProps;
+	/** How the app was launched (for analytics) */
+	launchMethod?: LaunchMethod;
 }
 
 /**

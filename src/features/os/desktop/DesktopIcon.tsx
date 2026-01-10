@@ -123,11 +123,11 @@ export const DesktopIcon = memo(function DesktopIcon({
 
 	const launchWithProps = useCallback(() => {
 		if (isFile && contentUrl) {
-			launchApp(appId, { props: { url: contentUrl, title } });
+			launchApp(appId, { props: { url: contentUrl, title }, launchMethod: "desktop_icon" });
 		} else if (folderId) {
-			launchApp(appId, { props: { folderId } });
+			launchApp(appId, { props: { folderId }, launchMethod: "desktop_icon" });
 		} else {
-			launchApp(appId);
+			launchApp(appId, { launchMethod: "desktop_icon" });
 		}
 	}, [appId, isFile, contentUrl, title, folderId, launchApp]);
 

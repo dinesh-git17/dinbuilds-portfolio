@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { generateProfilePageSchema, renderJsonLd } from "@/lib/seo";
@@ -84,6 +85,7 @@ export default function RootLayout({
 		<html lang="en">
 			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
 				{children}
+				<Analytics />
 				{/* Schema.org JSON-LD for Person & ProfilePage */}
 				<script
 					type="application/ld+json"
