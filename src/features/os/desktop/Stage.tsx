@@ -222,6 +222,7 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 								alt=""
 								fill
 								priority
+								fetchPriority="high"
 								quality={85}
 								sizes="100vw"
 								className="pointer-events-none object-cover"

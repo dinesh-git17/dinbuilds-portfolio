@@ -1,16 +1,20 @@
-import type { ComponentType } from "react";
+import { type ComponentType, lazy } from "react";
 
 import { AboutApp } from "@/apps/about";
-import { ContactApp } from "@/apps/contact";
-import { DebateApp } from "@/apps/debate";
-import { FAQApp } from "@/apps/faq";
-import { FolderApp } from "@/apps/folder";
-import { MarkdownViewerApp } from "@/apps/markdown";
-import { PassFXApp } from "@/apps/passfx";
-import { SettingsApp } from "@/apps/settings";
-import { TerminalApp } from "@/apps/terminal";
-import { YieldApp } from "@/apps/yield";
 import { AppID, type WindowProps } from "@/os/store";
+
+// Lazy-loaded app components (code-split for performance)
+const ContactApp = lazy(() => import("@/apps/contact").then((m) => ({ default: m.ContactApp })));
+const DebateApp = lazy(() => import("@/apps/debate").then((m) => ({ default: m.DebateApp })));
+const FAQApp = lazy(() => import("@/apps/faq").then((m) => ({ default: m.FAQApp })));
+const FolderApp = lazy(() => import("@/apps/folder").then((m) => ({ default: m.FolderApp })));
+const MarkdownViewerApp = lazy(() =>
+	import("@/apps/markdown").then((m) => ({ default: m.MarkdownViewerApp })),
+);
+const PassFXApp = lazy(() => import("@/apps/passfx").then((m) => ({ default: m.PassFXApp })));
+const SettingsApp = lazy(() => import("@/apps/settings").then((m) => ({ default: m.SettingsApp })));
+const TerminalApp = lazy(() => import("@/apps/terminal").then((m) => ({ default: m.TerminalApp })));
+const YieldApp = lazy(() => import("@/apps/yield").then((m) => ({ default: m.YieldApp })));
 
 /**
  * Props passed to app components that accept window props.
