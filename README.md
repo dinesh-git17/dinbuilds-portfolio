@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DinBuilds OS
 
-## Getting Started
+A portfolio presented as a desktop OS so you can explore projects, experience, and design decisions the way I build them.
 
-First, run the development server:
+![Next.js](https://img.shields.io/badge/Next.js-16.1.1-000000?style=for-the-badge&logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-Hosting-000000?style=for-the-badge&logo=vercel&logoColor=white)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Overview
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+DinBuilds OS is a portfolio that behaves like a windowed desktop environment. Instead of scrolling through a static page, you open apps, read project docs in a Markdown viewer, and navigate with a dock, folders, and a terminal. The intent is to make the portfolio itself a product demonstration, not just a wrapper around links.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+It reflects an engineering mindset that values structure, discoverability, and interaction. The site is designed to be navigable, inspectable, and honest about how it works.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Tech Stack
 
-## Learn More
+- Next.js App Router: Server rendering plus URL driven state so individual windows and documents are indexable and linkable.
+- React 19 and TypeScript: Predictable component contracts for a UI that behaves like an OS.
+- Tailwind CSS v4: Design tokens via CSS variables with fast iteration on dense UI surfaces.
+- Zustand: Minimal state container for the window manager, dock, and system preferences.
+- Framer Motion: Boot sequence, window transitions, and reduced motion support without bespoke animation code.
+- React Hook Form and Zod: Contact form validation with clear client and server boundaries.
+- Resend and Redis: Email delivery and rate limiting for the contact flow, both optional in local dev.
+- Vercel Analytics: Privacy first event tracking for UX funnels and system behaviors.
 
-To learn more about Next.js, take a look at the following resources:
+## Quick Start
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Install dependencies with `pnpm install`.
+- Start the dev server with `pnpm dev`.
+- Open `http://localhost:3000`.
+- Optional for contact form: copy `.env.example` to `.env.local` and set `RESEND_API_KEY` and `REDIS_URL`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+- `app/`: Next.js routes, metadata, and server entry points.
+- `src/features/os/`: Window manager, boot flow, desktop, dock, onboarding, notifications.
+- `src/features/apps/`: App windows such as About, Terminal, Projects, Settings, Contact, and Markdown viewer.
+- `src/lib/`: SEO, analytics, and URL state helpers.
+- `public/readmes/`: Project and experience documents rendered by the Markdown viewer.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Design and Engineering Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- URL driven state powers deep links such as `?app=projects` or `?app=markdown&file=yield`, enabling SEO and shareable views.
+- Apps are lazy loaded to keep initial boot fast while still supporting rich interactions.
+- Preferences like wallpaper and dock position persist, but window state is intentionally ephemeral.
+- The contact flow fails safely when external services are missing, prioritizing site stability over strict delivery guarantees.
+- Heavy UI elements favor GPU friendly transitions and reduced motion fallback to keep the experience smooth.
+
+## What This Portfolio Is Not
+
+- Not a template or starter for building other portfolios.
+- Not a CMS or content platform.
+- Not a full operating system, just a playful UI metaphor.
+
+## Side Note
+
+Yes, it is a portfolio that bootstraps, has a terminal, and ships its own desktop. No, I did not build it to avoid updating my resume. Probably.
