@@ -116,7 +116,7 @@ export const DockStack = memo(function DockStack({
 	 */
 	const handleAppClick = useCallback(
 		(appId: AppID) => {
-			launchApp(appId);
+			launchApp(appId, { launchMethod: "dock" });
 			onClose();
 		},
 		[launchApp, onClose],

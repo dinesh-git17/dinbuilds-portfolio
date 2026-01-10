@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { Fragment, memo, useCallback, useEffect, useRef, useState } from "react";
 
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
 import { BOOT_TIMING, getDeviceTiming, ONBOARDING_TIMING, UI_REVEAL } from "@/os/boot";
 import { NotificationLayer, useNotificationTriggers } from "@/os/notification";
 import { OnboardingController, SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
@@ -155,6 +156,9 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 			if (isOnBackground) {
 				e.preventDefault();
 				setContextMenu({ isOpen: true, x: e.clientX, y: e.clientY });
+				trackEvent(AnalyticsEvent.CONTEXT_MENU_OPENED, {
+					trigger_location: "desktop",
+				});
 			}
 		},
 		[allowBrowserMenu],

@@ -204,7 +204,7 @@ export const DockIcon = memo(function DockIcon({
 		ref.current?.blur();
 
 		// Launch the app immediately (don't wait for animation)
-		launchApp(appId);
+		launchApp(appId, { launchMethod: "dock" });
 
 		// Trigger the "happy launch" bounce animation (macOS-style instant jump)
 		animateBounce(
@@ -218,7 +218,7 @@ export const DockIcon = memo(function DockIcon({
 		(e: React.KeyboardEvent) => {
 			if (e.key === "Enter" || e.key === " ") {
 				e.preventDefault();
-				launchApp(appId);
+				launchApp(appId, { launchMethod: "dock" });
 				// Trigger the "happy launch" bounce animation (macOS-style instant jump)
 				animateBounce(
 					bounceScope.current,

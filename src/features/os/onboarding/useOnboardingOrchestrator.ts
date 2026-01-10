@@ -78,6 +78,10 @@ export interface UseOnboardingOrchestratorReturn {
 	advanceStep: () => void;
 	/** Callback for when ghost drag completes */
 	onGhostDragComplete: () => void;
+	/** Current step index in the tour sequence */
+	currentStepIndex: number;
+	/** Timestamp when the tour started (null if not started) */
+	tourStartTime: number | null;
 }
 
 /**
@@ -203,9 +207,14 @@ export function useOnboardingOrchestrator(): UseOnboardingOrchestratorReturn {
 	// Onboarding store state
 	const currentStep = useOnboardingStore(selectCurrentStep);
 	const hasCompletedTour = useOnboardingStore(selectHasCompletedTour);
+	const stepOrder = useOnboardingStore((s) => s.stepOrder);
+	const tourStartTime = useOnboardingStore((s) => s.tourStartTime);
 	const storeStartTour = useOnboardingStore((s) => s.startTour);
 	const storeAdvanceStep = useOnboardingStore((s) => s.advanceStep);
 	const storeSkipTour = useOnboardingStore((s) => s.skipTour);
+
+	// Calculate current step index
+	const currentStepIndex = stepOrder.indexOf(currentStep);
 
 	// System store actions for window management
 	const closeWindow = useSystemStore((s) => s.closeWindow);
@@ -365,5 +374,7 @@ export function useOnboardingOrchestrator(): UseOnboardingOrchestratorReturn {
 		skipTour,
 		advanceStep,
 		onGhostDragComplete,
+		currentStepIndex,
+		tourStartTime,
 	};
 }

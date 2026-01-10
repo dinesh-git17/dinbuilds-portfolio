@@ -3,6 +3,7 @@
 import { FileText, Folder } from "lucide-react";
 import { memo, useCallback, useRef } from "react";
 
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
 import { type FolderId, getFilesForFolder, type VirtualFile } from "@/os/filesystem";
 import { AppID, useSystemStore } from "@/os/store";
 import type { AppComponentProps } from "@/os/window/app-registry";
@@ -68,13 +69,19 @@ function FileIcon({ file }: FileIconProps) {
 	const clickCountRef = useRef(0);
 
 	const openFile = useCallback(() => {
+		trackEvent(AnalyticsEvent.FILE_OPENED, {
+			file_slug: file.id,
+			file_type: file.type,
+		});
+
 		launchApp(AppID.MarkdownViewer, {
 			props: {
 				url: file.contentUrl,
 				title: file.name,
 			},
+			launchMethod: "app",
 		});
-	}, [file.contentUrl, file.name, launchApp]);
+	}, [file.contentUrl, file.id, file.name, file.type, launchApp]);
 
 	const handleClick = useCallback(
 		(e: React.MouseEvent) => {

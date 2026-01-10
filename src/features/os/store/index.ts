@@ -62,6 +62,7 @@ export {
 	type DockSize,
 	DockStackID,
 	FULL_HEIGHT_MOBILE_APPS,
+	type LaunchMethod,
 	MAXIMIZED_APPS,
 	MOBILE_MAXIMIZED_APPS,
 	MOBILE_STEP_ORDER,

@@ -43,7 +43,7 @@ export const SystemBar = memo(function SystemBar({ className, isBooting = false 
 	const prefersReducedMotion = useReducedMotion();
 
 	const handleHelpClick = useCallback(() => {
-		launchApp(AppID.FAQ);
+		launchApp(AppID.FAQ, { launchMethod: "system_bar" });
 	}, [launchApp]);
 
 	// Height: 32px on mobile, 36px on desktop

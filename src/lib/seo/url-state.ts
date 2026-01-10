@@ -209,6 +209,7 @@ export function parseURLToState(searchParams: PageSearchParams): HydrationState 
 		position,
 		size,
 		props: windowProps,
+		openedAt: Date.now(),
 	};
 
 	return {

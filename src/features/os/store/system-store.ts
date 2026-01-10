@@ -2,10 +2,13 @@ import * as React from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
+
 import type {
 	AppID,
 	BootPhase,
 	DockConfig,
+	LaunchMethod,
 	SystemStore,
 	WindowInstance,
 	WindowPosition,
@@ -136,6 +139,7 @@ function createWindowInstance(
 		position,
 		size,
 		props: config?.props,
+		openedAt: Date.now(),
 	};
 }
 
@@ -183,7 +187,16 @@ export const useSystemStore = create<SystemStore>()(
 
 			// Actions
 			setBootPhase: (phase: BootPhase) => {
+				const { bootPhase: previousPhase, bootTime } = get();
 				set({ bootPhase: phase });
+
+				// Track os_boot_complete when transitioning to 'complete'
+				if (phase === "complete" && previousPhase !== "complete") {
+					const bootDuration = Date.now() - bootTime;
+					trackEvent(AnalyticsEvent.OS_BOOT_COMPLETE, {
+						boot_duration_ms: bootDuration,
+					});
+				}
 			},
 
 			launchApp: (appId: AppID, config?: WindowSpawnConfig) => {
@@ -191,6 +204,7 @@ export const useSystemStore = create<SystemStore>()(
 				const existingWindow = windows.find((w) => w.id === appId);
 				const shouldAutoFullscreen = AUTO_FULLSCREEN_APPS.has(appId);
 				const fullscreenId = shouldAutoFullscreen ? appId : get().fullscreenWindowId;
+				const launchMethod: LaunchMethod = config?.launchMethod ?? "system";
 
 				if (existingWindow) {
 					// Window exists - restore if minimized and bring to front
@@ -212,10 +226,17 @@ export const useSystemStore = create<SystemStore>()(
 					activeWindowId: appId,
 					fullscreenWindowId: fullscreenId,
 				});
+
+				// Track app_window_opened for new windows
+				trackEvent(AnalyticsEvent.APP_WINDOW_OPENED, {
+					app_id: appId,
+					launch_method: launchMethod,
+				});
 			},
 
 			closeWindow: (id: AppID) => {
 				const { windows, activeWindowId, fullscreenWindowId } = get();
+				const closingWindow = windows.find((w) => w.id === id);
 				const filteredWindows = windows.filter((w) => w.id !== id);
 
 				// If closing the active window, transfer focus
@@ -230,6 +251,15 @@ export const useSystemStore = create<SystemStore>()(
 					activeWindowId: newActiveId,
 					fullscreenWindowId: newFullscreenId,
 				});
+
+				// Track app_window_closed with session duration
+				if (closingWindow) {
+					const sessionDuration = Date.now() - closingWindow.openedAt;
+					trackEvent(AnalyticsEvent.APP_WINDOW_CLOSED, {
+						app_id: id,
+						session_duration_ms: sessionDuration,
+					});
+				}
 			},
 
 			focusWindow: (id: AppID) => {

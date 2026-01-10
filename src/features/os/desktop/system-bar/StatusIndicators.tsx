@@ -25,7 +25,7 @@ export const StatusIndicators = memo(function StatusIndicators({
 	const launchApp = useSystemStore((s) => s.launchApp);
 
 	const handleHelpClick = useCallback(() => {
-		launchApp(AppID.FAQ);
+		launchApp(AppID.FAQ, { launchMethod: "system_bar" });
 	}, [launchApp]);
 
 	return (

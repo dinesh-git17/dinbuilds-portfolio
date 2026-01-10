@@ -4,6 +4,7 @@ import { ExternalLink, RefreshCw, WifiOff } from "lucide-react";
 import { memo, useCallback, useRef, useState } from "react";
 
 import { BrowserChrome } from "@/apps/yield/BrowserChrome";
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
 
 const PASSFX_URL = "https://passfx.dineshd.dev";
 
@@ -26,21 +27,43 @@ export const PassFXApp = memo(function PassFXApp() {
 	const [loadState, setLoadState] = useState<LoadState>("loading");
 	const [iframeKey, setIframeKey] = useState(0);
 	const iframeRef = useRef<HTMLIFrameElement>(null);
+	const loadStartTimeRef = useRef<number>(Date.now());
 
 	const handleLoad = useCallback(() => {
+		const loadTime = Date.now() - loadStartTimeRef.current;
 		setLoadState("loaded");
+
+		trackEvent(AnalyticsEvent.IFRAME_LOADED, {
+			project_id: "passfx",
+			success: true,
+			load_time_ms: loadTime,
+		});
 	}, []);
 
 	const handleError = useCallback(() => {
 		setLoadState("error");
+
+		trackEvent(AnalyticsEvent.IFRAME_LOADED, {
+			project_id: "passfx",
+			success: false,
+		});
 	}, []);
 
 	const handleRefresh = useCallback(() => {
+		trackEvent(AnalyticsEvent.IFRAME_REFRESHED, {
+			project_id: "passfx",
+		});
+
+		loadStartTimeRef.current = Date.now();
 		setLoadState("loading");
 		setIframeKey((prev) => prev + 1);
 	}, []);
 
 	const handleOpenExternal = useCallback(() => {
+		trackEvent(AnalyticsEvent.EXTERNAL_PROJECT_CLICKED, {
+			app_id: "passfx",
+			destination_url: PASSFX_URL,
+		});
 		window.open(PASSFX_URL, "_blank", "noopener,noreferrer");
 	}, []);
 

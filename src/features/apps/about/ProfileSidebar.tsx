@@ -3,7 +3,9 @@
 import clsx from "clsx";
 import { Github, Link, Linkedin, Mail, MapPin } from "lucide-react";
 import Image from "next/image";
-import { memo } from "react";
+import { memo, useCallback } from "react";
+
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
 
 /**
  * Profile action button configuration
@@ -95,12 +97,19 @@ interface ActionButtonProps {
 function ActionButton({ action }: ActionButtonProps) {
 	const Icon = action.icon;
 
+	const handleClick = useCallback(() => {
+		trackEvent(AnalyticsEvent.PROFILE_LINK_CLICKED, {
+			platform: action.label.toLowerCase(),
+		});
+	}, [action.label]);
+
 	return (
 		<a
 			href={action.href}
 			target={action.href.startsWith("mailto:") ? undefined : "_blank"}
 			rel={action.href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
 			aria-label={action.ariaLabel}
+			onClick={handleClick}
 			className={clsx(
 				"flex min-h-[44px] items-center justify-center gap-2 rounded-md",
 				"h-11 w-11 md:h-auto md:w-full md:px-4 md:py-2",
