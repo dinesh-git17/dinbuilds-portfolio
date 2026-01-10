@@ -1,16 +1,48 @@
 "use client";
 
-import clsx from "clsx";
 import { motion, useAnimation } from "framer-motion";
 import { FileText, Folder } from "lucide-react";
 import { memo, useCallback, useRef } from "react";
 
 import { ONBOARDING_TIMING } from "@/os/boot";
+import { ELASTIC_DRAG_CONFIG, useElasticDrag } from "@/os/config";
 import { SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
 import { type AppID, useSystemStore } from "@/os/store";
 import { useReducedMotion } from "@/os/window";
 
+import { useDeviceType } from "./dock/useDeviceType";
 import type { DesktopIconType } from "./useDesktop";
+
+interface IconGraphicProps {
+	isFile: boolean;
+	isSelected: boolean;
+}
+
+/** Icon graphic (folder or file) with selection state */
+function IconGraphic({ isFile, isSelected }: IconGraphicProps) {
+	if (isFile) {
+		return (
+			<FileText
+				className={`
+					h-10 w-10 transition-colors duration-150
+					${isSelected ? "text-blue-400" : "text-blue-400/80 group-hover:text-blue-400"}
+				`}
+				strokeWidth={1.5}
+			/>
+		);
+	}
+
+	return (
+		<Folder
+			className={`
+				h-10 w-10 transition-colors duration-150
+				${isSelected ? "text-blue-400" : "text-yellow-400/80 group-hover:text-yellow-400"}
+			`}
+			strokeWidth={1.5}
+			fill={isSelected ? "rgba(96, 165, 250, 0.15)" : "rgba(250, 204, 21, 0.1)"}
+		/>
+	);
+}
 
 export interface DesktopIconProps {
 	/** App ID to launch on double-click */
@@ -43,6 +75,7 @@ export interface DesktopIconProps {
  * Interactions:
  * - Single click: Selects the icon (visual highlight)
  * - Double click: Pulse animation + launches the app
+ * - Drag: Elastic tethered drag with spring snap-back (desktop only)
  *
  * Styled like macOS Finder icons with selection state
  * and text shadow for visibility against any wallpaper.
@@ -64,6 +97,24 @@ export const DesktopIcon = memo(function DesktopIcon({
 	const launchApp = useSystemStore((s) => s.launchApp);
 	const isFile = iconType === "file";
 	const prefersReducedMotion = useReducedMotion();
+	const deviceType = useDeviceType();
+	const controls = useAnimation();
+
+	// Enable drag only on desktop to avoid mobile swipe conflicts
+	const isDraggable = deviceType === "desktop";
+
+	// Elastic drag behavior (handles snap-back, blur, reduced motion)
+	const {
+		snapBackTransition,
+		handleDragStart,
+		handleDragEnd,
+		handleContextMenu,
+		shouldBlockClick,
+	} = useElasticDrag({
+		controls,
+		enabled: isDraggable,
+		springConfig: ELASTIC_DRAG_CONFIG.icon,
+	});
 
 	// Animation duration for glow effect
 	const glowDuration = prefersReducedMotion
@@ -79,7 +130,7 @@ export const DesktopIcon = memo(function DesktopIcon({
 			launchApp(appId);
 		}
 	}, [appId, isFile, contentUrl, title, folderId, launchApp]);
-	const controls = useAnimation();
+
 	const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const clickCountRef = useRef(0);
 
@@ -94,6 +145,12 @@ export const DesktopIcon = memo(function DesktopIcon({
 	const handleClick = useCallback(
 		(e: React.MouseEvent) => {
 			e.stopPropagation();
+
+			// If this click followed a significant drag, ignore it
+			if (shouldBlockClick()) {
+				return;
+			}
+
 			clickCountRef.current += 1;
 
 			if (clickCountRef.current === 1) {
@@ -131,7 +188,7 @@ export const DesktopIcon = memo(function DesktopIcon({
 				}, 100);
 			}
 		},
-		[controls, launchWithProps, onSelect, onExecute],
+		[controls, launchWithProps, onSelect, onExecute, shouldBlockClick],
 	);
 
 	const handleKeyDown = useCallback(
@@ -163,12 +220,28 @@ export const DesktopIcon = memo(function DesktopIcon({
 			type="button"
 			onClick={handleClick}
 			onKeyDown={handleKeyDown}
+			onContextMenu={handleContextMenu}
 			animate={controls}
+			// Elastic drag behavior (desktop only)
+			drag={isDraggable}
+			dragSnapToOrigin={isDraggable}
+			dragElastic={0}
+			dragMomentum={false}
+			onDragStart={handleDragStart}
+			onDragEnd={handleDragEnd}
+			whileDrag={
+				isDraggable
+					? {
+							scale: ELASTIC_DRAG_CONFIG.liftScale,
+							boxShadow: ELASTIC_DRAG_CONFIG.liftShadow,
+							zIndex: 100,
+						}
+					: undefined
+			}
+			transition={snapBackTransition}
 			whileHover={{ scale: 1.02 }}
 			whileTap={{ scale: 0.98 }}
-			className={clsx(
-				"pointer-events-auto group flex w-20 flex-col items-center gap-1.5 rounded-lg p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
-			)}
+			className="pointer-events-auto group flex w-20 flex-col items-center gap-1.5 rounded-lg p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
 			style={{
 				position: isHighlighted ? "relative" : undefined,
 				zIndex: isHighlighted ? SPOTLIGHT_Z_INDEX.highlighted : undefined,
@@ -189,24 +262,7 @@ export const DesktopIcon = memo(function DesktopIcon({
 					${isSelected ? "bg-white/10" : "bg-transparent group-hover:bg-white/5"}
 				`}
 			>
-				{isFile ? (
-					<FileText
-						className={`
-							h-10 w-10 transition-colors duration-150
-							${isSelected ? "text-blue-400" : "text-blue-400/80 group-hover:text-blue-400"}
-						`}
-						strokeWidth={1.5}
-					/>
-				) : (
-					<Folder
-						className={`
-							h-10 w-10 transition-colors duration-150
-							${isSelected ? "text-blue-400" : "text-yellow-400/80 group-hover:text-yellow-400"}
-						`}
-						strokeWidth={1.5}
-						fill={isSelected ? "rgba(96, 165, 250, 0.15)" : "rgba(250, 204, 21, 0.1)"}
-					/>
-				)}
+				<IconGraphic isFile={isFile} isSelected={isSelected} />
 			</div>
 
 			{/* Label with selection highlight */}

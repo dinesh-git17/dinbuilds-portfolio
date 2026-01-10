@@ -11,13 +11,17 @@
  * - Large decorative icon with artistic crop/bleed effect
  * - Skeleton loading state during initial fetch
  * - Graceful offline/error state
+ * - Elastic drag-and-snap-back behavior (desktop only)
  */
 
-import { AnimatePresence, motion } from "framer-motion";
-import { memo } from "react";
+import clsx from "clsx";
+import { AnimatePresence, motion, useAnimation } from "framer-motion";
+import { memo, useEffect } from "react";
 
+import { ELASTIC_DRAG_CONFIG, useElasticDrag } from "@/os/config";
 import { useReducedMotion } from "@/os/window";
 
+import { useDeviceType } from "../dock/useDeviceType";
 import { WEATHER_LOCATION } from "./types";
 import { useWeather } from "./use-weather";
 import { getWeatherDescription, getWeatherThemeConfig } from "./weather-mapper";
@@ -114,10 +118,36 @@ function WeatherContent({ temp, code, isDay }: WeatherContentProps) {
  *
  * Renders a glassmorphic weather display for the desktop stage.
  * Hidden on mobile/tablet screens (< 1024px).
+ * Supports elastic drag-and-snap-back on desktop.
  */
 export const WeatherWidget = memo(function WeatherWidget({ className }: WeatherWidgetProps) {
 	const { data, isLoading, error } = useWeather();
 	const prefersReducedMotion = useReducedMotion();
+	const deviceType = useDeviceType();
+	const controls = useAnimation();
+
+	// Enable drag only on desktop to avoid mobile scroll conflicts
+	const isDraggable = deviceType === "desktop";
+
+	// Elastic drag behavior with heavier spring (widget feels more massive)
+	const { snapBackTransition, handleDragStart, handleDragEnd, handleContextMenu } = useElasticDrag({
+		controls,
+		enabled: isDraggable,
+		springConfig: ELASTIC_DRAG_CONFIG.widget,
+	});
+
+	// Trigger initial reveal animation via controls
+	useEffect(() => {
+		controls.start({
+			opacity: 1,
+			y: 0,
+			transition: {
+				duration: prefersReducedMotion ? 0 : 0.5,
+				ease: "easeOut",
+				delay: prefersReducedMotion ? 0 : 0.3,
+			},
+		});
+	}, [controls, prefersReducedMotion]);
 
 	// Determine content to render
 	const showSkeleton = isLoading && !data;
@@ -126,18 +156,32 @@ export const WeatherWidget = memo(function WeatherWidget({ className }: WeatherW
 
 	return (
 		<motion.aside
-			className={`
-				pointer-events-none relative h-36 w-80 overflow-hidden rounded-2xl
-				border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl
-				${className ?? ""}
-			`}
+			className={clsx(
+				"relative h-36 w-80 overflow-hidden rounded-2xl",
+				"border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl",
+				isDraggable ? "pointer-events-auto" : "pointer-events-none",
+				className,
+			)}
 			initial={{ opacity: 0, y: prefersReducedMotion ? 0 : -10 }}
-			animate={{ opacity: 1, y: 0 }}
-			transition={{
-				duration: prefersReducedMotion ? 0 : 0.5,
-				ease: "easeOut",
-				delay: prefersReducedMotion ? 0 : 0.3,
-			}}
+			animate={controls}
+			// Elastic drag behavior (desktop only)
+			drag={isDraggable}
+			dragSnapToOrigin={isDraggable}
+			dragElastic={0}
+			dragMomentum={false}
+			onDragStart={handleDragStart}
+			onDragEnd={handleDragEnd}
+			onContextMenu={handleContextMenu}
+			whileDrag={
+				isDraggable
+					? {
+							scale: ELASTIC_DRAG_CONFIG.liftScale,
+							boxShadow: ELASTIC_DRAG_CONFIG.liftShadow,
+							zIndex: 100,
+						}
+					: undefined
+			}
+			transition={snapBackTransition}
 			role="region"
 			aria-label="Weather widget"
 		>
