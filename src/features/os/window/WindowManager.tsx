@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence } from "framer-motion";
-import { memo } from "react";
+import { memo, Suspense } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import type { OnboardingHighlights } from "@/os/onboarding";
@@ -10,6 +10,21 @@ import { selectActiveWindowId, useSystemStore } from "@/os/store";
 import { getAppManifest } from "./app-registry";
 import { useReducedMotion } from "./useReducedMotion";
 import { WindowFrame } from "./WindowFrame";
+
+/**
+ * Loading fallback for lazy-loaded app components.
+ * Displays a subtle skeleton that matches the OS visual language.
+ */
+function AppLoadingFallback() {
+	return (
+		<div className="flex h-full min-h-[200px] w-full items-center justify-center">
+			<div className="flex flex-col items-center gap-3">
+				<div className="h-8 w-8 animate-pulse rounded-lg bg-white/10" />
+				<div className="h-2 w-16 animate-pulse rounded-full bg-white/5" />
+			</div>
+		</div>
+	);
+}
 
 export interface WindowManagerProps {
 	/** Onboarding highlight states */
@@ -67,7 +82,9 @@ export const WindowManager = memo(function WindowManager({
 						shouldGhostDrag={shouldGhostDrag}
 						onGhostDragComplete={isActiveWindow ? onGhostDragComplete : undefined}
 					>
-						<AppComponent windowProps={window.props} />
+						<Suspense fallback={<AppLoadingFallback />}>
+							<AppComponent windowProps={window.props} />
+						</Suspense>
 					</WindowFrame>
 				);
 			})}
