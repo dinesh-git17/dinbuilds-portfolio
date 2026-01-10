@@ -9,6 +9,35 @@ import { SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
 import { type AppID, selectIsWindowFullscreen, useSystemStore } from "@/os/store";
 import { useReducedMotion } from "@/os/window";
 
+/**
+ * Touch target expansion for WCAG 2.5.5 compliance.
+ * Creates a 48x48px clickable area via ::before pseudo-element on touch devices.
+ * Applied only when `pointer: coarse` (touchscreens) is detected.
+ */
+const TOUCH_TARGET_CLASSES = [
+	"[@media(pointer:coarse)]:before:content-['']",
+	"[@media(pointer:coarse)]:before:absolute",
+	"[@media(pointer:coarse)]:before:w-12",
+	"[@media(pointer:coarse)]:before:h-12",
+	"[@media(pointer:coarse)]:before:left-1/2",
+	"[@media(pointer:coarse)]:before:top-1/2",
+	"[@media(pointer:coarse)]:before:-translate-x-1/2",
+	"[@media(pointer:coarse)]:before:-translate-y-1/2",
+].join(" ");
+
+/**
+ * Active state feedback for touch interactions.
+ * Provides visual confirmation when tapping the expanded touch target area.
+ * - Opacity feedback: Always applied (visible even when finger obscures button)
+ * - Scale feedback: Only when prefers-reduced-motion is not set
+ */
+const ACTIVE_STATE_CLASSES = [
+	// Opacity feedback (always applied for visibility)
+	"active:opacity-80",
+	// Scale feedback only when motion is allowed
+	"[@media(prefers-reduced-motion:no-preference)]:active:scale-90",
+].join(" ");
+
 export interface WindowControlsProps {
 	/** Window identifier for store actions */
 	windowId: AppID;
@@ -66,6 +95,9 @@ export const WindowControls = memo(function WindowControls({
 		<motion.fieldset
 			className={clsx(
 				"flex items-center gap-2 border-none p-0 rounded-full",
+				// Touch devices: increase gap to prevent 48px touch targets from overlapping
+				// gap-9 (36px) + 12px button = 48px center-to-center spacing
+				"[@media(pointer:coarse)]:gap-9",
 				isHighlighted && "px-1.5 py-1 -mx-1.5 -my-1",
 			)}
 			aria-label="Window controls"
@@ -85,7 +117,11 @@ export const WindowControls = memo(function WindowControls({
 				type="button"
 				onClick={handleClose}
 				onKeyDown={(e) => e.key === "Enter" && handleClose(e)}
-				className="group relative h-3 w-3 rounded-full bg-[#ff5f57] transition-colors hover:bg-[#ff3b30] focus:outline-none focus:ring-2 focus:ring-[#ff5f57]/50"
+				className={clsx(
+					"group relative h-3 w-3 rounded-full bg-[#ff5f57] transition-[color,transform,opacity] hover:bg-[#ff3b30] focus:outline-none focus:ring-2 focus:ring-[#ff5f57]/50",
+					TOUCH_TARGET_CLASSES,
+					ACTIVE_STATE_CLASSES,
+				)}
 				aria-label="Close window"
 			>
 				<span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-black/0 transition-colors group-hover:text-black/80">
@@ -98,7 +134,11 @@ export const WindowControls = memo(function WindowControls({
 				type="button"
 				onClick={handleMinimize}
 				onKeyDown={(e) => e.key === "Enter" && handleMinimize(e)}
-				className="group relative h-3 w-3 rounded-full bg-[#febc2e] transition-colors hover:bg-[#f5a623] focus:outline-none focus:ring-2 focus:ring-[#febc2e]/50"
+				className={clsx(
+					"group relative h-3 w-3 rounded-full bg-[#febc2e] transition-[color,transform,opacity] hover:bg-[#f5a623] focus:outline-none focus:ring-2 focus:ring-[#febc2e]/50",
+					TOUCH_TARGET_CLASSES,
+					ACTIVE_STATE_CLASSES,
+				)}
 				aria-label="Minimize window"
 			>
 				<span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-black/0 transition-colors group-hover:text-black/80">
@@ -111,7 +151,11 @@ export const WindowControls = memo(function WindowControls({
 				type="button"
 				onClick={handleFullscreen}
 				onKeyDown={(e) => e.key === "Enter" && handleFullscreen(e)}
-				className="group relative h-3 w-3 rounded-full bg-[#28c840] transition-colors hover:bg-[#1fb636] focus:outline-none focus:ring-2 focus:ring-[#28c840]/50"
+				className={clsx(
+					"group relative h-3 w-3 rounded-full bg-[#28c840] transition-[color,transform,opacity] hover:bg-[#1fb636] focus:outline-none focus:ring-2 focus:ring-[#28c840]/50",
+					TOUCH_TARGET_CLASSES,
+					ACTIVE_STATE_CLASSES,
+				)}
 				aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
 			>
 				<span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-black/0 transition-colors group-hover:text-black/80">
