@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { BOOT_TIMING, ONBOARDING_TIMING, UI_REVEAL } from "@/os/boot";
 import { NotificationLayer, useNotificationTriggers } from "@/os/notification";
@@ -17,6 +17,7 @@ import {
 } from "@/os/store";
 import { useReducedMotion, WindowManager } from "@/os/window";
 
+import { DesktopContextMenu } from "./DesktopContextMenu";
 import { DesktopIcon } from "./DesktopIcon";
 import { Dock } from "./dock";
 import { GridPattern } from "./GridPattern";
@@ -81,6 +82,15 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 		updateSelectionFromBox,
 	} = useDesktop();
 
+	// Context menu state
+	const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number }>({
+		isOpen: false,
+		x: 0,
+		y: 0,
+	});
+	// When true, next right-click shows browser's native context menu
+	const [allowBrowserMenu, setAllowBrowserMenu] = useState(false);
+
 	// Check if About window is open (for triggering onboarding)
 	const windows = useSystemStore((s) => s.windows);
 	const isAboutOpen = windows.some((w) => w.id === AppID.About && w.status === "open");
@@ -118,6 +128,38 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 		},
 		[clearSelection, handlePointerDown],
 	);
+
+	// Handle right-click context menu on desktop background
+	const handleContextMenu = useCallback(
+		(e: React.MouseEvent<HTMLDivElement>) => {
+			// If developer mode requested browser menu, allow it once
+			if (allowBrowserMenu) {
+				setAllowBrowserMenu(false);
+				return; // Don't prevent default, let browser menu show
+			}
+
+			// Only show context menu when clicking on the stage background (not windows, dock, etc.)
+			const target = e.target as HTMLElement;
+			const isOnBackground =
+				target === stageRef.current ||
+				target.closest("[data-desktop-background]") ||
+				target.tagName === "IMG"; // Wallpaper image
+
+			if (isOnBackground) {
+				e.preventDefault();
+				setContextMenu({ isOpen: true, x: e.clientX, y: e.clientY });
+			}
+		},
+		[allowBrowserMenu],
+	);
+
+	const closeContextMenu = useCallback(() => {
+		setContextMenu((prev) => ({ ...prev, isOpen: false }));
+	}, []);
+
+	const requestBrowserMenu = useCallback(() => {
+		setAllowBrowserMenu(true);
+	}, []);
 
 	// Update selection when rubber-band box changes
 	useEffect(() => {
@@ -160,6 +202,7 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 						onPointerMove={handlePointerMove}
 						onPointerUp={handlePointerUp}
 						onPointerCancel={handlePointerUp}
+						onContextMenu={handleContextMenu}
 					>
 						{/* Background layers */}
 						{wallpaper ? (
@@ -260,6 +303,14 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 
 						{/* Notification layer — shows system voice notifications */}
 						{isUIVisible && <NotificationLayer />}
+
+						{/* Desktop context menu */}
+						<DesktopContextMenu
+							isOpen={contextMenu.isOpen}
+							position={{ x: contextMenu.x, y: contextMenu.y }}
+							onClose={closeContextMenu}
+							onRequestBrowserMenu={requestBrowserMenu}
+						/>
 
 						{/* Additional UI layers */}
 						{children && <div className="relative z-10 h-full w-full">{children}</div>}

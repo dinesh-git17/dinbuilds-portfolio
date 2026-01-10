@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { motion, type PanInfo, useDragControls, useMotionValue } from "framer-motion";
+import { animate, motion, type PanInfo, useDragControls, useMotionValue } from "framer-motion";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { ONBOARDING_TIMING } from "@/os/boot";
@@ -77,6 +77,10 @@ export const WindowFrame = memo(function WindowFrame({
 	const isFullscreen = useSystemStore(selectIsWindowFullscreen(id));
 	const focusWindow = useSystemStore((s) => s.focusWindow);
 	const updateWindowPosition = useSystemStore((s) => s.updateWindowPosition);
+	// Check if window is being minimized (still exists with "minimized" status) vs closed
+	const isBeingMinimized = useSystemStore((s) =>
+		s.windows.some((w) => w.id === id && w.status === "minimized"),
+	);
 
 	const constraintsRef = useRef<HTMLDivElement>(null);
 	const dragControls = useDragControls();
@@ -242,14 +246,69 @@ export const WindowFrame = memo(function WindowFrame({
 		[dragControls],
 	);
 
+	// Snap-to-center: double-click header to center window in viewport
+	const handleHeaderDoubleClick = useCallback(
+		(e: React.MouseEvent) => {
+			// Don't center if clicking on controls
+			if ((e.target as HTMLElement).closest("fieldset")) {
+				return;
+			}
+
+			// Calculate available space (accounting for system bar and dock/padding)
+			const topOffset = isMobile ? SYSTEM_BAR_HEIGHT_MOBILE : SYSTEM_BAR_HEIGHT_DESKTOP;
+			const bottomOffset = isMobile ? DOCK_HEIGHT : DESKTOP_PADDING;
+			const availableHeight = viewport.height - topOffset - bottomOffset;
+
+			// Center horizontally
+			const centeredX = (viewport.width - responsiveLayout.width) / 2;
+			// Center vertically within available space
+			const centeredY = topOffset + (availableHeight - responsiveLayout.height) / 2;
+
+			// Animate motion values with spring for smooth transition
+			const springConfig = { type: "spring" as const, stiffness: 400, damping: 30 };
+			animate(x, centeredX, springConfig);
+			animate(y, centeredY, springConfig);
+
+			// Update store to persist the new position
+			updateWindowPosition(id, { x: centeredX, y: centeredY });
+		},
+		[
+			id,
+			viewport,
+			responsiveLayout.width,
+			responsiveLayout.height,
+			isMobile,
+			updateWindowPosition,
+			x,
+			y,
+		],
+	);
+
 	// Animation variants
 	// Note: We avoid animating opacity on elements with backdrop-blur
 	// as it causes a visual "flash" when the blur effect kicks in.
-	// Exit animation is disabled - a partial scale without opacity looks jarring.
+	// Exit: "Gravity well" for minimize, simple fade for close
+	const minimizeExit = {
+		scale: 0.2,
+		opacity: 0,
+		y: viewport.height - DOCK_HEIGHT / 2, // Fall towards dock
+		transition: {
+			// Stagger properties for smooth genie effect
+			scale: { duration: 0.4, ease: "anticipate" as const },
+			y: { duration: 0.4, ease: "anticipate" as const },
+			// Opacity fades early so window dissolves as it falls
+			opacity: { duration: 0.25, ease: "easeOut" as const },
+		},
+	};
+	const closeExit = {
+		opacity: 0,
+		scale: 0.96,
+		transition: { duration: 0.15, ease: "easeOut" as const },
+	};
 	const variants = {
 		initial: reducedMotion ? {} : { scale: 0.96 },
 		animate: reducedMotion ? {} : { scale: 1 },
-		exit: {},
+		exit: reducedMotion ? {} : isBeingMinimized ? minimizeExit : closeExit,
 	};
 
 	// Drag constraints - respect system bar at top and keep window in viewport
@@ -325,6 +384,7 @@ export const WindowFrame = memo(function WindowFrame({
 					`}
 				>
 					{/* Header / Drag Handle */}
+					{/* biome-ignore lint/a11y/noStaticElementInteractions: Window chrome header with drag + double-click interactions */}
 					<header
 						className={clsx(
 							"flex h-11 shrink-0 items-center gap-3 border-b border-white/5 px-4",
@@ -334,6 +394,7 @@ export const WindowFrame = memo(function WindowFrame({
 							isHeaderHighlighted && "rounded-t-xl",
 						)}
 						onPointerDown={isFullscreen || isFullHeightMobile ? undefined : handleHeaderPointerDown}
+						onDoubleClick={isFullscreen || isFullHeightMobile ? undefined : handleHeaderDoubleClick}
 						style={{
 							touchAction: "none",
 							boxShadow: isHeaderHighlighted

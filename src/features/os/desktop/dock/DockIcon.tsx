@@ -1,6 +1,13 @@
 "use client";
 
-import { type MotionValue, motion, useSpring, useTransform } from "framer-motion";
+import {
+	AnimatePresence,
+	type MotionValue,
+	motion,
+	useAnimate,
+	useSpring,
+	useTransform,
+} from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -125,8 +132,13 @@ export const DockIcon = memo(function DockIcon({
 	onClick,
 }: DockIconProps) {
 	const ref = useRef<HTMLButtonElement>(null);
+	const [bounceScope, animateBounce] = useAnimate<HTMLDivElement>();
 	const router = useRouter();
 	const launchApp = useSystemStore((s) => s.launchApp);
+	// Check if app is running (has open or minimized window)
+	const isRunning = useSystemStore((s) =>
+		s.windows.some((w) => w.id === appId && (w.status === "open" || w.status === "minimized")),
+	);
 	const [isHovered, setIsHovered] = useState(false);
 	const [hasPrefetched, setHasPrefetched] = useState(false);
 
@@ -190,22 +202,37 @@ export const DockIcon = memo(function DockIcon({
 		setIsHovered(false);
 		// Blur the button to remove focus ring (fixes highlight staying on touch devices)
 		ref.current?.blur();
-		// Launch the app after resetting dock state
+
+		// Launch the app immediately (don't wait for animation)
 		launchApp(appId);
-	}, [launchApp, appId, onClick]);
+
+		// Trigger the "happy launch" bounce animation (macOS-style instant jump)
+		animateBounce(
+			bounceScope.current,
+			{ y: [0, -18, 0, -6, 0] },
+			{ duration: 0.5, ease: [0.36, 0.07, 0.19, 0.97] },
+		);
+	}, [launchApp, appId, onClick, animateBounce, bounceScope]);
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
 			if (e.key === "Enter" || e.key === " ") {
 				e.preventDefault();
 				launchApp(appId);
+				// Trigger the "happy launch" bounce animation (macOS-style instant jump)
+				animateBounce(
+					bounceScope.current,
+					{ y: [0, -18, 0, -6, 0] },
+					{ duration: 0.5, ease: [0.36, 0.07, 0.19, 0.97] },
+				);
 			}
 		},
-		[launchApp, appId],
+		[launchApp, appId, animateBounce, bounceScope],
 	);
 
 	return (
 		<motion.div
+			ref={bounceScope}
 			className="relative flex flex-col items-center"
 			style={{ width: size, height: size }}
 		>
@@ -319,6 +346,27 @@ export const DockIcon = memo(function DockIcon({
 					</>
 				)}
 			</motion.button>
+
+			{/* Running indicator dot (macOS style) */}
+			<AnimatePresence>
+				{isRunning && (
+					<motion.div
+						className="absolute h-1 w-1 rounded-full bg-white/80"
+						style={{
+							// Position based on dock orientation
+							...(dockPosition === "bottom"
+								? { bottom: -6, left: "50%", x: "-50%" }
+								: dockPosition === "left"
+									? { left: -6, top: "50%", y: "-50%" }
+									: { right: -6, top: "50%", y: "-50%" }),
+						}}
+						initial={{ scale: 0, opacity: 0 }}
+						animate={{ scale: 1, opacity: 1 }}
+						exit={{ scale: 0, opacity: 0 }}
+						transition={{ duration: 0.15 }}
+					/>
+				)}
+			</AnimatePresence>
 		</motion.div>
 	);
 });
