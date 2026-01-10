@@ -113,7 +113,9 @@ function getTooltipForStep(step: OnboardingStep, isMobile: boolean): OnboardingT
 		case "desktop_icons":
 			return {
 				visible: true,
-				text: isMobile ? "Tap files to view details" : "Explore my projects & details",
+				text: isMobile
+					? "Double-tap to open files & folders"
+					: "Double-click to open files & folders",
 				position: "left",
 			};
 		case "outro":
