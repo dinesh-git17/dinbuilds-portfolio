@@ -17,9 +17,9 @@ export const AboutApp = memo(function AboutApp() {
 	const [activeTab, setActiveTab] = useState<AboutTabId>("overview");
 
 	return (
-		<div className="flex h-full">
-			{/* Left Column - Player Card */}
-			<ProfileSidebar className="w-44 shrink-0" />
+		<div className="flex h-full flex-col md:flex-row">
+			{/* Top (Mobile) / Left (Desktop) - Player Card */}
+			<ProfileSidebar className="w-full shrink-0 md:w-44" />
 
 			{/* Right Column - Tabbed Content Area */}
 			<main className="flex flex-1 flex-col overflow-hidden">

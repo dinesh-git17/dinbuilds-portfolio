@@ -28,6 +28,40 @@ export interface DockProps {
 }
 
 /**
+ * Handle keyboard navigation within the dock.
+ * Returns new focus index, or null to indicate no change.
+ */
+function handleDockKeyNavigation(
+	key: string,
+	currentIndex: number,
+	itemCount: number,
+): number | null {
+	switch (key) {
+		case "ArrowRight":
+		case "ArrowDown":
+			return (currentIndex + 1) % itemCount;
+		case "ArrowLeft":
+		case "ArrowUp":
+			return (currentIndex - 1 + itemCount) % itemCount;
+		case "Home":
+			return 0;
+		case "End":
+			return itemCount - 1;
+		default:
+			return null;
+	}
+}
+
+/**
+ * Get platform anchor class based on dock position.
+ */
+function getPlatformAnchorClass(position: "bottom" | "left" | "right"): string {
+	if (position === "left") return "left-0";
+	if (position === "right") return "right-0";
+	return "";
+}
+
+/**
  * Position-based CSS classes for dock placement.
  * Note: Centering transforms are handled by Framer Motion to avoid
  * transform override conflicts between CSS and motion animations.
@@ -142,37 +176,21 @@ export const Dock = memo(function Dock({ isBooting = false }: DockProps) {
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
-			const itemCount = dockItems.length;
+			// Handle Escape to close stack
+			if (e.key === "Escape" && openStackId) {
+				e.preventDefault();
+				setOpenStackId(null);
+				return;
+			}
 
-			switch (e.key) {
-				case "ArrowRight":
-				case "ArrowDown":
-					e.preventDefault();
-					setFocusedIndex((prev) => (prev + 1) % itemCount);
-					break;
-				case "ArrowLeft":
-				case "ArrowUp":
-					e.preventDefault();
-					setFocusedIndex((prev) => (prev - 1 + itemCount) % itemCount);
-					break;
-				case "Home":
-					e.preventDefault();
-					setFocusedIndex(0);
-					break;
-				case "End":
-					e.preventDefault();
-					setFocusedIndex(itemCount - 1);
-					break;
-				case "Escape":
-					// Close open stack on Escape
-					if (openStackId) {
-						e.preventDefault();
-						setOpenStackId(null);
-					}
-					break;
+			// Handle arrow/home/end navigation
+			const newIndex = handleDockKeyNavigation(e.key, focusedIndex, dockItems.length);
+			if (newIndex !== null) {
+				e.preventDefault();
+				setFocusedIndex(newIndex);
 			}
 		},
-		[dockItems.length, openStackId],
+		[dockItems.length, focusedIndex, openStackId],
 	);
 
 	/**
@@ -264,9 +282,7 @@ export const Dock = memo(function Dock({ isBooting = false }: DockProps) {
 							className={clsx(
 								"absolute rounded-2xl",
 								isVertical ? "inset-y-0" : "inset-x-0 bottom-0",
-								// For left dock, anchor to left; for right dock, anchor to right
-								position === "left" && "left-0",
-								position === "right" && "right-0",
+								getPlatformAnchorClass(position),
 							)}
 							style={{
 								// Fixed thickness perpendicular to the dock edge

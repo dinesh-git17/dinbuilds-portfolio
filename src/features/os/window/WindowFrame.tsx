@@ -5,6 +5,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
 import {
+	MOBILE_MAXIMIZED_APPS,
 	selectIsWindowActive,
 	selectIsWindowFullscreen,
 	useSystemStore,
@@ -104,8 +105,10 @@ export const WindowFrame = memo(function WindowFrame({
 		const maxWidth = viewport.width - MOBILE_PADDING * 2;
 		const maxHeight = viewport.height - SYSTEM_BAR_HEIGHT_MOBILE - DOCK_HEIGHT - MOBILE_PADDING * 2;
 
-		const constrainedWidth = Math.min(size.width, maxWidth);
-		const constrainedHeight = Math.min(size.height, maxHeight);
+		// Apps in MOBILE_MAXIMIZED_APPS fill the available space
+		const shouldMaximize = MOBILE_MAXIMIZED_APPS.has(id);
+		const constrainedWidth = shouldMaximize ? maxWidth : Math.min(size.width, maxWidth);
+		const constrainedHeight = shouldMaximize ? maxHeight : Math.min(size.height, maxHeight);
 
 		// Center horizontally, position below SystemBar
 		const centeredX = (viewport.width - constrainedWidth) / 2;

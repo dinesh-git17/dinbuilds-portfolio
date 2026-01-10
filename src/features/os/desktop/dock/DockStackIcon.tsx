@@ -38,6 +38,63 @@ const MAGNIFY_DISTANCE = 150;
 const MAGNIFY_SCALE = 1.54;
 
 /**
+ * Get tooltip position classes based on dock position.
+ */
+function getTooltipPositionClass(dockPosition: "bottom" | "left" | "right"): string {
+	switch (dockPosition) {
+		case "bottom":
+			return "-top-9 left-1/2";
+		case "left":
+			return "left-full top-1/2 ml-3";
+		case "right":
+			return "right-full top-1/2 mr-3";
+	}
+}
+
+/**
+ * Get tooltip arrow position classes based on dock position.
+ */
+function getTooltipArrowClass(dockPosition: "bottom" | "left" | "right"): string {
+	switch (dockPosition) {
+		case "bottom":
+			return "-bottom-1 left-1/2 -translate-x-1/2";
+		case "left":
+			return "-left-1 top-1/2 -translate-y-1/2";
+		case "right":
+			return "-right-1 top-1/2 -translate-y-1/2";
+	}
+}
+
+/**
+ * Get tooltip initial animation state based on dock position.
+ */
+function getTooltipInitialState(dockPosition: "bottom" | "left" | "right") {
+	const baseX = dockPosition === "bottom" ? "-50%" : dockPosition === "left" ? -4 : 4;
+	const baseY = dockPosition === "bottom" ? 4 : "-50%";
+	return { opacity: 0, x: baseX, y: baseY };
+}
+
+/**
+ * Get tooltip animate state based on dock position and hover state.
+ */
+function getTooltipAnimateState(dockPosition: "bottom" | "left" | "right", isVisible: boolean) {
+	if (dockPosition === "bottom") {
+		return {
+			opacity: isVisible ? 1 : 0,
+			x: "-50%",
+			y: isVisible ? 0 : 4,
+		};
+	}
+
+	const xOffset = dockPosition === "left" ? -4 : 4;
+	return {
+		opacity: isVisible ? 1 : 0,
+		x: isVisible ? 0 : xOffset,
+		y: "-50%",
+	};
+}
+
+/**
  * DockStackIcon — Folder icon for expandable dock stacks.
  *
  * Similar to DockIcon but toggles a stack overlay instead of launching an app.
@@ -133,45 +190,16 @@ export const DockStackIcon = memo(function DockStackIcon({
 		>
 			{/* Tooltip */}
 			<motion.div
-				className={`pointer-events-none absolute z-50 ${
-					dockPosition === "bottom"
-						? "-top-9 left-1/2"
-						: dockPosition === "left"
-							? "left-full top-1/2 ml-3"
-							: "right-full top-1/2 mr-3"
-				}`}
-				initial={{
-					opacity: 0,
-					x: dockPosition === "bottom" ? "-50%" : dockPosition === "left" ? -4 : 4,
-					y: dockPosition === "bottom" ? 4 : "-50%",
-				}}
-				animate={{
-					opacity: isHovered && !isOpen ? 1 : 0,
-					x:
-						dockPosition === "bottom"
-							? "-50%"
-							: dockPosition === "left"
-								? isHovered && !isOpen
-									? 0
-									: -4
-								: isHovered && !isOpen
-									? 0
-									: 4,
-					y: dockPosition === "bottom" ? (isHovered && !isOpen ? 0 : 4) : "-50%",
-				}}
+				className={`pointer-events-none absolute z-50 ${getTooltipPositionClass(dockPosition)}`}
+				initial={getTooltipInitialState(dockPosition)}
+				animate={getTooltipAnimateState(dockPosition, isHovered && !isOpen)}
 				transition={{ duration: 0.15 }}
 			>
 				<div className="whitespace-nowrap rounded-md bg-gray-800/95 px-3 py-1.5 text-sm font-medium text-white shadow-lg">
 					{stack.label}
 				</div>
 				<div
-					className={`absolute h-2 w-2 rotate-45 bg-gray-800/95 ${
-						dockPosition === "bottom"
-							? "-bottom-1 left-1/2 -translate-x-1/2"
-							: dockPosition === "left"
-								? "-left-1 top-1/2 -translate-y-1/2"
-								: "-right-1 top-1/2 -translate-y-1/2"
-					}`}
+					className={`absolute h-2 w-2 rotate-45 bg-gray-800/95 ${getTooltipArrowClass(dockPosition)}`}
 				/>
 			</motion.div>
 

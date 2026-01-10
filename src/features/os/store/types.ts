@@ -138,6 +138,12 @@ export const AUTO_FULLSCREEN_APPS: Set<AppID> = new Set([
 ]);
 
 /**
+ * Apps that should fill the available viewport on mobile.
+ * These windows will expand from system bar to dock on mobile devices.
+ */
+export const MOBILE_MAXIMIZED_APPS: Set<AppID> = new Set([AppID.About]);
+
+/**
  * Dock position options.
  * "Top" is excluded to avoid conflict with the System Bar.
  */

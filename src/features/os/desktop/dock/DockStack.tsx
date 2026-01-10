@@ -182,9 +182,9 @@ export const DockStack = memo(function DockStack({
 						bottom: position.bottom,
 						left: position.left,
 					}}
-					initial={{ opacity: 0, scale: 0.85, y: 20, x: "-50%" }}
-					animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
-					exit={{ opacity: 0, scale: 0.85, y: 20, x: "-50%" }}
+					initial={{ scale: 0.85, y: 20, x: "-50%" }}
+					animate={{ scale: 1, y: 0, x: "-50%" }}
+					exit={{ scale: 0.85, y: 20, x: "-50%" }}
 					transition={springTransition}
 				>
 					{/* Glass panel background */}
