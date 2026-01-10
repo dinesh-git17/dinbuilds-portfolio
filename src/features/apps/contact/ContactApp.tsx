@@ -60,7 +60,9 @@ function StatusRow({ icon: Icon, label, value, status }: StatusRowProps) {
 }
 
 /**
- * Left sidebar showing connection status and system info.
+ * Connection status panel.
+ * Desktop: Vertical sidebar with detailed metrics.
+ * Mobile: Compact horizontal header strip.
  */
 function ConnectionStatus() {
 	const [latency, setLatency] = useState<number | null>(null);
@@ -81,29 +83,49 @@ function ConnectionStatus() {
 		return () => clearInterval(interval);
 	}, []);
 
+	const latencyDisplay = latency !== null ? `${latency}ms` : "---";
+
 	return (
-		<aside className={clsx("flex flex-col gap-4 border-r border-white/5 p-4", "bg-white/[0.02]")}>
-			{/* Header */}
-			<div className="flex items-center gap-2">
-				<Radio className="h-4 w-4 text-emerald-500" />
-				<span className="font-mono text-xs font-medium uppercase tracking-wider text-white/70">
-					Comm Link
-				</span>
+		<aside
+			className={clsx(
+				"flex shrink-0 border-white/5 bg-white/[0.02]",
+				"flex-col gap-2 border-b p-3",
+				"md:gap-4 md:border-b-0 md:border-r md:p-4",
+			)}
+		>
+			{/* Header Row - Always visible */}
+			<div className="flex items-center justify-between gap-4">
+				<div className="flex items-center gap-2">
+					<Radio className="h-4 w-4 text-emerald-500" />
+					<span className="font-mono text-xs font-medium uppercase tracking-wider text-white/70">
+						Comm Link
+					</span>
+				</div>
+				{/* Mobile: Inline status indicator */}
+				<div className="flex items-center gap-1.5 md:hidden">
+					<StatusIndicator status="online" />
+					<span className="font-mono text-xs text-emerald-400">Online</span>
+				</div>
 			</div>
 
-			{/* Status Grid */}
-			<div className="flex flex-col divide-y divide-white/5">
+			{/* Mobile: Compact inline metrics */}
+			<div className="flex items-center gap-2 font-mono text-xs text-white/50 md:hidden">
+				<Server className="h-3 w-3 text-white/30" />
+				<span className="text-white/70">{latencyDisplay}</span>
+				<span className="text-white/20">•</span>
+				<Shield className="h-3 w-3 text-white/30" />
+				<span className="text-white/70">TLS 1.3</span>
+			</div>
+
+			{/* Desktop: Full status grid */}
+			<div className="hidden flex-col divide-y divide-white/5 md:flex">
 				<StatusRow icon={Wifi} label="Connection" value="Online" status="online" />
-				<StatusRow
-					icon={Server}
-					label="Latency"
-					value={latency !== null ? `${latency}ms` : "---"}
-				/>
+				<StatusRow icon={Server} label="Latency" value={latencyDisplay} />
 				<StatusRow icon={Shield} label="Encryption" value="TLS 1.3" />
 			</div>
 
-			{/* Terminal Info */}
-			<div className="mt-auto rounded border border-white/5 bg-black/40 p-3">
+			{/* Desktop: Terminal Info (hidden on mobile) */}
+			<div className="mt-auto hidden rounded border border-white/5 bg-black/40 p-3 md:block">
 				<p className="font-mono text-[10px] uppercase tracking-wider text-white/30">Endpoint</p>
 				<p className="mt-1 break-all font-mono text-xs text-white/60">info@dineshd.dev</p>
 			</div>
@@ -120,12 +142,12 @@ function ConnectionStatus() {
  */
 export const ContactApp = memo(function ContactApp() {
 	return (
-		<div className="flex h-full">
-			{/* Left Column - Status Panel */}
+		<div className="flex h-full flex-col md:flex-row">
+			{/* Status Panel - Top on mobile, Left sidebar on desktop */}
 			<ConnectionStatus />
 
-			{/* Right Column - Form Area */}
-			<main className="flex flex-1 flex-col overflow-hidden">
+			{/* Form Area - Fills remaining space */}
+			<main className="flex min-h-0 flex-1 flex-col overflow-hidden">
 				{/* Header */}
 				<header className="border-b border-white/5 px-5 py-3">
 					<h1 className="font-mono text-sm font-medium text-white/80">New Transmission</h1>

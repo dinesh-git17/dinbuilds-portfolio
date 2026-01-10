@@ -27,19 +27,19 @@ function InputField({
 	...props
 }: InputFieldProps & React.InputHTMLAttributes<HTMLInputElement>) {
 	return (
-		<label className="block space-y-1">
+		<label className="block space-y-1.5 md:space-y-1">
 			<span className="block font-mono text-[10px] uppercase tracking-wider text-white/40">
 				{label}
 			</span>
 			<div className="relative">
-				<span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-emerald-500/70">
+				<span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-base text-emerald-500/70 md:text-sm">
 					{prefix}
 				</span>
 				<input
 					{...props}
 					disabled={disabled}
 					className={clsx(
-						"w-full rounded border bg-black/40 py-2.5 pl-10 pr-3 font-mono text-sm text-white",
+						"w-full rounded border bg-black/40 py-3 pl-10 pr-3 font-mono text-base text-white md:py-2.5 md:text-sm",
 						"placeholder:text-white/20",
 						"transition-colors duration-150",
 						"focus:outline-none focus:ring-1",
@@ -70,19 +70,19 @@ function TextAreaField({
 	...props
 }: TextAreaFieldProps & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
 	return (
-		<label className="block space-y-1">
+		<label className="block space-y-1.5 md:space-y-1">
 			<span className="block font-mono text-[10px] uppercase tracking-wider text-white/40">
 				{label}
 			</span>
 			<div className="relative">
-				<span className="pointer-events-none absolute left-3 top-3 font-mono text-sm text-emerald-500/70">
+				<span className="pointer-events-none absolute left-3 top-3 font-mono text-base text-emerald-500/70 md:text-sm">
 					{prefix}
 				</span>
 				<textarea
 					{...props}
 					disabled={disabled}
 					className={clsx(
-						"w-full resize-none rounded border bg-black/40 py-2.5 pl-10 pr-3 font-mono text-sm text-white",
+						"w-full resize-none rounded border bg-black/40 py-3 pl-10 pr-3 font-mono text-base text-white md:py-2.5 md:text-sm",
 						"placeholder:text-white/20",
 						"transition-colors duration-150",
 						"focus:outline-none focus:ring-1",
@@ -149,7 +149,7 @@ export const ContactForm = memo(function ContactForm({ onSuccess }: ContactFormP
 	const isDisabled = status === "sending" || status === "success";
 
 	return (
-		<form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+		<form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 md:gap-4">
 			{/* Honeypot field - hidden from users, visible to bots */}
 			<input
 				type="text"
@@ -197,7 +197,7 @@ export const ContactForm = memo(function ContactForm({ onSuccess }: ContactFormP
 			)}
 
 			{/* Submit Button / Success Confirmation */}
-			<div className="relative h-11">
+			<div className="relative h-12 md:h-11">
 				<AnimatePresence mode="wait">
 					{status === "success" ? (
 						<motion.div
