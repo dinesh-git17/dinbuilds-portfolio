@@ -17,6 +17,27 @@
 export type BootPhase = "hidden" | "booting" | "welcome" | "complete";
 
 /**
+ * Onboarding tour steps for desktop users.
+ * Transitions: idle -> window_controls -> window_drag -> dock -> desktop_icons -> outro -> complete
+ *
+ * - idle: Tour not active, waiting for trigger
+ * - window_controls: Highlighting traffic light buttons (close/min/max)
+ * - window_drag: Demonstrating window drag physics
+ * - dock: Highlighting the dock and its functionality
+ * - desktop_icons: Highlighting desktop file/folder icons
+ * - outro: Final "Have fun exploring" message
+ * - complete: Tour finished, normal operation
+ */
+export type OnboardingStep =
+	| "idle"
+	| "window_controls"
+	| "window_drag"
+	| "dock"
+	| "desktop_icons"
+	| "outro"
+	| "complete";
+
+/**
  * Application identifiers for all installable apps.
  * Use this enum everywhere instead of string literals.
  */
@@ -320,3 +341,81 @@ export interface SystemActions {
  * Complete store type combining state and actions.
  */
 export type SystemStore = SystemState & SystemActions;
+
+/**
+ * State slice for the onboarding store.
+ * Manages the desktop tour experience for first-time users.
+ */
+export interface OnboardingState {
+	/**
+	 * Current step in the onboarding tour.
+	 * Controls which UI element is highlighted.
+	 */
+	currentStep: OnboardingStep;
+
+	/**
+	 * Whether the user has completed the tour (persisted).
+	 * Used to prevent showing the tour on repeat visits.
+	 */
+	hasCompletedTour: boolean;
+
+	/**
+	 * Whether user input is blocked during demo moments.
+	 * True during animated demonstrations (ghost drag, etc.).
+	 */
+	isInteractionBlocked: boolean;
+}
+
+/**
+ * Actions available on the onboarding store.
+ */
+export interface OnboardingActions {
+	/**
+	 * Start the onboarding tour.
+	 * Called after About app animation completes.
+	 * No-op if tour already completed or on mobile.
+	 */
+	startTour: () => void;
+
+	/**
+	 * Advance to the next step in the tour.
+	 * Automatically transitions through the state machine.
+	 */
+	advanceStep: () => void;
+
+	/**
+	 * Skip directly to completion.
+	 * Allows users to dismiss the tour early.
+	 */
+	skipTour: () => void;
+
+	/**
+	 * Set the interaction blocked state.
+	 * Used during animated demonstrations.
+	 */
+	setInteractionBlocked: (blocked: boolean) => void;
+
+	/**
+	 * Reset the tour (for development/testing).
+	 * Clears completion status and returns to idle.
+	 */
+	resetTour: () => void;
+}
+
+/**
+ * Complete onboarding store type combining state and actions.
+ */
+export type OnboardingStore = OnboardingState & OnboardingActions;
+
+/**
+ * Ordered list of onboarding steps for iteration.
+ * Excludes 'idle' as it's the pre-tour state.
+ */
+export const ONBOARDING_STEP_ORDER: OnboardingStep[] = [
+	"window_controls",
+	"window_drag",
+	"dock",
+	"desktop_icons",
+	"outro",
+	"complete",
+];

@@ -113,3 +113,73 @@ export function markBootComplete(): void {
 		// Silently fail if sessionStorage unavailable
 	}
 }
+
+/**
+ * Onboarding Tour Timing Configuration
+ *
+ * Timing constants for the "Ghost in the Machine" desktop onboarding tour.
+ * All values in milliseconds unless otherwise noted.
+ */
+export const ONBOARDING_TIMING = {
+	/** Delay after About app opens before starting tour */
+	START_DELAY: 1500,
+	/** Duration for tooltip display at each step */
+	TOOLTIP_DURATION: 2000,
+	/** Duration for glow transition between targets */
+	GLOW_TRANSITION: 300,
+	/** Duration for the ghost drag demonstration */
+	GHOST_DRAG_DURATION: 1400,
+	/** Hold time for "Have fun exploring" message */
+	OUTRO_HOLD: 1500,
+	/** Fade out duration for outro */
+	OUTRO_FADE: 600,
+	/** Reduced motion timing (instant transitions) */
+	REDUCED_MOTION_DELAY: 50,
+} as const;
+
+/**
+ * Onboarding animation configuration for spring physics.
+ * Matches WindowFrame spring config for consistency.
+ */
+export const ONBOARDING_SPRING = {
+	/** Standard spring for glow/highlight transitions */
+	highlight: {
+		stiffness: 300,
+		damping: 25,
+	},
+	/** Bouncy spring for ghost drag return */
+	ghostDrag: {
+		stiffness: 200,
+		damping: 15,
+	},
+} as const;
+
+/**
+ * Step-specific timing overrides.
+ * Allows fine-tuning individual step durations.
+ */
+export const ONBOARDING_STEP_TIMING = {
+	window_controls: {
+		glowDuration: 2000,
+		tooltipDuration: 2000,
+	},
+	window_drag: {
+		glowDuration: 1000,
+		dragDuration: 1400,
+		tooltipDuration: 2000,
+	},
+	dock: {
+		glowDuration: 2500,
+		rippleDuration: 800,
+		tooltipDuration: 2000,
+	},
+	desktop_icons: {
+		glowDuration: 2000,
+		tooltipDuration: 2000,
+	},
+	outro: {
+		fadeInDuration: 400,
+		holdDuration: 1500,
+		fadeOutDuration: 600,
+	},
+} as const;
