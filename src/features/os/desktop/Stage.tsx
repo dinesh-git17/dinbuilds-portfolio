@@ -8,6 +8,7 @@ import { BOOT_TIMING, ONBOARDING_TIMING, UI_REVEAL } from "@/os/boot";
 import { OnboardingController, SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
 import {
 	AppID,
+	DockStackID,
 	selectBootPhase,
 	selectWallpaper,
 	useOnboardingStore,
@@ -17,7 +18,6 @@ import { useReducedMotion, WindowManager } from "@/os/window";
 
 import { DesktopIcon } from "./DesktopIcon";
 import { Dock } from "./dock";
-import { useDeviceType } from "./dock/useDeviceType";
 import { GridPattern } from "./GridPattern";
 import { SelectionBox } from "./SelectionBox";
 import { SystemBar } from "./system-bar";
@@ -65,8 +65,6 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 	useWallpaperSync();
 	const bootPhase = useSystemStore(selectBootPhase);
 	const prefersReducedMotion = useReducedMotion();
-	const deviceType = useDeviceType();
-	const isMobile = deviceType === "mobile";
 	const { isSelecting, selectionBox, handlePointerDown, handlePointerMove, handlePointerUp } =
 		useSelectionBox(stageRef);
 	const {
@@ -128,11 +126,10 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 		<OnboardingController>
 			{/* biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Stage orchestrates multiple UI layers */}
 			{({ highlights, onGhostDragComplete, startTour }) => {
-				// Trigger onboarding tour after About window opens (desktop only)
+				// Trigger onboarding tour after About window opens
 				// This runs inside the render to access startTour from the controller
 				if (
 					isAboutOpen &&
-					!isMobile &&
 					!hasCompletedTour &&
 					!tourStartedRef.current &&
 					bootPhase === "complete"
@@ -250,7 +247,11 @@ export const Stage = memo(function Stage({ children }: StageProps) {
 
 						{/* System UI — hidden during welcome, animated entrance on complete */}
 						<SystemBar isBooting={!isUIVisible} />
-						<Dock isBooting={!isUIVisible} isHighlighted={highlights.dock} />
+						<Dock
+							isBooting={!isUIVisible}
+							isHighlighted={highlights.dock}
+							highlightedStackId={highlights.dockProjectsStack ? DockStackID.Projects : null}
+						/>
 
 						{/* Additional UI layers */}
 						{children && <div className="relative z-10 h-full w-full">{children}</div>}

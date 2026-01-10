@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { memo } from "react";
 
 import { ONBOARDING_STEP_TIMING, ONBOARDING_TIMING } from "@/os/boot";
+import { useDeviceType } from "@/os/desktop/dock/useDeviceType";
 import { useReducedMotion } from "@/os/window";
 
 import { OnboardingOverlay, SPOTLIGHT_Z_INDEX } from "./OnboardingOverlay";
@@ -28,23 +29,34 @@ export interface OnboardingControllerRenderProps {
 }
 
 /**
- * Tooltip component for onboarding steps.
+ * Get position classes for tooltip based on position hint and device type.
+ * Mobile positions are optimized for 375px screens to prevent clipping.
  */
-const OnboardingTooltipDisplay = memo(function OnboardingTooltipDisplay({
-	tooltip,
-	step,
-}: {
-	tooltip: OnboardingTooltip;
-	step: string;
-}) {
-	const reducedMotion = useReducedMotion();
-
-	if (!tooltip.visible || step === "outro") {
-		return null;
+function getTooltipPositionClasses(
+	position: OnboardingTooltip["position"],
+	isMobile: boolean,
+): string {
+	if (isMobile) {
+		// Mobile-optimized positions centered horizontally with safe margins
+		const mobilePositions = {
+			// Below window controls - centered, safe distance from top
+			bottom: "top-24 left-1/2 -translate-x-1/2",
+			// Above dock - centered, positioned above dock with padding
+			top: "bottom-28 left-1/2 -translate-x-1/2",
+			// Left of desktop icons - centered vertically, pulled in from edge
+			left: "right-4 top-1/3 -translate-y-1/2",
+			// Right side (unused on mobile, but defined for completeness)
+			right: "left-4 top-1/2 -translate-y-1/2",
+			// Center of screen
+			center: "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+			// Above window - positioned for mobile window frame
+			"above-window": "top-28 left-1/2 -translate-x-1/2",
+		};
+		return mobilePositions[position];
 	}
 
-	// Position classes based on tooltip.position
-	const positionClasses = {
+	// Desktop positions - more space available
+	const desktopPositions = {
 		top: "bottom-24 left-1/2 -translate-x-1/2",
 		bottom: "top-20 left-20",
 		left: "right-28 top-1/2 -translate-y-1/2",
@@ -52,10 +64,33 @@ const OnboardingTooltipDisplay = memo(function OnboardingTooltipDisplay({
 		center: "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
 		"above-window": "top-[18%] left-1/2 -translate-x-1/2",
 	};
+	return desktopPositions[position];
+}
+
+/**
+ * Tooltip component for onboarding steps.
+ * Responsive positioning for mobile (375px) and desktop screens.
+ */
+const OnboardingTooltipDisplay = memo(function OnboardingTooltipDisplay({
+	tooltip,
+	step,
+	isMobile,
+}: {
+	tooltip: OnboardingTooltip;
+	step: string;
+	isMobile: boolean;
+}) {
+	const reducedMotion = useReducedMotion();
+
+	if (!tooltip.visible || step === "outro") {
+		return null;
+	}
+
+	const positionClasses = getTooltipPositionClasses(tooltip.position, isMobile);
 
 	return (
 		<motion.div
-			className={`fixed ${positionClasses[tooltip.position]} pointer-events-none`}
+			className={`fixed ${positionClasses} pointer-events-none px-4`}
 			style={{ zIndex: SPOTLIGHT_Z_INDEX.highlighted + 10 }}
 			initial={{ opacity: 0, y: 10 }}
 			animate={{ opacity: 1, y: 0 }}
@@ -65,8 +100,8 @@ const OnboardingTooltipDisplay = memo(function OnboardingTooltipDisplay({
 				ease: "easeOut",
 			}}
 		>
-			<div className="rounded-lg bg-black/80 px-4 py-2 backdrop-blur-sm border border-white/10">
-				<p className="font-mono text-sm text-white/90">{tooltip.text}</p>
+			<div className="rounded-lg bg-black/80 px-4 py-2 backdrop-blur-sm border border-white/10 max-w-[calc(100vw-2rem)]">
+				<p className="font-mono text-sm text-white/90 text-center">{tooltip.text}</p>
 			</div>
 		</motion.div>
 	);
@@ -112,6 +147,7 @@ const OnboardingOutro = memo(function OnboardingOutro({ visible }: { visible: bo
 
 /**
  * Skip button to dismiss the tour early.
+ * Positioned in the top-right corner near the SystemBar for subtle presence.
  */
 const SkipButton = memo(function SkipButton({
 	visible,
@@ -128,18 +164,18 @@ const SkipButton = memo(function SkipButton({
 				<motion.button
 					type="button"
 					onClick={onSkip}
-					className="fixed bottom-6 right-6 rounded-full bg-white/10 px-4 py-2 font-mono text-xs text-white/60 backdrop-blur-sm border border-white/10 hover:bg-white/20 hover:text-white/80 transition-colors pointer-events-auto"
+					className="fixed top-1.5 right-2 rounded px-2 py-1 font-mono text-[10px] text-white/40 hover:text-white/70 transition-colors pointer-events-auto"
 					style={{ zIndex: SPOTLIGHT_Z_INDEX.highlighted + 10 }}
-					initial={{ opacity: 0, y: 20 }}
-					animate={{ opacity: 1, y: 0 }}
-					exit={{ opacity: 0, y: 20 }}
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					exit={{ opacity: 0 }}
 					transition={{
 						duration: reducedMotion ? 0.05 : 0.3,
 						ease: "easeOut",
 					}}
 					aria-label="Skip onboarding tour"
 				>
-					Skip tour
+					Skip
 				</motion.button>
 			)}
 		</AnimatePresence>
@@ -179,6 +215,9 @@ export const OnboardingController = memo(function OnboardingController({
 	const { isActive, currentStep, highlights, tooltip, skipTour, startTour, onGhostDragComplete } =
 		useOnboardingOrchestrator();
 
+	const deviceType = useDeviceType();
+	const isMobile = deviceType === "mobile";
+
 	// Show skip button during active steps (not during outro)
 	const showSkipButton = isActive && currentStep !== "outro";
 
@@ -193,7 +232,12 @@ export const OnboardingController = memo(function OnboardingController({
 			{/* Tooltip - rendered outside overlay to escape its stacking context */}
 			<AnimatePresence mode="wait">
 				{isActive && currentStep !== "outro" && (
-					<OnboardingTooltipDisplay key={currentStep} tooltip={tooltip} step={currentStep} />
+					<OnboardingTooltipDisplay
+						key={currentStep}
+						tooltip={tooltip}
+						step={currentStep}
+						isMobile={isMobile}
+					/>
 				)}
 			</AnimatePresence>
 

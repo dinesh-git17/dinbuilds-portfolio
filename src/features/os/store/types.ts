@@ -17,13 +17,16 @@
 export type BootPhase = "hidden" | "booting" | "welcome" | "complete";
 
 /**
- * Onboarding tour steps for desktop users.
- * Transitions: idle -> window_controls -> window_drag -> dock -> desktop_icons -> outro -> complete
+ * Onboarding tour steps for both desktop and mobile users.
+ *
+ * Desktop flow: idle -> window_controls -> window_drag -> dock -> desktop_icons -> outro -> complete
+ * Mobile flow:  idle -> window_controls -> dock -> dock_projects_stack -> desktop_icons -> outro -> complete
  *
  * - idle: Tour not active, waiting for trigger
  * - window_controls: Highlighting traffic light buttons (close/min/max)
- * - window_drag: Demonstrating window drag physics
+ * - window_drag: Demonstrating window drag physics (desktop only)
  * - dock: Highlighting the dock and its functionality
+ * - dock_projects_stack: Highlighting the Projects stack in dock (mobile only)
  * - desktop_icons: Highlighting desktop file/folder icons
  * - outro: Final "Have fun exploring" message
  * - complete: Tour finished, normal operation
@@ -33,6 +36,7 @@ export type OnboardingStep =
 	| "window_controls"
 	| "window_drag"
 	| "dock"
+	| "dock_projects_stack"
 	| "desktop_icons"
 	| "outro"
 	| "complete";
@@ -344,7 +348,7 @@ export type SystemStore = SystemState & SystemActions;
 
 /**
  * State slice for the onboarding store.
- * Manages the desktop tour experience for first-time users.
+ * Manages the tour experience for first-time users on both desktop and mobile.
  */
 export interface OnboardingState {
 	/**
@@ -364,6 +368,12 @@ export interface OnboardingState {
 	 * True during animated demonstrations (ghost drag, etc.).
 	 */
 	isInteractionBlocked: boolean;
+
+	/**
+	 * The ordered list of steps for the current tour.
+	 * Set based on device type (desktop vs mobile) when tour starts.
+	 */
+	stepOrder: OnboardingStep[];
 }
 
 /**
@@ -371,11 +381,13 @@ export interface OnboardingState {
  */
 export interface OnboardingActions {
 	/**
-	 * Start the onboarding tour.
+	 * Start the onboarding tour with a specific step order.
 	 * Called after About app animation completes.
-	 * No-op if tour already completed or on mobile.
+	 * No-op if tour already completed.
+	 *
+	 * @param stepOrder - Device-specific step sequence (desktop or mobile)
 	 */
-	startTour: () => void;
+	startTour: (stepOrder: OnboardingStep[]) => void;
 
 	/**
 	 * Advance to the next step in the tour.
@@ -408,10 +420,11 @@ export interface OnboardingActions {
 export type OnboardingStore = OnboardingState & OnboardingActions;
 
 /**
- * Ordered list of onboarding steps for iteration.
+ * Ordered list of onboarding steps for desktop devices.
  * Excludes 'idle' as it's the pre-tour state.
+ * Desktop includes window_drag step to demonstrate drag physics.
  */
-export const ONBOARDING_STEP_ORDER: OnboardingStep[] = [
+export const DESKTOP_STEP_ORDER: OnboardingStep[] = [
 	"window_controls",
 	"window_drag",
 	"dock",
@@ -419,3 +432,26 @@ export const ONBOARDING_STEP_ORDER: OnboardingStep[] = [
 	"outro",
 	"complete",
 ];
+
+/**
+ * Ordered list of onboarding steps for mobile devices.
+ * Excludes 'idle' as it's the pre-tour state.
+ *
+ * Mobile-specific differences:
+ * - No window_drag step (touch devices don't have drag physics demo)
+ * - Includes dock_projects_stack to teach the "Stack" concept (folders in dock)
+ */
+export const MOBILE_STEP_ORDER: OnboardingStep[] = [
+	"window_controls",
+	"dock",
+	"dock_projects_stack",
+	"desktop_icons",
+	"outro",
+	"complete",
+];
+
+/**
+ * Legacy alias for backward compatibility.
+ * @deprecated Use DESKTOP_STEP_ORDER or MOBILE_STEP_ORDER instead.
+ */
+export const ONBOARDING_STEP_ORDER = DESKTOP_STEP_ORDER;

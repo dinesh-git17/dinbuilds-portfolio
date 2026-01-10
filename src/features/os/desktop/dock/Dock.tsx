@@ -28,6 +28,8 @@ export interface DockProps {
 	isBooting?: boolean;
 	/** Whether the dock is highlighted during onboarding */
 	isHighlighted?: boolean;
+	/** ID of a specific stack to highlight (for dock_projects_stack step) */
+	highlightedStackId?: DockStackID | null;
 }
 
 /**
@@ -124,7 +126,11 @@ const getAnimationVariants = (position: "bottom" | "left" | "right", shouldHide:
  * - Staggered entrance during boot sequence
  */
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Dock handles multiple interaction modes
-export const Dock = memo(function Dock({ isBooting = false, isHighlighted = false }: DockProps) {
+export const Dock = memo(function Dock({
+	isBooting = false,
+	isHighlighted = false,
+	highlightedStackId = null,
+}: DockProps) {
 	const deviceType = useDeviceType();
 	const isMobile = deviceType === "mobile";
 	const isFullscreen = useSystemStore(selectIsAnyWindowFullscreen);
@@ -258,6 +264,9 @@ export const Dock = memo(function Dock({ isBooting = false, isHighlighted = fals
 	// Get animation variants based on position
 	const { initial, animate, exit } = getAnimationVariants(position, shouldHide);
 
+	// Determine if any highlight is active (whole dock or specific stack)
+	const hasAnyHighlight = isHighlighted || highlightedStackId !== null;
+
 	return (
 		<>
 			<AnimatePresence mode="wait">
@@ -268,11 +277,12 @@ export const Dock = memo(function Dock({ isBooting = false, isHighlighted = fals
 					aria-label="Application dock"
 					className={clsx(
 						"fixed",
-						isHighlighted ? "rounded-2xl" : "z-50",
+						hasAnyHighlight ? "rounded-2xl" : "z-50",
 						POSITION_CLASSES[position],
 					)}
 					style={{
-						zIndex: isHighlighted ? SPOTLIGHT_Z_INDEX.highlighted : undefined,
+						// Elevate z-index when dock or any stack is highlighted
+						zIndex: hasAnyHighlight ? SPOTLIGHT_Z_INDEX.highlighted : undefined,
 					}}
 					initial={initial}
 					animate={{
@@ -351,6 +361,7 @@ export const Dock = memo(function Dock({ isBooting = false, isHighlighted = fals
 										key={item.id}
 										stack={item}
 										isOpen={openStackId === item.id}
+										isHighlighted={highlightedStackId === item.id}
 										onToggle={handleStackToggle}
 										mousePosition={mousePosition}
 										magnify={!isMobile && magnification}
