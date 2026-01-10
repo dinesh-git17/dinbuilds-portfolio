@@ -8,6 +8,7 @@ import { BOOT_TIMING } from "@/os/boot";
 import {
 	DEFAULT_DOCK_CONFIG,
 	DOCK_SIZE_MAP,
+	type DockStackID,
 	selectDockConfig,
 	selectIsAnyWindowFullscreen,
 	useHasHydrated,
@@ -16,7 +17,9 @@ import {
 import { useReducedMotion } from "@/os/window";
 
 import { DockIcon } from "./DockIcon";
-import { DOCK_ITEMS } from "./dock-config";
+import { DockStack } from "./DockStack";
+import { DockStackIcon } from "./DockStackIcon";
+import { DOCK_ITEMS, type DockStackItem, isDockStackItem, MOBILE_DOCK_ITEMS } from "./dock-config";
 import { useDeviceType } from "./useDeviceType";
 
 export interface DockProps {
@@ -107,6 +110,20 @@ export const Dock = memo(function Dock({ isBooting = false }: DockProps) {
 	// Keyboard navigation state
 	const [focusedIndex, setFocusedIndex] = useState<number>(-1);
 
+	// Stack expansion state (mobile only)
+	const [openStackId, setOpenStackId] = useState<DockStackID | null>(null);
+	const stackAnchorRef = useRef<HTMLButtonElement | null>(null);
+
+	// Select dock items based on device type
+	const dockItems = isMobile ? MOBILE_DOCK_ITEMS : DOCK_ITEMS;
+
+	// Find the currently open stack item (if any)
+	const openStack = openStackId
+		? (dockItems.find((item) => isDockStackItem(item) && item.id === openStackId) as
+				| DockStackItem
+				| undefined)
+		: null;
+
 	const handleMouseMove = useCallback(
 		(e: React.MouseEvent) => {
 			if (isMobile || !magnification || isTrackingSuspended.current) return;
@@ -123,29 +140,53 @@ export const Dock = memo(function Dock({ isBooting = false }: DockProps) {
 		isTrackingSuspended.current = false;
 	}, [mousePosition]);
 
-	const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-		const itemCount = DOCK_ITEMS.length;
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			const itemCount = dockItems.length;
 
-		switch (e.key) {
-			case "ArrowRight":
-			case "ArrowDown":
-				e.preventDefault();
-				setFocusedIndex((prev) => (prev + 1) % itemCount);
-				break;
-			case "ArrowLeft":
-			case "ArrowUp":
-				e.preventDefault();
-				setFocusedIndex((prev) => (prev - 1 + itemCount) % itemCount);
-				break;
-			case "Home":
-				e.preventDefault();
-				setFocusedIndex(0);
-				break;
-			case "End":
-				e.preventDefault();
-				setFocusedIndex(itemCount - 1);
-				break;
-		}
+			switch (e.key) {
+				case "ArrowRight":
+				case "ArrowDown":
+					e.preventDefault();
+					setFocusedIndex((prev) => (prev + 1) % itemCount);
+					break;
+				case "ArrowLeft":
+				case "ArrowUp":
+					e.preventDefault();
+					setFocusedIndex((prev) => (prev - 1 + itemCount) % itemCount);
+					break;
+				case "Home":
+					e.preventDefault();
+					setFocusedIndex(0);
+					break;
+				case "End":
+					e.preventDefault();
+					setFocusedIndex(itemCount - 1);
+					break;
+				case "Escape":
+					// Close open stack on Escape
+					if (openStackId) {
+						e.preventDefault();
+						setOpenStackId(null);
+					}
+					break;
+			}
+		},
+		[dockItems.length, openStackId],
+	);
+
+	/**
+	 * Toggle a stack folder open/closed.
+	 */
+	const handleStackToggle = useCallback((stackId: DockStackID) => {
+		setOpenStackId((current) => (current === stackId ? null : stackId));
+	}, []);
+
+	/**
+	 * Close the open stack (callback for DockStack).
+	 */
+	const handleStackClose = useCallback(() => {
+		setOpenStackId(null);
 	}, []);
 
 	const handleIconFocus = useCallback((index: number) => {
@@ -187,103 +228,135 @@ export const Dock = memo(function Dock({ isBooting = false }: DockProps) {
 	const { initial, animate, exit } = getAnimationVariants(position, shouldHide);
 
 	return (
-		<AnimatePresence mode="wait">
-			<motion.nav
-				key={position}
-				ref={dockRef}
-				role="navigation"
-				aria-label="Application dock"
-				className={clsx("fixed z-50", POSITION_CLASSES[position])}
-				initial={initial}
-				animate={animate}
-				exit={exit}
-				transition={{
-					type: "spring",
-					stiffness: 500,
-					damping: 35,
-					// Stagger delay when appearing after boot, no delay when hiding
-					delay: shouldHide ? 0 : staggerDelay,
-				}}
-				onPointerDown={handlePointerDown}
-				aria-hidden={shouldHide}
-			>
-				{/* Dock platform container */}
-				<div
-					role="toolbar"
-					aria-label="Application shortcuts"
-					className="relative"
-					onMouseMove={handleMouseMove}
-					onMouseLeave={handleMouseLeave}
-					onPointerUp={handlePointerUp}
-					onKeyDown={handleKeyDown}
+		<>
+			<AnimatePresence mode="wait">
+				<motion.nav
+					key={position}
+					ref={dockRef}
+					role="navigation"
+					aria-label="Application dock"
+					className={clsx("fixed z-50", POSITION_CLASSES[position])}
+					initial={initial}
+					animate={animate}
+					exit={exit}
+					transition={{
+						type: "spring",
+						stiffness: 500,
+						damping: 35,
+						// Stagger delay when appearing after boot, no delay when hiding
+						delay: shouldHide ? 0 : staggerDelay,
+					}}
+					onPointerDown={handlePointerDown}
+					aria-hidden={shouldHide}
 				>
-					{/* Glass platform background - anchored to edge, fills container */}
+					{/* Dock platform container */}
 					<div
-						className={clsx(
-							"absolute rounded-2xl",
-							isVertical ? "inset-y-0" : "inset-x-0 bottom-0",
-							// For left dock, anchor to left; for right dock, anchor to right
-							position === "left" && "left-0",
-							position === "right" && "right-0",
-						)}
-						style={{
-							// Fixed thickness perpendicular to the dock edge
-							// Icons grow outward beyond the platform during magnification
-							...(isVertical ? { width: platformThickness } : { height: platformThickness }),
-							background: "rgba(50, 50, 50, 0.65)",
-							backdropFilter: "blur(20px)",
-							WebkitBackdropFilter: "blur(20px)",
-							boxShadow: `
+						role="toolbar"
+						aria-label="Application shortcuts"
+						className="relative"
+						onMouseMove={handleMouseMove}
+						onMouseLeave={handleMouseLeave}
+						onPointerUp={handlePointerUp}
+						onKeyDown={handleKeyDown}
+					>
+						{/* Glass platform background - anchored to edge, fills container */}
+						<div
+							className={clsx(
+								"absolute rounded-2xl",
+								isVertical ? "inset-y-0" : "inset-x-0 bottom-0",
+								// For left dock, anchor to left; for right dock, anchor to right
+								position === "left" && "left-0",
+								position === "right" && "right-0",
+							)}
+							style={{
+								// Fixed thickness perpendicular to the dock edge
+								// Icons grow outward beyond the platform during magnification
+								...(isVertical ? { width: platformThickness } : { height: platformThickness }),
+								background: "rgba(50, 50, 50, 0.65)",
+								backdropFilter: "blur(20px)",
+								WebkitBackdropFilter: "blur(20px)",
+								boxShadow: `
 							0 0 0 0.5px rgba(255, 255, 255, 0.15),
 							0 8px 40px rgba(0, 0, 0, 0.55),
 							inset 0 0.5px 0 rgba(255, 255, 255, 0.1)
 						`,
-						}}
-					/>
+							}}
+						/>
 
-					{/* Icons container - icons grow outward from edge during magnification */}
-					<div
-						className={clsx(
-							"relative flex",
-							isVertical ? "flex-col" : "flex-row",
-							// Alignment: icons anchor to the dock edge, grow outward
-							// Bottom dock: items-end (icons align bottom, grow up)
-							// Left dock: items-start (icons align left, grow right)
-							// Right dock: items-end (icons align right, grow left)
-							position === "left" ? "items-start" : "items-end",
-						)}
-						style={{
-							gap: `${gap}px`,
-							padding: `${padding}px`,
-							// Fixed width for vertical docks prevents container resize during magnification
-							...(isVertical &&
-								magnification && {
-									width: maxIconSize + padding * 2,
-								}),
-						}}
-					>
-						{DOCK_ITEMS.map((item, index) => (
-							<DockIcon
-								key={item.id}
-								appId={item.id}
-								label={item.label}
-								icon={item.icon}
-								iconSrc={item.iconSrc}
-								gradient={item.gradient}
-								backgroundColor={item.backgroundColor}
-								iconPadding={item.iconPadding}
-								mousePosition={mousePosition}
-								magnify={!isMobile && magnification}
-								baseSize={baseSize}
-								dockPosition={position}
-								isFocused={focusedIndex === index}
-								onFocus={() => handleIconFocus(index)}
-								onClick={handleIconClick}
-							/>
-						))}
+						{/* Icons container - icons grow outward from edge during magnification */}
+						<div
+							className={clsx(
+								"relative flex",
+								isVertical ? "flex-col" : "flex-row",
+								// Alignment: icons anchor to the dock edge, grow outward
+								// Bottom dock: items-end (icons align bottom, grow up)
+								// Left dock: items-start (icons align left, grow right)
+								// Right dock: items-end (icons align right, grow left)
+								position === "left" ? "items-start" : "items-end",
+							)}
+							style={{
+								gap: `${gap}px`,
+								padding: `${padding}px`,
+								// Fixed width for vertical docks prevents container resize during magnification
+								...(isVertical &&
+									magnification && {
+										width: maxIconSize + padding * 2,
+									}),
+							}}
+						>
+							{dockItems.map((item, index) =>
+								isDockStackItem(item) ? (
+									<DockStackIcon
+										key={item.id}
+										stack={item}
+										isOpen={openStackId === item.id}
+										onToggle={handleStackToggle}
+										mousePosition={mousePosition}
+										magnify={!isMobile && magnification}
+										baseSize={baseSize}
+										dockPosition={position}
+										isFocused={focusedIndex === index}
+										onFocus={() => handleIconFocus(index)}
+										onClick={handleIconClick}
+										setAnchorRef={(el) => {
+											// Always track the stack icon ref for positioning DockStack
+											if (el) stackAnchorRef.current = el;
+										}}
+									/>
+								) : (
+									<DockIcon
+										key={item.id}
+										appId={item.id}
+										label={item.label}
+										icon={item.icon}
+										iconSrc={item.iconSrc}
+										gradient={item.gradient}
+										backgroundColor={item.backgroundColor}
+										iconPadding={item.iconPadding}
+										mousePosition={mousePosition}
+										magnify={!isMobile && magnification}
+										baseSize={baseSize}
+										dockPosition={position}
+										isFocused={focusedIndex === index}
+										onFocus={() => handleIconFocus(index)}
+										onClick={handleIconClick}
+									/>
+								),
+							)}
+						</div>
 					</div>
-				</div>
-			</motion.nav>
-		</AnimatePresence>
+				</motion.nav>
+			</AnimatePresence>
+
+			{/* Stack expansion overlay - rendered outside motion.nav to avoid transform containment */}
+			{openStack && (
+				<DockStack
+					stack={openStack}
+					isOpen={openStackId !== null}
+					onClose={handleStackClose}
+					anchorRef={stackAnchorRef}
+				/>
+			)}
+		</>
 	);
 });
