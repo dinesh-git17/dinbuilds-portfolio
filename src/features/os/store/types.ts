@@ -99,6 +99,8 @@ export interface WindowProps {
 	title?: string;
 	/** Folder ID for FolderApp to load files from VFS */
 	folderId?: string;
+	/** Initial tab for Settings deep-linking */
+	initialTab?: string;
 }
 
 /**
@@ -271,6 +273,30 @@ export interface SystemState {
 	 * Persisted to localStorage for user preference retention.
 	 */
 	dockConfig: DockConfig;
+
+	/**
+	 * Timestamp when the app was initially loaded.
+	 * Used to calculate system uptime for the About modal.
+	 */
+	bootTime: number;
+
+	/**
+	 * Key to trigger desktop UI re-mount.
+	 * Incrementing this causes React to unmount and remount desktop elements,
+	 * replaying all entrance animations for a "Fake Refresh" effect.
+	 */
+	desktopRefreshKey: number;
+
+	/**
+	 * Whether the "About This System" modal is currently visible.
+	 */
+	isAboutModalOpen: boolean;
+
+	/**
+	 * Whether the system is currently locked.
+	 * When true, displays the lock screen overlay.
+	 */
+	isLocked: boolean;
 }
 
 /**
@@ -342,6 +368,29 @@ export interface SystemActions {
 	 * Accepts partial config to allow updating individual properties.
 	 */
 	setDockConfig: (config: Partial<DockConfig>) => void;
+
+	/**
+	 * Trigger a "Fake Refresh" by incrementing the desktop refresh key.
+	 * Causes desktop UI elements to unmount and remount, replaying entrance animations.
+	 */
+	refreshDesktop: () => void;
+
+	/**
+	 * Lock the system, displaying the lock screen overlay.
+	 * Simulates a session lock without clearing window state.
+	 */
+	lockSystem: () => void;
+
+	/**
+	 * Unlock the system, dismissing the lock screen.
+	 */
+	unlockSystem: () => void;
+
+	/**
+	 * Toggle the "About This System" modal visibility.
+	 * @param isOpen - Whether the modal should be open
+	 */
+	toggleAboutModal: (isOpen: boolean) => void;
 }
 
 /**
@@ -485,6 +534,7 @@ export enum NotificationID {
 	TerminalOpened = "sys.terminal_open",
 	HiddenFeature = "sys.hidden_feature",
 	MatrixEnabled = "sys.matrix",
+	DeveloperMode = "sys.developer",
 
 	// Idle State
 	IdleMessage = "sys.idle",
@@ -539,6 +589,10 @@ export const NOTIFICATION_REGISTRY: Record<NotificationID, NotificationContent> 
 	[NotificationID.MatrixEnabled]: {
 		title: "Visual protocol enabled",
 		message: "Follow the white rabbit.",
+	},
+	[NotificationID.DeveloperMode]: {
+		title: "Developer identified",
+		message: "Right-click again for browser menu.",
 	},
 	[NotificationID.IdleMessage]: {
 		title: "Take your time",

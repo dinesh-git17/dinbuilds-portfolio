@@ -81,6 +81,15 @@ export const UI_REVEAL = {
 	aboutLaunch: {
 		delay: 0.8,
 	},
+	/**
+	 * Windows layer: Fade in after other UI elements on refresh.
+	 * Delay allows Dock/SystemBar/Icons to start their entrance animations first.
+	 */
+	windows: {
+		duration: 0.35,
+		ease: "easeOut" as const,
+		delay: 0.4,
+	},
 } as const;
 
 /**
