@@ -65,12 +65,7 @@ const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
 	ls: {
 		name: "ls",
 		description: "List directory contents",
-		handler: () => [
-			"drwxr-xr-x  projects/",
-			"drwxr-xr-x  experience/",
-			"-rw-r--r--  README.md",
-			"-rw-r--r--  resume.pdf",
-		],
+		handler: () => ["drwxr-xr-x  projects/", "drwxr-xr-x  experience/", "-rw-r--r--  resume.pdf"],
 	},
 	echo: {
 		name: "echo",

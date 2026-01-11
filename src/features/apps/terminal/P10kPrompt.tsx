@@ -119,7 +119,10 @@ export const P10kPrompt = memo(function P10kPrompt({
 			event.preventDefault();
 			onSubmit();
 			// Blur input to close mobile keyboard after command submission
-			inputRef.current?.blur();
+			// Desktop: keep focus for continuous typing
+			if (isMobile) {
+				inputRef.current?.blur();
+			}
 		} else if (event.key === "ArrowUp") {
 			event.preventDefault();
 			onHistoryUp();

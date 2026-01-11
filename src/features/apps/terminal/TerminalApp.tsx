@@ -98,8 +98,9 @@ export const TerminalApp = memo(function TerminalApp() {
 	const handleMatrixComplete = useCallback(() => {
 		setShowMatrix(false);
 		clearHistory();
+		setInput("");
 		inputRef.current?.focus();
-	}, [clearHistory]);
+	}, [clearHistory, setInput]);
 
 	/**
 	 * TERM-04: Auto-scroll to bottom on new content.
@@ -163,22 +164,40 @@ export const TerminalApp = memo(function TerminalApp() {
 
 	/**
 	 * Handle keyboard shortcuts at container level.
+	 * Auto-focuses input when user types printable characters.
 	 */
 	const handleContainerKeyDown = useCallback(
 		(event: React.KeyboardEvent) => {
+			// Ctrl+L to clear
 			if (event.key === "l" && (event.ctrlKey || event.metaKey)) {
 				event.preventDefault();
 				setInput("");
+				return;
+			}
+
+			// Auto-focus input when typing printable characters (desktop UX)
+			// Skip if already focused on input, or if modifier keys are pressed
+			if (
+				document.activeElement !== inputRef.current &&
+				!event.ctrlKey &&
+				!event.metaKey &&
+				!event.altKey &&
+				event.key.length === 1
+			) {
+				event.preventDefault();
+				inputRef.current?.focus();
+				setInput(currentInput + event.key);
 			}
 		},
-		[setInput],
+		[setInput, currentInput],
 	);
 
 	return (
 		<div
-			className="relative flex h-full flex-col bg-[#0d0d0d] text-white"
+			className="relative flex h-full flex-col bg-[#0d0d0d] text-white focus:outline-none"
 			onClick={handleContainerClick}
 			onKeyDown={handleContainerKeyDown}
+			tabIndex={-1}
 			role="application"
 			aria-label="Terminal emulator"
 		>
