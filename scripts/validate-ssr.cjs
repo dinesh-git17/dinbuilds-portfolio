@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * SSR Content Validation Script — SEO-01 Stories 1 & 3
+ * SSR Content Validation Script — SEO-01 Stories 1 & 3 + SEO-02 Story 2
  *
  * Validates that server-rendered content is present in HTML responses.
- * Also validates schema markup and meta tags for search engine optimization.
+ * Also validates schema markup, meta tags, and canonical URLs.
  *
  * Validates:
  * - SSR content projection (Story 1)
@@ -12,6 +12,8 @@
  * - Twitter Card meta tags (Story 3)
  * - Entity h1 alignment (Story 3)
  * - Social profile links (Story 3)
+ * - Canonical URL tags (Story 2)
+ * - Clean path routing (Story 2)
  *
  * Usage:
  *   1. Build the app: pnpm build
@@ -47,33 +49,39 @@ const ENTITY = {
 /**
  * Test cases for SSR content validation.
  * Each case specifies a URL path and content that must be present in the HTML.
+ * Uses clean canonical paths (Story 2).
+ * Note: SSR content projection applies to markdown files, not dedicated apps.
  */
 const TEST_CASES = [
 	{
-		name: "Yield Project",
-		path: "/?app=markdown&file=yield",
-		// The SSR content projection should include this text from yield.md
+		name: "iMessage Wrapped Project",
+		path: "/projects/imessage-wrapped",
+		// The SSR content projection should include data attributes
 		requiredContent: ["data-ssr-content", "data-ssr-projected"],
 		// Verify the markdown content is rendered
-		contentPatterns: [/Yield/i],
+		contentPatterns: [/iMessage/i],
+		canonicalPath: "/projects/imessage-wrapped",
 	},
 	{
-		name: "PassFX Project",
-		path: "/?app=markdown&file=passfx",
+		name: "Holiday.exe Project",
+		path: "/projects/holiday-exe",
 		requiredContent: ["data-ssr-content", "data-ssr-projected"],
-		contentPatterns: [/PassFX/i],
-	},
-	{
-		name: "Debate Lab Project",
-		path: "/?app=markdown&file=debate-lab",
-		requiredContent: ["data-ssr-content", "data-ssr-projected"],
-		contentPatterns: [/Debate/i],
+		contentPatterns: [/Holiday/i],
+		canonicalPath: "/projects/holiday-exe",
 	},
 	{
 		name: "Experience - Meridian",
-		path: "/?app=markdown&file=meridian",
+		path: "/experience/meridian",
 		requiredContent: ["data-ssr-content", "data-ssr-projected"],
 		contentPatterns: [/Meridian/i],
+		canonicalPath: "/experience/meridian",
+	},
+	{
+		name: "Experience - Slice Labs",
+		path: "/experience/slice-labs",
+		requiredContent: ["data-ssr-content", "data-ssr-projected"],
+		contentPatterns: [/Slice/i],
+		canonicalPath: "/experience/slice-labs",
 	},
 ];
 
@@ -85,6 +93,7 @@ const ENTITY_TEST_CASES = [
 	{
 		name: "Homepage Entity Verification",
 		path: "/",
+		canonicalPath: "/",
 		checks: [
 			// SSR Entity Card present
 			{ type: "content", value: "data-ssr-entity", description: "SSR Entity Card marker" },
@@ -117,10 +126,11 @@ const ENTITY_TEST_CASES = [
 	},
 	{
 		name: "Project Page Meta Tags",
-		path: "/?app=markdown&file=yield",
+		path: "/projects/imessage-wrapped",
+		canonicalPath: "/projects/imessage-wrapped",
 		checks: [
 			// Unique title for project
-			{ type: "pattern", value: /<title[^>]*>Yield/i, description: "Project-specific title" },
+			{ type: "pattern", value: /<title[^>]*>iMessage/i, description: "Project-specific title" },
 			// OG tags present
 			{ type: "pattern", value: /<meta[^>]*property="og:title"[^>]*content="[^"]+"/i, description: "og:title meta tag" },
 			{ type: "pattern", value: /<meta[^>]*property="og:description"[^>]*content="[^"]+"/i, description: "og:description meta tag" },
@@ -128,6 +138,44 @@ const ENTITY_TEST_CASES = [
 			{ type: "pattern", value: /"@type"\s*:\s*"CreativeWork"/, description: "CreativeWork schema type" },
 		],
 	},
+];
+
+/**
+ * Canonical URL validation test cases (Story 2).
+ * Validates that clean paths have correct canonical tags.
+ */
+const CANONICAL_TEST_CASES = [
+	{ name: "Homepage", path: "/", canonicalPath: "/" },
+	{ name: "About Page", path: "/about", canonicalPath: "/about" },
+	{ name: "Contact Page", path: "/contact", canonicalPath: "/contact" },
+	{ name: "FAQ Page", path: "/faq", canonicalPath: "/faq" },
+	{ name: "Resume Page", path: "/resume", canonicalPath: "/resume" },
+	{ name: "Projects Folder", path: "/projects", canonicalPath: "/projects" },
+	{ name: "Experience Folder", path: "/experience", canonicalPath: "/experience" },
+	{ name: "Yield App", path: "/projects/yield", canonicalPath: "/projects/yield" },
+	{ name: "Debate App", path: "/projects/debate", canonicalPath: "/projects/debate" },
+	{ name: "PassFX App", path: "/projects/passfx", canonicalPath: "/projects/passfx" },
+];
+
+/**
+ * Legacy redirect test cases (Story 2).
+ * Validates that legacy query param URLs redirect to canonical paths.
+ */
+const LEGACY_REDIRECT_TEST_CASES = [
+	{ name: "Legacy About", legacyPath: "/?app=about", expectedRedirect: "/about" },
+	{ name: "Legacy Contact", legacyPath: "/?app=contact", expectedRedirect: "/contact" },
+	{ name: "Legacy FAQ", legacyPath: "/?app=faq", expectedRedirect: "/faq" },
+	{ name: "Legacy Resume", legacyPath: "/?app=resume", expectedRedirect: "/resume" },
+	{ name: "Legacy Yield App", legacyPath: "/?app=yield", expectedRedirect: "/projects/yield" },
+	{ name: "Legacy Debate App", legacyPath: "/?app=debate", expectedRedirect: "/projects/debate" },
+	{ name: "Legacy PassFX App", legacyPath: "/?app=passfx", expectedRedirect: "/projects/passfx" },
+	{ name: "Legacy Projects Folder", legacyPath: "/?app=projects", expectedRedirect: "/projects" },
+	{ name: "Legacy Experience Folder", legacyPath: "/?app=experience", expectedRedirect: "/experience" },
+	{ name: "Legacy Folder-Projects", legacyPath: "/?app=folder-projects", expectedRedirect: "/projects" },
+	{ name: "Legacy Folder-Experience", legacyPath: "/?app=folder-experience", expectedRedirect: "/experience" },
+	{ name: "Legacy Meridian Markdown", legacyPath: "/?app=markdown&file=meridian", expectedRedirect: "/experience/meridian" },
+	{ name: "Legacy iMessage Wrapped", legacyPath: "/?app=markdown&file=imessage-wrapped", expectedRedirect: "/projects/imessage-wrapped" },
+	{ name: "Legacy Resume Markdown", legacyPath: "/?app=markdown&file=resume", expectedRedirect: "/resume" },
 ];
 
 /**
@@ -256,10 +304,100 @@ async function runEntityTestCase(testCase) {
 }
 
 /**
+ * Run a single canonical URL test case.
+ * Validates that the page has a canonical tag matching the expected URL.
+ */
+async function runCanonicalTestCase(testCase) {
+	const url = `${BASE_URL}${testCase.path}`;
+	const errors = [];
+
+	try {
+		const response = await fetchWithTimeout(url, REQUEST_TIMEOUT);
+
+		if (response.statusCode !== 200) {
+			errors.push(`HTTP ${response.statusCode} (expected 200)`);
+			return { passed: false, errors };
+		}
+
+		const html = response.body;
+
+		// Check for canonical tag
+		const canonicalMatch = html.match(/<link[^>]*rel="canonical"[^>]*href="([^"]+)"/i);
+		if (!canonicalMatch) {
+			errors.push("Missing canonical tag");
+		} else {
+			const canonicalUrl = canonicalMatch[1];
+			const expectedUrl = testCase.canonicalPath === "/"
+				? "https://dineshd.dev"
+				: `https://dineshd.dev${testCase.canonicalPath}`;
+
+			if (canonicalUrl !== expectedUrl) {
+				errors.push(`Canonical mismatch: got "${canonicalUrl}", expected "${expectedUrl}"`);
+			}
+		}
+
+		return { passed: errors.length === 0, errors };
+	} catch (error) {
+		errors.push(`Request failed: ${error.message}`);
+		return { passed: false, errors };
+	}
+}
+
+/**
+ * Run a single legacy redirect test case.
+ * Validates that legacy URLs redirect to canonical paths with 301.
+ */
+async function runLegacyRedirectTestCase(testCase) {
+	const url = `${BASE_URL}${testCase.legacyPath}`;
+	const errors = [];
+
+	try {
+		// Make request without following redirects
+		const response = await new Promise((resolve, reject) => {
+			const req = http.get(url, { followRedirect: false }, (res) => {
+				resolve({ statusCode: res.statusCode, headers: res.headers });
+			});
+			req.on("error", reject);
+			req.setTimeout(REQUEST_TIMEOUT, () => {
+				req.destroy();
+				reject(new Error("Request timeout"));
+			});
+		});
+
+		// Check for 301 redirect
+		if (response.statusCode !== 301) {
+			errors.push(`Expected 301, got ${response.statusCode}`);
+			return { passed: false, errors };
+		}
+
+		// Check redirect location
+		const location = response.headers.location;
+		if (!location) {
+			errors.push("Missing Location header");
+			return { passed: false, errors };
+		}
+
+		// Normalize location (may be absolute or relative)
+		const actualPath = location.startsWith("http")
+			? new URL(location).pathname
+			: location;
+
+		if (actualPath !== testCase.expectedRedirect) {
+			errors.push(`Redirect mismatch: got "${actualPath}", expected "${testCase.expectedRedirect}"`);
+		}
+
+		return { passed: errors.length === 0, errors };
+	} catch (error) {
+		errors.push(`Request failed: ${error.message}`);
+		return { passed: false, errors };
+	}
+}
+
+/**
  * Main entry point.
  */
 async function main() {
-	console.log("SSR & Entity Validation — SEO-01 Stories 1 & 3");
+	console.log("SSR & Entity Validation — SEO-01 Stories 1 & 3 + SEO-02 Story 2");
 	console.log("=".repeat(70));
 	console.log("");
 
@@ -339,12 +477,54 @@ async function main() {
 		}
 
 		// ============================================
+		// Section 3: Canonical URL Validation (Story 2)
+		// ============================================
+		console.log("\n--- Canonical URL Validation (Story 2) ---\n");
+
+		const canonicalResults = [];
+		for (const testCase of CANONICAL_TEST_CASES) {
+			process.stdout.write(`  Testing: ${testCase.name}... `);
+			const result = await runCanonicalTestCase(testCase);
+			canonicalResults.push({ ...testCase, ...result });
+
+			if (result.passed) {
+				console.log("PASS");
+			} else {
+				console.log("FAIL");
+				for (const error of result.errors) {
+					console.log(`    - ${error}`);
+				}
+			}
+		}
+
+		// ============================================
+		// Section 4: Legacy Redirect Validation (Story 2)
+		// ============================================
+		console.log("\n--- Legacy Redirect Validation (Story 2) ---\n");
+
+		const redirectResults = [];
+		for (const testCase of LEGACY_REDIRECT_TEST_CASES) {
+			process.stdout.write(`  Testing: ${testCase.name}... `);
+			const result = await runLegacyRedirectTestCase(testCase);
+			redirectResults.push({ ...testCase, ...result });
+
+			if (result.passed) {
+				console.log("PASS");
+			} else {
+				console.log("FAIL");
+				for (const error of result.errors) {
+					console.log(`    - ${error}`);
+				}
+			}
+		}
+
+		// ============================================
 		// Summary
 		// ============================================
 		console.log("");
 		console.log("=".repeat(70));
 
-		const allResults = [...ssrResults, ...entityResults];
+		const allResults = [...ssrResults, ...entityResults, ...canonicalResults, ...redirectResults];
 		const passed = allResults.filter((r) => r.passed).length;
 		const failed = allResults.filter((r) => !r.passed).length;
 
@@ -362,6 +542,8 @@ async function main() {
 		// Check which section failed
 		const ssrFailed = ssrResults.filter((r) => !r.passed).length;
 		const entityFailed = entityResults.filter((r) => !r.passed).length;
+		const canonicalFailed = canonicalResults.filter((r) => !r.passed).length;
+		const redirectFailed = redirectResults.filter((r) => !r.passed).length;
 
 		if (ssrFailed > 0) {
 			console.log("  SSR Content Issues:");
@@ -376,6 +558,20 @@ async function main() {
 			console.log("    - Check Person/ProfilePage schema in layout.tsx");
 			console.log("    - Verify OG and Twitter meta tags in metadata.ts");
 			console.log("    - Ensure social links are present as <a> tags");
+		}
+
+		if (canonicalFailed > 0) {
+			console.log("  Canonical URL Issues:");
+			console.log("    - Verify canonical tags in page metadata");
+			console.log("    - Check generatePathMetadata in path-metadata.ts");
+			console.log("    - Ensure clean paths are correctly mapped");
+		}
+
+		if (redirectFailed > 0) {
+			console.log("  Legacy Redirect Issues:");
+			console.log("    - Check middleware.ts redirect logic");
+			console.log("    - Verify getLegacyRedirectPath in path-routing.ts");
+			console.log("    - Ensure all legacy ?app= params have mappings");
 		}
 
 		console.log("");

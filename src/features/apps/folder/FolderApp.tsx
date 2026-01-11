@@ -5,7 +5,8 @@ import { memo, useCallback, useRef } from "react";
 
 import { AnalyticsEvent, trackEvent } from "@/lib/analytics";
 import { type FolderId, getFilesForFolder, type VirtualFile } from "@/os/filesystem";
-import { AppID, useSystemStore } from "@/os/store";
+import { useNavigate } from "@/os/hooks";
+import { AppID } from "@/os/store";
 import type { AppComponentProps } from "@/os/window/app-registry";
 
 export interface FolderAppProps extends AppComponentProps {}
@@ -64,7 +65,7 @@ interface FileIconProps {
 }
 
 function FileIcon({ file }: FileIconProps) {
-	const launchApp = useSystemStore((s) => s.launchApp);
+	const { navigate } = useNavigate();
 	const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const clickCountRef = useRef(0);
 
@@ -74,14 +75,14 @@ function FileIcon({ file }: FileIconProps) {
 			file_type: file.type,
 		});
 
-		launchApp(AppID.MarkdownViewer, {
+		navigate(AppID.MarkdownViewer, {
 			props: {
 				url: file.contentUrl,
 				title: file.name,
 			},
 			launchMethod: "app",
 		});
-	}, [file.contentUrl, file.id, file.name, file.type, launchApp]);
+	}, [file.contentUrl, file.id, file.name, file.type, navigate]);
 
 	const handleClick = useCallback(
 		(e: React.MouseEvent) => {

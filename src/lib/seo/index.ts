@@ -13,6 +13,25 @@ export {
 } from "./entity";
 export { generatePageMetadata, SITE_CONFIG } from "./metadata";
 export {
+	generateExperienceFileMetadata,
+	generatePathMetadata,
+	generateProjectFileMetadata,
+} from "./path-metadata";
+export {
+	getAllCanonicalPaths,
+	getCanonicalPath,
+	getExperienceFileBySlug,
+	getExperienceFileSlugs,
+	getFolderFromPath,
+	getLegacyRedirectPath,
+	getProjectFileBySlug,
+	getProjectFileSlugs,
+	isValidExperienceSlug,
+	isValidProjectSlug,
+	parsePathToState,
+	windowToPath,
+} from "./path-routing";
+export {
 	type CreativeWorkSchema,
 	generatePersonSchema,
 	generateProfilePageSchema,

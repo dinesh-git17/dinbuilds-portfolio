@@ -10,10 +10,9 @@ import {
 } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { memo, useCallback, useRef, useState } from "react";
 
-import { APP_ID_TO_SLUG } from "@/lib/seo";
+import { useNavigate } from "@/os/hooks";
 import { type AppID, useSystemStore } from "@/os/store";
 
 export interface DockIconProps {
@@ -133,8 +132,7 @@ export const DockIcon = memo(function DockIcon({
 }: DockIconProps) {
 	const ref = useRef<HTMLButtonElement>(null);
 	const [bounceScope, animateBounce] = useAnimate<HTMLDivElement>();
-	const router = useRouter();
-	const launchApp = useSystemStore((s) => s.launchApp);
+	const { navigate, prefetch: prefetchRoute } = useNavigate();
 	// Check if app is running (has open or minimized window)
 	const isRunning = useSystemStore((s) =>
 		s.windows.some((w) => w.id === appId && (w.status === "open" || w.status === "minimized")),
@@ -182,13 +180,9 @@ export const DockIcon = memo(function DockIcon({
 	 */
 	const handlePrefetch = useCallback(() => {
 		if (hasPrefetched) return;
-
-		const slug = APP_ID_TO_SLUG[appId];
-		if (slug) {
-			router.prefetch(`/?app=${slug}`);
-			setHasPrefetched(true);
-		}
-	}, [appId, hasPrefetched, router]);
+		prefetchRoute(appId);
+		setHasPrefetched(true);
+	}, [appId, hasPrefetched, prefetchRoute]);
 
 	const handleMouseEnter = useCallback(() => {
 		setIsHovered(true);
@@ -203,8 +197,8 @@ export const DockIcon = memo(function DockIcon({
 		// Blur the button to remove focus ring (fixes highlight staying on touch devices)
 		ref.current?.blur();
 
-		// Launch the app immediately (don't wait for animation)
-		launchApp(appId, { launchMethod: "dock" });
+		// Navigate to the app (updates URL and launches window)
+		navigate(appId, { launchMethod: "dock" });
 
 		// Trigger the "happy launch" bounce animation (macOS-style instant jump)
 		animateBounce(
@@ -212,13 +206,14 @@ export const DockIcon = memo(function DockIcon({
 			{ y: [0, -18, 0, -6, 0] },
 			{ duration: 0.5, ease: [0.36, 0.07, 0.19, 0.97] },
 		);
-	}, [launchApp, appId, onClick, animateBounce, bounceScope]);
+	}, [navigate, appId, onClick, animateBounce, bounceScope]);
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
 			if (e.key === "Enter" || e.key === " ") {
 				e.preventDefault();
-				launchApp(appId, { launchMethod: "dock" });
+				// Navigate to the app (updates URL and launches window)
+				navigate(appId, { launchMethod: "dock" });
 				// Trigger the "happy launch" bounce animation (macOS-style instant jump)
 				animateBounce(
 					bounceScope.current,
@@ -227,7 +222,7 @@ export const DockIcon = memo(function DockIcon({
 				);
 			}
 		},
-		[launchApp, appId, animateBounce, bounceScope],
+		[navigate, appId, animateBounce, bounceScope],
 	);
 
 	return (

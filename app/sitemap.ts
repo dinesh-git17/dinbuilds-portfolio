@@ -1,127 +1,101 @@
 import type { MetadataRoute } from "next";
-import { APP_ID_TO_SLUG, FILE_ID_TO_SLUG } from "@/lib/seo";
-import { VFS_REGISTRY } from "@/os/filesystem/files";
-import { AppID } from "@/os/store/types";
+import { getAllCanonicalPaths } from "@/lib/seo";
 
 /**
- * Dynamic Sitemap Generation — SEO-01 Phase 1
+ * Dynamic Sitemap Generation — SEO-02 Story 2
  *
- * Generates sitemap.xml from the Virtual Filesystem registry.
- * Enables search engines to discover all indexable app states.
+ * Generates sitemap.xml with clean path-based URLs.
+ * Enables search engines to discover all indexable routes.
  *
  * Priority Hierarchy:
- * - 1.0: Homepage (desktop)
- * - 0.9: Projects (primary content)
+ * - 1.0: Homepage
+ * - 0.9: Project markdown files (primary content)
  * - 0.8: About, Experience files (high-value)
  * - 0.7: Project apps (Yield, Debate, PassFX)
- * - 0.6: Folders (navigation)
- * - 0.5: Utility pages (Contact, Terminal, Settings)
+ * - 0.6: Folders, FAQ, Resume (navigation/reference)
+ * - 0.5: Contact (utility)
  */
 
 const BASE_URL = "https://dineshd.dev";
-
-/**
- * App priority configuration.
- * Higher priority = more important for crawlers.
- */
-const APP_PRIORITIES: Record<AppID, number> = {
-	[AppID.About]: 0.8,
-	[AppID.Contact]: 0.5,
-	[AppID.Yield]: 0.7,
-	[AppID.Debate]: 0.7,
-	[AppID.PassFX]: 0.7,
-	[AppID.Terminal]: 0.5,
-	[AppID.Settings]: 0.3,
-	[AppID.FolderProjects]: 0.6,
-	[AppID.FolderExperience]: 0.6,
-	[AppID.MarkdownViewer]: 0.9,
-	[AppID.FAQ]: 0.6,
-};
 
 /**
  * Change frequency hints for crawlers.
  */
 type ChangeFrequency = "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
 
-const APP_CHANGE_FREQ: Record<AppID, ChangeFrequency> = {
-	[AppID.About]: "monthly",
-	[AppID.Contact]: "yearly",
-	[AppID.Yield]: "monthly",
-	[AppID.Debate]: "monthly",
-	[AppID.PassFX]: "monthly",
-	[AppID.Terminal]: "yearly",
-	[AppID.Settings]: "yearly",
-	[AppID.FolderProjects]: "weekly",
-	[AppID.FolderExperience]: "monthly",
-	[AppID.MarkdownViewer]: "weekly",
-	[AppID.FAQ]: "monthly",
-};
-
 /**
- * Apps to include in sitemap (excluding MarkdownViewer which uses file URLs).
+ * Priority and frequency configuration by path pattern.
  */
-const INDEXABLE_APPS: AppID[] = [
-	AppID.About,
-	AppID.Contact,
-	AppID.Yield,
-	AppID.Debate,
-	AppID.PassFX,
-	AppID.Terminal,
-	AppID.FolderProjects,
-	AppID.FolderExperience,
-];
+interface RouteConfig {
+	priority: number;
+	changeFrequency: ChangeFrequency;
+}
 
-/**
- * Escapes special XML characters in a string.
- * Required because Next.js sitemap doesn't properly escape ampersands in URLs.
- */
-function escapeXml(str: string): string {
-	return str.replace(/&/g, "&amp;");
+function getRouteConfig(path: string): RouteConfig {
+	// Homepage
+	if (path === "/") {
+		return { priority: 1.0, changeFrequency: "weekly" };
+	}
+
+	// About page
+	if (path === "/about") {
+		return { priority: 0.8, changeFrequency: "monthly" };
+	}
+
+	// Contact page
+	if (path === "/contact") {
+		return { priority: 0.5, changeFrequency: "yearly" };
+	}
+
+	// FAQ/System Manual
+	if (path === "/faq") {
+		return { priority: 0.6, changeFrequency: "monthly" };
+	}
+
+	// Resume
+	if (path === "/resume") {
+		return { priority: 0.8, changeFrequency: "monthly" };
+	}
+
+	// Project apps (Yield, Debate, PassFX)
+	if (path === "/projects/yield" || path === "/projects/debate" || path === "/projects/passfx") {
+		return { priority: 0.7, changeFrequency: "monthly" };
+	}
+
+	// Folders
+	if (path === "/projects" || path === "/experience") {
+		return { priority: 0.6, changeFrequency: "weekly" };
+	}
+
+	// Project markdown files
+	if (path.startsWith("/projects/")) {
+		return { priority: 0.9, changeFrequency: "weekly" };
+	}
+
+	// Experience markdown files
+	if (path.startsWith("/experience/")) {
+		return { priority: 0.8, changeFrequency: "monthly" };
+	}
+
+	// Default
+	return { priority: 0.5, changeFrequency: "monthly" };
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
 	const now = new Date();
+	const paths = getAllCanonicalPaths();
 
-	// Homepage entry
-	const entries: MetadataRoute.Sitemap = [
-		{
-			url: BASE_URL,
+	const entries: MetadataRoute.Sitemap = paths.map((path) => {
+		const config = getRouteConfig(path);
+		const url = path === "/" ? BASE_URL : `${BASE_URL}${path}`;
+
+		return {
+			url,
 			lastModified: now,
-			changeFrequency: "weekly",
-			priority: 1.0,
-		},
-	];
-
-	// App entries
-	for (const appId of INDEXABLE_APPS) {
-		const slug = APP_ID_TO_SLUG[appId];
-		if (slug) {
-			entries.push({
-				url: `${BASE_URL}?app=${slug}`,
-				lastModified: now,
-				changeFrequency: APP_CHANGE_FREQ[appId],
-				priority: APP_PRIORITIES[appId],
-			});
-		}
-	}
-
-	// Markdown file entries (projects and experience)
-	for (const [folderId, files] of Object.entries(VFS_REGISTRY)) {
-		// Experience files get slightly lower priority than project files
-		const basePriority = folderId === "projects" ? 0.9 : 0.8;
-
-		for (const file of files) {
-			const fileSlug = FILE_ID_TO_SLUG[file.id];
-			if (fileSlug) {
-				entries.push({
-					url: escapeXml(`${BASE_URL}?app=markdown&file=${fileSlug}`),
-					lastModified: now,
-					changeFrequency: "weekly",
-					priority: basePriority,
-				});
-			}
-		}
-	}
+			changeFrequency: config.changeFrequency,
+			priority: config.priority,
+		};
+	});
 
 	return entries;
 }

@@ -7,8 +7,9 @@ import { memo, useCallback, useRef } from "react";
 
 import { ONBOARDING_TIMING } from "@/os/boot";
 import { ELASTIC_DRAG_CONFIG, useElasticDrag } from "@/os/config";
+import { useNavigate } from "@/os/hooks";
 import { SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
-import { type AppID, useSystemStore } from "@/os/store";
+import type { AppID } from "@/os/store";
 import { useReducedMotion } from "@/os/window";
 
 import { useDeviceType } from "./dock/useDeviceType";
@@ -99,7 +100,7 @@ export const DesktopIcon = memo(function DesktopIcon({
 	onRegisterRef,
 	isHighlighted = false,
 }: DesktopIconProps) {
-	const launchApp = useSystemStore((s) => s.launchApp);
+	const { navigate } = useNavigate();
 	const isFile = iconType === "file";
 	const prefersReducedMotion = useReducedMotion();
 	const deviceType = useDeviceType();
@@ -128,13 +129,13 @@ export const DesktopIcon = memo(function DesktopIcon({
 
 	const launchWithProps = useCallback(() => {
 		if (isFile && contentUrl) {
-			launchApp(appId, { props: { url: contentUrl, title }, launchMethod: "desktop_icon" });
+			navigate(appId, { props: { url: contentUrl, title }, launchMethod: "desktop_icon" });
 		} else if (folderId) {
-			launchApp(appId, { props: { folderId }, launchMethod: "desktop_icon" });
+			navigate(appId, { props: { folderId }, launchMethod: "desktop_icon" });
 		} else {
-			launchApp(appId, { launchMethod: "desktop_icon" });
+			navigate(appId, { launchMethod: "desktop_icon" });
 		}
-	}, [appId, isFile, contentUrl, title, folderId, launchApp]);
+	}, [appId, isFile, contentUrl, title, folderId, navigate]);
 
 	const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const clickCountRef = useRef(0);
