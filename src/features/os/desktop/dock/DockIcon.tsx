@@ -294,7 +294,8 @@ export const DockIcon = memo(function DockIcon({
 								src={iconSrc}
 								alt={label}
 								fill
-								className="object-contain"
+								draggable={false}
+								className="pointer-events-none object-contain"
 								sizes="80px"
 								priority
 								style={{ padding: iconPadding }}

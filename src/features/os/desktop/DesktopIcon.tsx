@@ -39,7 +39,9 @@ function IconGraphic({ isFile, isSelected }: IconGraphicProps) {
 			alt="Folder"
 			width={64}
 			height={64}
+			draggable={false}
 			className={`
+				pointer-events-none
 				h-16 w-16 transition-opacity duration-150
 				${isSelected ? "opacity-100" : "opacity-80 group-hover:opacity-100"}
 			`}
