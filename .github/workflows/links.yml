@@ -1,0 +1,23 @@
+name: Links
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: links-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  links:
+    name: Link Integrity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Check markdown links
+        run: node scripts/check-links.cjs

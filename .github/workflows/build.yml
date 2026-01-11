@@ -1,4 +1,4 @@
-name: CI
+name: Build
 
 on:
   push:
@@ -7,12 +7,12 @@ on:
     branches: [main]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
-    name: Build and Lint
+    name: Build Application
     runs-on: ubuntu-latest
 
     steps:

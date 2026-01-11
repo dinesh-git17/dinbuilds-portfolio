@@ -1,0 +1,144 @@
+name: PR Status
+
+on:
+  workflow_run:
+    workflows: [Build, Test, Attribution, Security, Links, Bundle]
+    types: [completed]
+
+jobs:
+  status:
+    name: Update PR Status
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.event == 'pull_request'
+
+    steps:
+      - name: Get PR number
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: { pull_requests } } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.payload.workflow_run.head_sha
+            });
+            if (pull_requests.length > 0) {
+              return pull_requests[0].number;
+            }
+            return null;
+
+      - name: Check all workflow statuses
+        if: steps.pr.outputs.result != 'null'
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.pr.outputs.result }};
+            const headSha = context.payload.workflow_run.head_sha;
+            const requiredWorkflows = ['Build', 'Test', 'Attribution', 'Security', 'Links', 'Bundle'];
+
+            // Get all workflow runs for this commit
+            const { data: { workflow_runs } } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head_sha: headSha,
+              per_page: 100
+            });
+
+            // Map workflow names to their latest status
+            const workflowStatus = {};
+            for (const run of workflow_runs) {
+              const name = run.name;
+              if (requiredWorkflows.includes(name)) {
+                // Only update if this is more recent or first entry
+                if (!workflowStatus[name] || new Date(run.created_at) > new Date(workflowStatus[name].created_at)) {
+                  workflowStatus[name] = {
+                    status: run.status,
+                    conclusion: run.conclusion,
+                    created_at: run.created_at,
+                    url: run.html_url
+                  };
+                }
+              }
+            }
+
+            // Check if all workflows have completed
+            const results = [];
+            let allCompleted = true;
+            let allPassed = true;
+
+            for (const workflow of requiredWorkflows) {
+              const status = workflowStatus[workflow];
+              if (!status || status.status !== 'completed') {
+                allCompleted = false;
+                results.push({ name: workflow, status: 'pending', url: status?.url || null });
+              } else {
+                const passed = status.conclusion === 'success';
+                if (!passed) allPassed = false;
+                results.push({ name: workflow, status: passed ? 'pass' : 'fail', url: status.url });
+              }
+            }
+
+            return {
+              allCompleted,
+              allPassed,
+              results,
+              prNumber
+            };
+
+      - name: Post PR comment
+        if: steps.pr.outputs.result != 'null' && fromJSON(steps.check.outputs.result).allCompleted
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const data = ${{ steps.check.outputs.result }};
+            const { allPassed, results, prNumber } = data;
+
+            // Build the status table
+            let body = `## CI Status\n\n`;
+            body += `| Check | Status |\n`;
+            body += `|-------|--------|\n`;
+
+            for (const result of results) {
+              const emoji = result.status === 'pass' ? '✅' : '❌';
+              const link = result.url ? `[${result.name}](${result.url})` : result.name;
+              body += `| ${link} | ${emoji} |\n`;
+            }
+
+            body += `\n---\n\n`;
+
+            if (allPassed) {
+              body += `### 🚀 Ready to merge\n\nAll checks passed successfully.`;
+            } else {
+              body += `### 🛑 Do not merge\n\nOne or more checks failed. Please review the failures above.`;
+            }
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes('## CI Status')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body
+              });
+            }

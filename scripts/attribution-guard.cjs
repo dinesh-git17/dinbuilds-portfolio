@@ -39,6 +39,9 @@ const WHITELISTED_CONTEXTS = [
   /sdk.*anthropic/i,
   /["']OpenAI["']/i, // Tech stack array entries
   /["']Anthropic["']/i, // Tech stack array entries
+  /AI\s+Providers?:/i, // e.g., "AI Providers: OpenAI, Anthropic"
+  /providers?:.*openai/i, // Provider list mentions
+  /providers?:.*anthropic/i,
 ];
 
 // Files to exclude from checking
@@ -54,7 +57,34 @@ const EXCLUDED_FILES = new Set([
 ]);
 
 // Directories to exclude
-const EXCLUDED_DIRS = ['.git', 'node_modules', '.next', 'dist', 'build'];
+const EXCLUDED_DIRS = ['.git', '.claude', 'node_modules', '.next', 'dist', 'build'];
+
+// File extensions to scan when using --all flag
+const SCANNABLE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.md', '.json', '.css', '.yml', '.yaml'];
+
+/**
+ * Recursively collect all scannable files in a directory
+ */
+function collectAllFiles(dir, files = []) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      if (!EXCLUDED_DIRS.includes(entry.name)) {
+        collectAllFiles(fullPath, files);
+      }
+    } else if (entry.isFile()) {
+      const ext = path.extname(entry.name).toLowerCase();
+      if (SCANNABLE_EXTENSIONS.includes(ext)) {
+        files.push(fullPath);
+      }
+    }
+  }
+
+  return files;
+}
 
 /**
  * Check if file should be excluded
@@ -126,11 +156,18 @@ function checkFile(filepath) {
  * Main entry point
  */
 function main() {
-  const files = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const isFullScan = args.includes('--all');
+  const files = isFullScan ? collectAllFiles(process.cwd()) : args.filter(arg => !arg.startsWith('--'));
 
-  if (files.length === 0) {
-    console.log('Usage: attribution-guard.js <file1> [file2] ...');
+  if (files.length === 0 && !isFullScan) {
+    console.log('Usage: attribution-guard.cjs <file1> [file2] ...');
+    console.log('       attribution-guard.cjs --all (scan entire repository)');
     process.exit(1);
+  }
+
+  if (isFullScan) {
+    console.log(`Scanning ${files.length} files for AI attribution...`);
   }
 
   const allViolations = new Map();
@@ -164,6 +201,10 @@ function main() {
     console.log('ACTION REQUIRED: Remove all AI attribution references before committing.');
     console.log('='.repeat(70) + '\n');
     process.exit(1);
+  }
+
+  if (isFullScan) {
+    console.log('Attribution check passed: No forbidden patterns detected.');
   }
 
   process.exit(0);
