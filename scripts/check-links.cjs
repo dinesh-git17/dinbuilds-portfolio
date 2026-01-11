@@ -89,8 +89,9 @@ function checkInternalLink(url, filepath) {
   let targetPath;
 
   if (url.startsWith('/')) {
-    // Absolute path from public
-    targetPath = path.join(process.cwd(), 'public', url);
+    // Absolute path from public - strip leading slash and fragments/queries
+    const cleanUrl = url.slice(1).split('#')[0].split('?')[0];
+    targetPath = path.join(process.cwd(), 'public', cleanUrl);
   } else {
     // Relative path
     targetPath = path.join(basePath, url.split('#')[0].split('?')[0]);
