@@ -10,7 +10,7 @@ import {
 } from "@/lib/seo";
 import { BootManager, BootScreen, WelcomeOverlay } from "@/os/boot";
 import { Stage } from "@/os/desktop";
-import { SSRContentProjection } from "@/os/ssr";
+import { SSRContentProjection, SSREntityCard } from "@/os/ssr";
 import { StoreHydrator } from "@/os/store";
 
 /**
@@ -63,6 +63,13 @@ export default async function Home({ searchParams }: PageProps) {
 		}
 	}
 
+	// Determine if we're on the homepage (no app specified)
+	// Homepage should include h1 for entity verification
+	const isHomepage = !params.app;
+
+	// Markdown content has its own h1, so skip entity h1 when viewing files
+	const hasContentH1 = params.app === "markdown" && params.file;
+
 	return (
 		<StoreHydrator initialState={initialState}>
 			<BootManager>
@@ -70,6 +77,9 @@ export default async function Home({ searchParams }: PageProps) {
 				<Stage />
 				<WelcomeOverlay />
 			</BootManager>
+			{/* SSR Entity Card — Identity signals for search engine crawlers */}
+			{/* Renders entity data (name, social links) in crawlable hidden section */}
+			<SSREntityCard includeH1={isHomepage || !hasContentH1} />
 			{/* SSR Content Projection — Hidden content for search engine crawlers */}
 			{/* This renders pre-fetched content in a crawlable but visually hidden element */}
 			<SSRContentProjection windows={initialState.windows} />

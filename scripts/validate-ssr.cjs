@@ -1,9 +1,17 @@
 #!/usr/bin/env node
 /**
- * SSR Content Validation Script — SEO-01 Story 1
+ * SSR Content Validation Script — SEO-01 Stories 1 & 3
  *
  * Validates that server-rendered content is present in HTML responses.
- * This ensures search engine crawlers can index content without JavaScript.
+ * Also validates schema markup and meta tags for search engine optimization.
+ *
+ * Validates:
+ * - SSR content projection (Story 1)
+ * - Person/ProfilePage schema (Story 3)
+ * - Open Graph meta tags (Story 3)
+ * - Twitter Card meta tags (Story 3)
+ * - Entity h1 alignment (Story 3)
+ * - Social profile links (Story 3)
  *
  * Usage:
  *   1. Build the app: pnpm build
@@ -22,6 +30,19 @@ const PORT = 3456;
 const BASE_URL = `http://localhost:${PORT}`;
 const SERVER_START_TIMEOUT = 30000; // 30 seconds
 const REQUEST_TIMEOUT = 10000; // 10 seconds
+
+/**
+ * Entity data for validation (must match src/lib/seo/entity.ts).
+ */
+const ENTITY = {
+	name: "Dinesh Dawonauth",
+	jobTitle: "Data Engineer",
+	socialProfiles: [
+		"https://github.com/dinesh-git17",
+		"https://www.linkedin.com/in/dineshsdawonauth",
+		"https://twitter.com/dinbuilds",
+	],
+};
 
 /**
  * Test cases for SSR content validation.
@@ -53,6 +74,59 @@ const TEST_CASES = [
 		path: "/?app=markdown&file=meridian",
 		requiredContent: ["data-ssr-content", "data-ssr-projected"],
 		contentPatterns: [/Meridian/i],
+	},
+];
+
+/**
+ * Entity verification test cases (Story 3).
+ * Validates schema markup, meta tags, and identity signals.
+ */
+const ENTITY_TEST_CASES = [
+	{
+		name: "Homepage Entity Verification",
+		path: "/",
+		checks: [
+			// SSR Entity Card present
+			{ type: "content", value: "data-ssr-entity", description: "SSR Entity Card marker" },
+			// Entity h1 present
+			{ type: "pattern", value: new RegExp(`<h1[^>]*>${ENTITY.name}`, "i"), description: "Entity h1 with name" },
+			// Person schema present
+			{ type: "pattern", value: /"@type"\s*:\s*"Person"/, description: "Person schema type" },
+			{ type: "pattern", value: /"@type"\s*:\s*"ProfilePage"/, description: "ProfilePage schema type" },
+			{ type: "content", value: `"name":"${ENTITY.name}"`, description: "Person name in schema" },
+			{ type: "content", value: `"jobTitle":"${ENTITY.jobTitle}"`, description: "Job title in schema" },
+			// sameAs URLs in schema
+			{ type: "content", value: ENTITY.socialProfiles[0], description: "GitHub URL in sameAs" },
+			{ type: "content", value: ENTITY.socialProfiles[1], description: "LinkedIn URL in sameAs" },
+			// Social links as <a> tags
+			{ type: "pattern", value: new RegExp(`<a[^>]*href="${ENTITY.socialProfiles[0]}"`, "i"), description: "GitHub link anchor" },
+			{ type: "pattern", value: new RegExp(`<a[^>]*href="${ENTITY.socialProfiles[1]}"`, "i"), description: "LinkedIn link anchor" },
+			// Open Graph meta tags
+			{ type: "pattern", value: /<meta[^>]*property="og:title"[^>]*content="[^"]+"/i, description: "og:title meta tag" },
+			{ type: "pattern", value: /<meta[^>]*property="og:description"[^>]*content="[^"]+"/i, description: "og:description meta tag" },
+			{ type: "pattern", value: /<meta[^>]*property="og:image"[^>]*content="[^"]+"/i, description: "og:image meta tag" },
+			{ type: "pattern", value: /<meta[^>]*property="og:url"[^>]*content="[^"]+"/i, description: "og:url meta tag" },
+			{ type: "pattern", value: /<meta[^>]*property="og:type"[^>]*content="[^"]+"/i, description: "og:type meta tag" },
+			// Twitter Card meta tags
+			{ type: "pattern", value: /<meta[^>]*name="twitter:card"[^>]*content="[^"]+"/i, description: "twitter:card meta tag" },
+			{ type: "pattern", value: /<meta[^>]*name="twitter:title"[^>]*content="[^"]+"/i, description: "twitter:title meta tag" },
+			{ type: "pattern", value: /<meta[^>]*name="twitter:description"[^>]*content="[^"]+"/i, description: "twitter:description meta tag" },
+			// Title alignment with entity name
+			{ type: "pattern", value: new RegExp(`<title[^>]*>${ENTITY.name}`, "i"), description: "Title contains entity name" },
+		],
+	},
+	{
+		name: "Project Page Meta Tags",
+		path: "/?app=markdown&file=yield",
+		checks: [
+			// Unique title for project
+			{ type: "pattern", value: /<title[^>]*>Yield/i, description: "Project-specific title" },
+			// OG tags present
+			{ type: "pattern", value: /<meta[^>]*property="og:title"[^>]*content="[^"]+"/i, description: "og:title meta tag" },
+			{ type: "pattern", value: /<meta[^>]*property="og:description"[^>]*content="[^"]+"/i, description: "og:description meta tag" },
+			// CreativeWork schema for project
+			{ type: "pattern", value: /"@type"\s*:\s*"CreativeWork"/, description: "CreativeWork schema type" },
+		],
 	},
 ];
 
@@ -107,7 +181,7 @@ function sleep(ms) {
 }
 
 /**
- * Run a single test case.
+ * Run a single SSR content test case.
  */
 async function runTestCase(testCase) {
 	const url = `${BASE_URL}${testCase.path}`;
@@ -145,10 +219,47 @@ async function runTestCase(testCase) {
 }
 
 /**
+ * Run a single entity verification test case.
+ */
+async function runEntityTestCase(testCase) {
+	const url = `${BASE_URL}${testCase.path}`;
+	const errors = [];
+
+	try {
+		const response = await fetchWithTimeout(url, REQUEST_TIMEOUT);
+
+		if (response.statusCode !== 200) {
+			errors.push(`HTTP ${response.statusCode} (expected 200)`);
+			return { passed: false, errors };
+		}
+
+		const html = response.body;
+
+		// Run all checks
+		for (const check of testCase.checks) {
+			if (check.type === "content") {
+				if (!html.includes(check.value)) {
+					errors.push(`Missing: ${check.description}`);
+				}
+			} else if (check.type === "pattern") {
+				if (!check.value.test(html)) {
+					errors.push(`Missing: ${check.description}`);
+				}
+			}
+		}
+
+		return { passed: errors.length === 0, errors };
+	} catch (error) {
+		errors.push(`Request failed: ${error.message}`);
+		return { passed: false, errors };
+	}
+}
+
+/**
  * Main entry point.
  */
 async function main() {
-	console.log("SSR Content Validation");
+	console.log("SSR & Entity Validation — SEO-01 Stories 1 & 3");
 	console.log("=".repeat(70));
 	console.log("");
 
@@ -185,12 +296,16 @@ async function main() {
 
 		console.log("Server ready. Running tests...\n");
 
-		// Run all test cases
-		const results = [];
+		// ============================================
+		// Section 1: SSR Content Validation (Story 1)
+		// ============================================
+		console.log("--- SSR Content Validation (Story 1) ---\n");
+
+		const ssrResults = [];
 		for (const testCase of TEST_CASES) {
 			process.stdout.write(`  Testing: ${testCase.name}... `);
 			const result = await runTestCase(testCase);
-			results.push({ ...testCase, ...result });
+			ssrResults.push({ ...testCase, ...result });
 
 			if (result.passed) {
 				console.log("PASS");
@@ -202,26 +317,67 @@ async function main() {
 			}
 		}
 
+		// ============================================
+		// Section 2: Entity Verification (Story 3)
+		// ============================================
+		console.log("\n--- Entity Verification (Story 3) ---\n");
+
+		const entityResults = [];
+		for (const testCase of ENTITY_TEST_CASES) {
+			process.stdout.write(`  Testing: ${testCase.name}... `);
+			const result = await runEntityTestCase(testCase);
+			entityResults.push({ ...testCase, ...result });
+
+			if (result.passed) {
+				console.log("PASS");
+			} else {
+				console.log("FAIL");
+				for (const error of result.errors) {
+					console.log(`    - ${error}`);
+				}
+			}
+		}
+
+		// ============================================
 		// Summary
+		// ============================================
 		console.log("");
 		console.log("=".repeat(70));
 
-		const passed = results.filter((r) => r.passed).length;
-		const failed = results.filter((r) => !r.passed).length;
+		const allResults = [...ssrResults, ...entityResults];
+		const passed = allResults.filter((r) => r.passed).length;
+		const failed = allResults.filter((r) => !r.passed).length;
 
 		if (failed === 0) {
-			console.log(`SSR VALIDATION PASSED: ${passed}/${results.length} tests passed`);
+			console.log(`VALIDATION PASSED: ${passed}/${allResults.length} tests passed`);
 			console.log("=".repeat(70));
 			return 0;
 		}
 
-		console.log(`SSR VALIDATION FAILED: ${failed}/${results.length} tests failed`);
+		console.log(`VALIDATION FAILED: ${failed}/${allResults.length} tests failed`);
 		console.log("=".repeat(70));
 		console.log("");
 		console.log("ACTION REQUIRED:");
-		console.log("  - Ensure content is being fetched server-side");
-		console.log("  - Verify SSRContentProjection component is rendering");
-		console.log("  - Check that markdown files exist in /public/readmes/");
+
+		// Check which section failed
+		const ssrFailed = ssrResults.filter((r) => !r.passed).length;
+		const entityFailed = entityResults.filter((r) => !r.passed).length;
+
+		if (ssrFailed > 0) {
+			console.log("  SSR Content Issues:");
+			console.log("    - Ensure content is being fetched server-side");
+			console.log("    - Verify SSRContentProjection component is rendering");
+			console.log("    - Check that markdown files exist in /public/readmes/");
+		}
+
+		if (entityFailed > 0) {
+			console.log("  Entity Verification Issues:");
+			console.log("    - Verify SSREntityCard is rendering on the page");
+			console.log("    - Check Person/ProfilePage schema in layout.tsx");
+			console.log("    - Verify OG and Twitter meta tags in metadata.ts");
+			console.log("    - Ensure social links are present as <a> tags");
+		}
+
 		console.log("");
 		return 1;
 	} finally {

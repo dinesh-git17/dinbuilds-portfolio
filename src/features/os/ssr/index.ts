@@ -6,3 +6,4 @@
  */
 
 export { SSRContentProjection, type SSRContentProjectionProps } from "./SSRContentProjection";
+export { SSREntityCard, type SSREntityCardProps } from "./SSREntityCard";

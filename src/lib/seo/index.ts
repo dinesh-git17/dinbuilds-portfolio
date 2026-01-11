@@ -5,6 +5,12 @@
  * and Schema.org structured data for search engine optimization.
  */
 
+export {
+	ENTITY,
+	type EntityData,
+	getSameAsUrls,
+	type SocialProfile,
+} from "./entity";
 export { generatePageMetadata, SITE_CONFIG } from "./metadata";
 export {
 	type CreativeWorkSchema,

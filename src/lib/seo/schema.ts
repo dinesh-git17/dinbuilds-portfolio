@@ -5,6 +5,7 @@
  * Enables rich snippets and establishes entity authority.
  */
 
+import { ENTITY, getSameAsUrls } from "./entity";
 import { SITE_CONFIG } from "./metadata";
 
 /**
@@ -164,68 +165,54 @@ export const PROJECT_METADATA: Record<string, ProjectMetadata> = {
 
 /**
  * Generate the Person schema for Dinesh Dawonauth.
+ * Uses centralized ENTITY data for consistency with visible DOM content.
  */
 export function generatePersonSchema(): PersonSchema {
 	return {
 		"@context": "https://schema.org",
 		"@type": "Person",
 		"@id": `${SITE_CONFIG.baseUrl}/#person`,
-		name: "Dinesh Dawonauth",
-		givenName: "Dinesh",
-		familyName: "Dawonauth",
-		jobTitle: "Data Engineer",
-		description: SITE_CONFIG.description,
-		url: SITE_CONFIG.baseUrl,
-		image: `${SITE_CONFIG.baseUrl}/assets/web_assets/og.png`,
-		sameAs: [
-			"https://github.com/dinesh-git17",
-			"https://www.linkedin.com/in/dineshsdawonauth",
-			"https://twitter.com/dinbuilds",
-		],
+		name: ENTITY.name,
+		givenName: ENTITY.givenName,
+		familyName: ENTITY.familyName,
+		jobTitle: ENTITY.jobTitle,
+		description: ENTITY.description,
+		url: ENTITY.url,
+		image: ENTITY.ogImage,
+		sameAs: getSameAsUrls(),
 		worksFor: {
 			"@type": "Organization",
-			name: "Meridian Credit Union",
-			url: "https://www.meridiancu.ca",
+			name: ENTITY.currentEmployer.organization,
+			url: ENTITY.currentEmployer.organizationUrl,
 		},
-		alumniOf: [
-			{
-				"@type": "EducationalOrganization",
-				name: "Carleton University",
-				url: "https://carleton.ca",
-			},
-		],
-		knowsAbout: [
-			"Data Engineering",
-			"Python",
-			"SQL",
-			"Apache Spark",
-			"ETL Pipelines",
-			"Data Warehousing",
-			"Cloud Platforms",
-			"TypeScript",
-			"React",
-			"Next.js",
-		],
+		alumniOf: ENTITY.education.map((edu) => ({
+			"@type": "EducationalOrganization" as const,
+			name: edu.institution,
+			url: edu.institutionUrl,
+		})),
+		knowsAbout: ENTITY.knowsAbout,
 	};
 }
 
 /**
  * Generate the ProfilePage schema wrapping the Person.
+ * Uses centralized ENTITY data for consistency.
  */
 export function generateProfilePageSchema(): ProfilePageSchema {
 	return {
 		"@context": "https://schema.org",
 		"@type": "ProfilePage",
 		"@id": `${SITE_CONFIG.baseUrl}/#profilepage`,
-		name: `${SITE_CONFIG.name} | ${SITE_CONFIG.title}`,
-		description: SITE_CONFIG.description,
-		url: SITE_CONFIG.baseUrl,
+		name: `${ENTITY.name} | ${ENTITY.jobTitle}`,
+		description: ENTITY.description,
+		url: ENTITY.url,
 		mainEntity: generatePersonSchema(),
 	};
 }
 
 /**
  * Generate CreativeWork schema for a project.
+ * Uses centralized ENTITY data for author reference.
  *
  * @param fileId - The VFS file ID (e.g., "file.yield")
  * @returns Schema object or null if project not found
@@ -247,7 +234,7 @@ export function generateProjectSchema(fileId: string): CreativeWorkSchema | null
 		author: {
 			"@type": "Person",
 			"@id": `${SITE_CONFIG.baseUrl}/#person`,
-			name: "Dinesh Dawonauth",
+			name: ENTITY.name,
 		},
 		keywords: metadata.keywords,
 		genre: metadata.applicationCategory,
