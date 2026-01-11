@@ -113,3 +113,5 @@ iMessage Wrapped exists to prove that:
 Your messages already tell a story.
 
 This tool just helps you read it.
+
+Github: [iMessage Wrapped Repo](https://github.com/dinesh-git17/imessage-wrapped)
