@@ -31,6 +31,7 @@ export {
 	parsePathToState,
 	windowToPath,
 } from "./path-routing";
+export { SiteIndex, type SiteIndexProps } from "./SiteIndex";
 export {
 	type CreativeWorkSchema,
 	generatePersonSchema,

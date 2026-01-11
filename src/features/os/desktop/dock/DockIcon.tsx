@@ -130,9 +130,9 @@ export const DockIcon = memo(function DockIcon({
 	onFocus,
 	onClick,
 }: DockIconProps) {
-	const ref = useRef<HTMLButtonElement>(null);
+	const ref = useRef<HTMLAnchorElement>(null);
 	const [bounceScope, animateBounce] = useAnimate<HTMLDivElement>();
-	const { navigate, prefetch: prefetchRoute } = useNavigate();
+	const { navigate, prefetch: prefetchRoute, getPath } = useNavigate();
 	// Check if app is running (has open or minimized window)
 	const isRunning = useSystemStore((s) =>
 		s.windows.some((w) => w.id === appId && (w.status === "open" || w.status === "minimized")),
@@ -189,28 +189,35 @@ export const DockIcon = memo(function DockIcon({
 		handlePrefetch();
 	}, [handlePrefetch]);
 
-	const handleClick = useCallback(() => {
-		// Reset magnification and focus BEFORE launching app to prevent stuck state
-		onClick?.();
-		// Clear hover state on click (fixes tooltip staying visible on touch devices)
-		setIsHovered(false);
-		// Blur the button to remove focus ring (fixes highlight staying on touch devices)
-		ref.current?.blur();
+	const handleClick = useCallback(
+		(e: React.MouseEvent<HTMLAnchorElement>) => {
+			// Prevent default link behavior for SPA navigation
+			e.preventDefault();
 
-		// Navigate to the app (updates URL and launches window)
-		navigate(appId, { launchMethod: "dock" });
+			// Reset magnification and focus BEFORE launching app to prevent stuck state
+			onClick?.();
+			// Clear hover state on click (fixes tooltip staying visible on touch devices)
+			setIsHovered(false);
+			// Blur the element to remove focus ring (fixes highlight staying on touch devices)
+			ref.current?.blur();
 
-		// Trigger the "happy launch" bounce animation (macOS-style instant jump)
-		animateBounce(
-			bounceScope.current,
-			{ y: [0, -18, 0, -6, 0] },
-			{ duration: 0.5, ease: [0.36, 0.07, 0.19, 0.97] },
-		);
-	}, [navigate, appId, onClick, animateBounce, bounceScope]);
+			// Navigate to the app (updates URL and launches window)
+			navigate(appId, { launchMethod: "dock" });
+
+			// Trigger the "happy launch" bounce animation (macOS-style instant jump)
+			animateBounce(
+				bounceScope.current,
+				{ y: [0, -18, 0, -6, 0] },
+				{ duration: 0.5, ease: [0.36, 0.07, 0.19, 0.97] },
+			);
+		},
+		[navigate, appId, onClick, animateBounce, bounceScope],
+	);
 
 	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent) => {
+		(e: React.KeyboardEvent<HTMLAnchorElement>) => {
 			if (e.key === "Enter" || e.key === " ") {
+				// Prevent default link behavior for SPA navigation
 				e.preventDefault();
 				// Navigate to the app (updates URL and launches window)
 				navigate(appId, { launchMethod: "dock" });
@@ -224,6 +231,9 @@ export const DockIcon = memo(function DockIcon({
 		},
 		[navigate, appId, animateBounce, bounceScope],
 	);
+
+	// Get canonical path for this app (enables crawler discovery)
+	const href = getPath(appId);
 
 	return (
 		<motion.div
@@ -247,10 +257,10 @@ export const DockIcon = memo(function DockIcon({
 				/>
 			</motion.div>
 
-			{/* Icon button */}
-			<motion.button
+			{/* Icon anchor (enables crawler discovery via valid href) */}
+			<motion.a
 				ref={ref}
-				type="button"
+				href={href}
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}
 				onFocus={onFocus}
@@ -266,6 +276,7 @@ export const DockIcon = memo(function DockIcon({
 				style={{
 					// macOS squircle shape using CSS mask
 					borderRadius: "22.5%",
+					display: "block",
 				}}
 				whileTap={{ scale: 0.92 }}
 			>
@@ -341,7 +352,7 @@ export const DockIcon = memo(function DockIcon({
 						)}
 					</>
 				)}
-			</motion.button>
+			</motion.a>
 
 			{/* Running indicator dot (macOS style) */}
 			<AnimatePresence>

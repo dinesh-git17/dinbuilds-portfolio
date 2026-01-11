@@ -3,7 +3,7 @@
 import { motion, useAnimation } from "framer-motion";
 import { FileText } from "lucide-react";
 import Image from "next/image";
-import { memo, useCallback, useRef } from "react";
+import { memo, useCallback, useMemo, useRef } from "react";
 
 import { ONBOARDING_TIMING } from "@/os/boot";
 import { ELASTIC_DRAG_CONFIG, useElasticDrag } from "@/os/config";
@@ -100,7 +100,7 @@ export const DesktopIcon = memo(function DesktopIcon({
 	onRegisterRef,
 	isHighlighted = false,
 }: DesktopIconProps) {
-	const { navigate } = useNavigate();
+	const { navigate, getPath } = useNavigate();
 	const isFile = iconType === "file";
 	const prefersReducedMotion = useReducedMotion();
 	const deviceType = useDeviceType();
@@ -127,6 +127,17 @@ export const DesktopIcon = memo(function DesktopIcon({
 		? ONBOARDING_TIMING.REDUCED_MOTION_DELAY / 1000
 		: ONBOARDING_TIMING.GLOW_TRANSITION / 1000;
 
+	// Get canonical path for this icon (enables crawler discovery)
+	const href = useMemo(() => {
+		if (isFile && contentUrl) {
+			return getPath(appId, { url: contentUrl, title });
+		}
+		if (folderId) {
+			return getPath(appId, { folderId });
+		}
+		return getPath(appId);
+	}, [appId, isFile, contentUrl, title, folderId, getPath]);
+
 	const launchWithProps = useCallback(() => {
 		if (isFile && contentUrl) {
 			navigate(appId, { props: { url: contentUrl, title }, launchMethod: "desktop_icon" });
@@ -141,15 +152,19 @@ export const DesktopIcon = memo(function DesktopIcon({
 	const clickCountRef = useRef(0);
 
 	// Combined ref callback for both internal use and registration
-	const buttonRefCallback = useCallback(
-		(element: HTMLButtonElement | null) => {
-			onRegisterRef?.(element);
+	// Note: We use HTMLAnchorElement for crawl accessibility, but register as button for selection box
+	const anchorRefCallback = useCallback(
+		(element: HTMLAnchorElement | null) => {
+			// Cast to button for backward compatibility with selection box logic
+			onRegisterRef?.(element as unknown as HTMLButtonElement | null);
 		},
 		[onRegisterRef],
 	);
 
 	const handleClick = useCallback(
-		(e: React.MouseEvent) => {
+		(e: React.MouseEvent<HTMLAnchorElement>) => {
+			// Prevent default link behavior for SPA navigation
+			e.preventDefault();
 			e.stopPropagation();
 
 			// If this click followed a significant drag, ignore it
@@ -198,8 +213,9 @@ export const DesktopIcon = memo(function DesktopIcon({
 	);
 
 	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent) => {
+		(e: React.KeyboardEvent<HTMLAnchorElement>) => {
 			if (e.key === "Enter" || e.key === " ") {
+				// Prevent default link behavior for SPA navigation
 				e.preventDefault();
 				// Clear selection before launching
 				onExecute();
@@ -221,9 +237,9 @@ export const DesktopIcon = memo(function DesktopIcon({
 	);
 
 	return (
-		<motion.button
-			ref={buttonRefCallback}
-			type="button"
+		<motion.a
+			ref={anchorRefCallback}
+			href={href}
 			onClick={handleClick}
 			onKeyDown={handleKeyDown}
 			onContextMenu={handleContextMenu}
@@ -284,6 +300,6 @@ export const DesktopIcon = memo(function DesktopIcon({
 			>
 				{label}
 			</span>
-		</motion.button>
+		</motion.a>
 	);
 });

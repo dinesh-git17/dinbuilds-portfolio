@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * SSR Content Validation Script — SEO-01 Stories 1 & 3 + SEO-02 Story 2
+ * SSR Content Validation Script — SEO-01 Stories 1 & 3 + SEO-02 Story 2 + Story 4
  *
  * Validates that server-rendered content is present in HTML responses.
- * Also validates schema markup, meta tags, and canonical URLs.
+ * Also validates schema markup, meta tags, canonical URLs, and crawl files.
  *
  * Validates:
  * - SSR content projection (Story 1)
@@ -14,6 +14,9 @@
  * - Social profile links (Story 3)
  * - Canonical URL tags (Story 2)
  * - Clean path routing (Story 2)
+ * - Sitemap.xml structure (Story 4)
+ * - Robots.txt syntax (Story 4)
+ * - Site Index for crawlers (Story 4)
  *
  * Usage:
  *   1. Build the app: pnpm build
@@ -179,6 +182,40 @@ const LEGACY_REDIRECT_TEST_CASES = [
 ];
 
 /**
+ * Expected URLs in sitemap (Story 4).
+ */
+const EXPECTED_SITEMAP_URLS = [
+	"https://dineshd.dev",
+	"https://dineshd.dev/about",
+	"https://dineshd.dev/contact",
+	"https://dineshd.dev/faq",
+	"https://dineshd.dev/resume",
+	"https://dineshd.dev/projects",
+	"https://dineshd.dev/projects/yield",
+	"https://dineshd.dev/projects/debate",
+	"https://dineshd.dev/projects/passfx",
+	"https://dineshd.dev/experience",
+];
+
+/**
+ * Site Index validation - checks for sr-only navigation (Story 4).
+ */
+const SITE_INDEX_TEST = {
+	name: "Site Index",
+	path: "/",
+	checks: [
+		// SiteIndex nav element should exist
+		{ type: "pattern", value: /<nav[^>]*aria-label="Site index for search engines"/, description: "Site Index nav element" },
+		// Should have sr-only class for visual hiding
+		{ type: "pattern", value: /<nav[^>]*class="sr-only"/, description: "Site Index sr-only class" },
+		// Should contain links to major sections
+		{ type: "content", value: 'href="https://dineshd.dev/about"', description: "About link in Site Index" },
+		{ type: "content", value: 'href="https://dineshd.dev/projects"', description: "Projects link in Site Index" },
+		{ type: "content", value: 'href="https://dineshd.dev/experience"', description: "Experience link in Site Index" },
+	],
+};
+
+/**
  * Wait for the server to be ready by polling the health endpoint.
  */
 async function waitForServer(url, timeout) {
@@ -333,6 +370,138 @@ async function runCanonicalTestCase(testCase) {
 
 			if (canonicalUrl !== expectedUrl) {
 				errors.push(`Canonical mismatch: got "${canonicalUrl}", expected "${expectedUrl}"`);
+			}
+		}
+
+		return { passed: errors.length === 0, errors };
+	} catch (error) {
+		errors.push(`Request failed: ${error.message}`);
+		return { passed: false, errors };
+	}
+}
+
+/**
+ * Validate sitemap.xml (Story 4).
+ * Checks structure and presence of expected URLs.
+ */
+async function validateSitemap() {
+	const url = `${BASE_URL}/sitemap.xml`;
+	const errors = [];
+
+	try {
+		const response = await fetchWithTimeout(url, REQUEST_TIMEOUT);
+
+		if (response.statusCode !== 200) {
+			errors.push(`HTTP ${response.statusCode} (expected 200)`);
+			return { passed: false, errors };
+		}
+
+		const xml = response.body;
+
+		// Check XML structure
+		if (!xml.includes('<?xml')) {
+			errors.push("Missing XML declaration");
+		}
+
+		if (!xml.includes('<urlset')) {
+			errors.push("Missing <urlset> element");
+		}
+
+		// Check for expected URLs
+		for (const expectedUrl of EXPECTED_SITEMAP_URLS) {
+			if (!xml.includes(`<loc>${expectedUrl}</loc>`)) {
+				errors.push(`Missing URL: ${expectedUrl}`);
+			}
+		}
+
+		// Check for required elements in URL entries
+		if (!xml.includes('<lastmod>')) {
+			errors.push("Missing <lastmod> elements");
+		}
+
+		if (!xml.includes('<changefreq>')) {
+			errors.push("Missing <changefreq> elements");
+		}
+
+		if (!xml.includes('<priority>')) {
+			errors.push("Missing <priority> elements");
+		}
+
+		return { passed: errors.length === 0, errors };
+	} catch (error) {
+		errors.push(`Request failed: ${error.message}`);
+		return { passed: false, errors };
+	}
+}
+
+/**
+ * Validate robots.txt (Story 4).
+ * Checks syntax and sitemap reference.
+ */
+async function validateRobotsTxt() {
+	const url = `${BASE_URL}/robots.txt`;
+	const errors = [];
+
+	try {
+		const response = await fetchWithTimeout(url, REQUEST_TIMEOUT);
+
+		if (response.statusCode !== 200) {
+			errors.push(`HTTP ${response.statusCode} (expected 200)`);
+			return { passed: false, errors };
+		}
+
+		const txt = response.body;
+
+		// Check for User-agent directive (case-insensitive)
+		if (!/User-Agent:/i.test(txt)) {
+			errors.push("Missing User-Agent directive");
+		}
+
+		// Check for sitemap reference
+		if (!txt.includes('Sitemap:')) {
+			errors.push("Missing Sitemap directive");
+		}
+
+		// Verify sitemap URL
+		if (!txt.includes('https://dineshd.dev/sitemap.xml')) {
+			errors.push("Sitemap URL should be https://dineshd.dev/sitemap.xml");
+		}
+
+		return { passed: errors.length === 0, errors };
+	} catch (error) {
+		errors.push(`Request failed: ${error.message}`);
+		return { passed: false, errors };
+	}
+}
+
+/**
+ * Validate Site Index component (Story 4).
+ * Checks for sr-only navigation with links.
+ */
+async function validateSiteIndex() {
+	const url = `${BASE_URL}${SITE_INDEX_TEST.path}`;
+	const errors = [];
+
+	try {
+		const response = await fetchWithTimeout(url, REQUEST_TIMEOUT);
+
+		if (response.statusCode !== 200) {
+			errors.push(`HTTP ${response.statusCode} (expected 200)`);
+			return { passed: false, errors };
+		}
+
+		const html = response.body;
+
+		// Run all checks
+		for (const check of SITE_INDEX_TEST.checks) {
+			if (check.type === "content") {
+				if (!html.includes(check.value)) {
+					errors.push(`Missing: ${check.description}`);
+				}
+			} else if (check.type === "pattern") {
+				if (!check.value.test(html)) {
+					errors.push(`Missing: ${check.description}`);
+				}
 			}
 		}
 
@@ -519,12 +688,58 @@ async function main() {
 		}
 
 		// ============================================
+		// Section 5: Crawl Graph Validation (Story 4)
+		// ============================================
+		console.log("\n--- Crawl Graph Validation (Story 4) ---\n");
+
+		const crawlResults = [];
+
+		// Sitemap validation
+		process.stdout.write("  Testing: Sitemap.xml... ");
+		const sitemapResult = await validateSitemap();
+		crawlResults.push({ name: "Sitemap.xml", ...sitemapResult });
+		if (sitemapResult.passed) {
+			console.log("PASS");
+		} else {
+			console.log("FAIL");
+			for (const error of sitemapResult.errors) {
+				console.log(`    - ${error}`);
+			}
+		}
+
+		// Robots.txt validation
+		process.stdout.write("  Testing: Robots.txt... ");
+		const robotsResult = await validateRobotsTxt();
+		crawlResults.push({ name: "Robots.txt", ...robotsResult });
+		if (robotsResult.passed) {
+			console.log("PASS");
+		} else {
+			console.log("FAIL");
+			for (const error of robotsResult.errors) {
+				console.log(`    - ${error}`);
+			}
+		}
+
+		// Site Index validation
+		process.stdout.write("  Testing: Site Index... ");
+		const siteIndexResult = await validateSiteIndex();
+		crawlResults.push({ name: "Site Index", ...siteIndexResult });
+		if (siteIndexResult.passed) {
+			console.log("PASS");
+		} else {
+			console.log("FAIL");
+			for (const error of siteIndexResult.errors) {
+				console.log(`    - ${error}`);
+			}
+		}
+
+		// ============================================
 		// Summary
 		// ============================================
 		console.log("");
 		console.log("=".repeat(70));
 
-		const allResults = [...ssrResults, ...entityResults, ...canonicalResults, ...redirectResults];
+		const allResults = [...ssrResults, ...entityResults, ...canonicalResults, ...redirectResults, ...crawlResults];
 		const passed = allResults.filter((r) => r.passed).length;
 		const failed = allResults.filter((r) => !r.passed).length;
 
@@ -544,6 +759,7 @@ async function main() {
 		const entityFailed = entityResults.filter((r) => !r.passed).length;
 		const canonicalFailed = canonicalResults.filter((r) => !r.passed).length;
 		const redirectFailed = redirectResults.filter((r) => !r.passed).length;
+		const crawlFailed = crawlResults.filter((r) => !r.passed).length;
 
 		if (ssrFailed > 0) {
 			console.log("  SSR Content Issues:");
@@ -572,6 +788,13 @@ async function main() {
 			console.log("    - Check middleware.ts redirect logic");
 			console.log("    - Verify getLegacyRedirectPath in path-routing.ts");
 			console.log("    - Ensure all legacy ?app= params have mappings");
+		}
+
+		if (crawlFailed > 0) {
+			console.log("  Crawl Graph Issues:");
+			console.log("    - Check sitemap.ts for URL generation");
+			console.log("    - Verify robots.ts syntax and sitemap reference");
+			console.log("    - Ensure SiteIndex component is in layout.tsx");
 		}
 
 		console.log("");

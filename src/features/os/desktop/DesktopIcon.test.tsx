@@ -72,10 +72,42 @@ const mockOnDragEnd = vi.fn();
 
 vi.mock("framer-motion", async () => {
 	const actual = await vi.importActual<typeof import("framer-motion")>("framer-motion");
+
+	// Shared anchor mock that captures drag handlers (used by DesktopIcon after Story 4)
+	const MockAnchor = ({
+		children,
+		onDragStart,
+		onDragEnd,
+		drag,
+		href,
+		...props
+	}: React.ComponentProps<"a"> & {
+		drag?: boolean;
+		onDragStart?: () => void;
+		onDragEnd?: () => void;
+	}) => {
+		// Capture the drag handlers for testing
+		if (onDragStart) mockOnDragStart.mockImplementation(onDragStart);
+		if (onDragEnd) mockOnDragEnd.mockImplementation(onDragEnd);
+
+		return (
+			<a
+				href={href}
+				data-testid="desktop-icon-button"
+				data-drag-enabled={String(!!drag)}
+				{...props}
+			>
+				{children}
+			</a>
+		);
+	};
+
 	return {
 		...actual,
 		motion: {
 			...actual.motion,
+			a: MockAnchor,
+			// Keep button mock for backward compatibility with other tests
 			button: ({
 				children,
 				onDragStart,
@@ -87,7 +119,6 @@ vi.mock("framer-motion", async () => {
 				onDragStart?: () => void;
 				onDragEnd?: () => void;
 			}) => {
-				// Capture the drag handlers for testing
 				if (onDragStart) mockOnDragStart.mockImplementation(onDragStart);
 				if (onDragEnd) mockOnDragEnd.mockImplementation(onDragEnd);
 
