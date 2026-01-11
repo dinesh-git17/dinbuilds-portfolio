@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { getLegacyRedirectPath } from "@/lib/seo/path-routing";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -49,9 +50,24 @@ function buildSecurityHeaders(): Headers {
 	return headers;
 }
 
-export function middleware(_request: NextRequest) {
-	const securityHeaders = buildSecurityHeaders();
+export function middleware(request: NextRequest) {
+	const { searchParams, pathname } = request.nextUrl;
 
+	// Handle legacy query parameter URLs — redirect to clean paths
+	// Example: /?app=yield → /projects/yield
+	// Example: /?app=markdown&file=meridian → /experience/meridian
+	const appSlug = searchParams.get("app");
+	if (appSlug && pathname === "/") {
+		const fileSlug = searchParams.get("file") ?? undefined;
+		const redirectPath = getLegacyRedirectPath(appSlug, fileSlug);
+
+		if (redirectPath) {
+			const redirectUrl = new URL(redirectPath, request.url);
+			return NextResponse.redirect(redirectUrl, 301);
+		}
+	}
+
+	const securityHeaders = buildSecurityHeaders();
 	const response = NextResponse.next();
 
 	// Apply security headers to response

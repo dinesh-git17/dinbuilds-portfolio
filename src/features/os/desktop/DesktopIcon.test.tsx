@@ -57,28 +57,94 @@ vi.mock("@/os/window", () => ({
 	useReducedMotion: () => false,
 }));
 
+// Mock useNavigate hook (uses Next.js useRouter internally)
+vi.mock("@/os/hooks", () => ({
+	useNavigate: () => ({
+		navigate: vi.fn(),
+		prefetch: vi.fn(),
+		getPath: vi.fn(() => "/"),
+	}),
+}));
+
 // Mock framer-motion to capture drag events
 const mockOnDragStart = vi.fn();
 const mockOnDragEnd = vi.fn();
 
 vi.mock("framer-motion", async () => {
 	const actual = await vi.importActual<typeof import("framer-motion")>("framer-motion");
+
+	// Shared anchor mock that captures drag handlers (used by DesktopIcon after Story 4)
+	const MockAnchor = ({
+		children,
+		onDragStart,
+		onDragEnd,
+		drag,
+		href,
+		// Filter out Framer Motion-specific props to avoid React warnings
+		dragSnapToOrigin: _snapOrigin,
+		dragElastic: _elastic,
+		dragMomentum: _momentum,
+		whileDrag: _whileDrag,
+		whileHover: _whileHover,
+		whileTap: _whileTap,
+		...props
+	}: React.ComponentProps<"a"> & {
+		drag?: boolean;
+		onDragStart?: () => void;
+		onDragEnd?: () => void;
+		dragSnapToOrigin?: boolean;
+		dragElastic?: number;
+		dragMomentum?: boolean;
+		whileDrag?: unknown;
+		whileHover?: unknown;
+		whileTap?: unknown;
+	}) => {
+		// Capture the drag handlers for testing
+		if (onDragStart) mockOnDragStart.mockImplementation(onDragStart);
+		if (onDragEnd) mockOnDragEnd.mockImplementation(onDragEnd);
+
+		return (
+			<a
+				href={href}
+				data-testid="desktop-icon-button"
+				data-drag-enabled={String(!!drag)}
+				{...props}
+			>
+				{children}
+			</a>
+		);
+	};
+
 	return {
 		...actual,
 		motion: {
 			...actual.motion,
+			a: MockAnchor,
+			// Keep button mock for backward compatibility with other tests
 			button: ({
 				children,
 				onDragStart,
 				onDragEnd,
 				drag,
+				// Filter out Framer Motion-specific props to avoid React warnings
+				dragSnapToOrigin: _snapOrigin,
+				dragElastic: _elastic,
+				dragMomentum: _momentum,
+				whileDrag: _whileDrag,
+				whileHover: _whileHover,
+				whileTap: _whileTap,
 				...props
 			}: React.ComponentProps<"button"> & {
 				drag?: boolean;
 				onDragStart?: () => void;
 				onDragEnd?: () => void;
+				dragSnapToOrigin?: boolean;
+				dragElastic?: number;
+				dragMomentum?: boolean;
+				whileDrag?: unknown;
+				whileHover?: unknown;
+				whileTap?: unknown;
 			}) => {
-				// Capture the drag handlers for testing
 				if (onDragStart) mockOnDragStart.mockImplementation(onDragStart);
 				if (onDragEnd) mockOnDragEnd.mockImplementation(onDragEnd);
 

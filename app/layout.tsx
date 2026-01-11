@@ -1,7 +1,12 @@
 import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { generateProfilePageSchema, renderJsonLd } from "@/lib/seo";
+import {
+	generateProfilePageSchema,
+	generateWebSiteSchema,
+	renderJsonLd,
+	SiteIndex,
+} from "@/lib/seo";
 import "./globals.css";
 
 /**
@@ -80,16 +85,24 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	const profileSchema = generateProfilePageSchema();
+	const webSiteSchema = generateWebSiteSchema();
 
 	return (
 		<html lang="en">
 			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+				{/* Hidden site index for crawler discovery (SEO Story 4) */}
+				<SiteIndex baseUrl="https://dineshd.dev" />
 				{children}
 				<Analytics />
 				{/* Schema.org JSON-LD for Person & ProfilePage */}
 				<script
 					type="application/ld+json"
 					dangerouslySetInnerHTML={{ __html: renderJsonLd(profileSchema) }}
+				/>
+				{/* Schema.org JSON-LD for WebSite (Story 5) */}
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{ __html: renderJsonLd(webSiteSchema) }}
 				/>
 			</body>
 		</html>

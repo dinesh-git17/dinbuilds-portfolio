@@ -3,12 +3,13 @@
 import { motion, useAnimation } from "framer-motion";
 import { FileText } from "lucide-react";
 import Image from "next/image";
-import { memo, useCallback, useRef } from "react";
+import { memo, useCallback, useMemo, useRef } from "react";
 
 import { ONBOARDING_TIMING } from "@/os/boot";
 import { ELASTIC_DRAG_CONFIG, useElasticDrag } from "@/os/config";
+import { useNavigate } from "@/os/hooks";
 import { SPOTLIGHT_Z_INDEX } from "@/os/onboarding";
-import { type AppID, useSystemStore } from "@/os/store";
+import type { AppID } from "@/os/store";
 import { useReducedMotion } from "@/os/window";
 
 import { useDeviceType } from "./dock/useDeviceType";
@@ -99,7 +100,7 @@ export const DesktopIcon = memo(function DesktopIcon({
 	onRegisterRef,
 	isHighlighted = false,
 }: DesktopIconProps) {
-	const launchApp = useSystemStore((s) => s.launchApp);
+	const { navigate, getPath } = useNavigate();
 	const isFile = iconType === "file";
 	const prefersReducedMotion = useReducedMotion();
 	const deviceType = useDeviceType();
@@ -126,29 +127,44 @@ export const DesktopIcon = memo(function DesktopIcon({
 		? ONBOARDING_TIMING.REDUCED_MOTION_DELAY / 1000
 		: ONBOARDING_TIMING.GLOW_TRANSITION / 1000;
 
+	// Get canonical path for this icon (enables crawler discovery)
+	const href = useMemo(() => {
+		if (isFile && contentUrl) {
+			return getPath(appId, { url: contentUrl, title });
+		}
+		if (folderId) {
+			return getPath(appId, { folderId });
+		}
+		return getPath(appId);
+	}, [appId, isFile, contentUrl, title, folderId, getPath]);
+
 	const launchWithProps = useCallback(() => {
 		if (isFile && contentUrl) {
-			launchApp(appId, { props: { url: contentUrl, title }, launchMethod: "desktop_icon" });
+			navigate(appId, { props: { url: contentUrl, title }, launchMethod: "desktop_icon" });
 		} else if (folderId) {
-			launchApp(appId, { props: { folderId }, launchMethod: "desktop_icon" });
+			navigate(appId, { props: { folderId }, launchMethod: "desktop_icon" });
 		} else {
-			launchApp(appId, { launchMethod: "desktop_icon" });
+			navigate(appId, { launchMethod: "desktop_icon" });
 		}
-	}, [appId, isFile, contentUrl, title, folderId, launchApp]);
+	}, [appId, isFile, contentUrl, title, folderId, navigate]);
 
 	const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const clickCountRef = useRef(0);
 
 	// Combined ref callback for both internal use and registration
-	const buttonRefCallback = useCallback(
-		(element: HTMLButtonElement | null) => {
-			onRegisterRef?.(element);
+	// Note: We use HTMLAnchorElement for crawl accessibility, but register as button for selection box
+	const anchorRefCallback = useCallback(
+		(element: HTMLAnchorElement | null) => {
+			// Cast to button for backward compatibility with selection box logic
+			onRegisterRef?.(element as unknown as HTMLButtonElement | null);
 		},
 		[onRegisterRef],
 	);
 
 	const handleClick = useCallback(
-		(e: React.MouseEvent) => {
+		(e: React.MouseEvent<HTMLAnchorElement>) => {
+			// Prevent default link behavior for SPA navigation
+			e.preventDefault();
 			e.stopPropagation();
 
 			// If this click followed a significant drag, ignore it
@@ -197,8 +213,9 @@ export const DesktopIcon = memo(function DesktopIcon({
 	);
 
 	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent) => {
+		(e: React.KeyboardEvent<HTMLAnchorElement>) => {
 			if (e.key === "Enter" || e.key === " ") {
+				// Prevent default link behavior for SPA navigation
 				e.preventDefault();
 				// Clear selection before launching
 				onExecute();
@@ -220,9 +237,9 @@ export const DesktopIcon = memo(function DesktopIcon({
 	);
 
 	return (
-		<motion.button
-			ref={buttonRefCallback}
-			type="button"
+		<motion.a
+			ref={anchorRefCallback}
+			href={href}
 			onClick={handleClick}
 			onKeyDown={handleKeyDown}
 			onContextMenu={handleContextMenu}
@@ -283,6 +300,6 @@ export const DesktopIcon = memo(function DesktopIcon({
 			>
 				{label}
 			</span>
-		</motion.button>
+		</motion.a>
 	);
 });

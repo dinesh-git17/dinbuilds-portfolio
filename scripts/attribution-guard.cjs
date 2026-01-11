@@ -51,9 +51,10 @@ const EXCLUDED_FILES = new Set([
   'commit-msg-guard.cjs',
   'README.md',
   '.claude/settings.json',
-  'metadata.ts',  // SEO metadata contains AI model names as project features
-  'schema.ts',    // SEO schema contains AI model names as project features
-  'metadata.md',  // SEO report contains AI model names as project features
+  'metadata.ts',       // SEO metadata contains AI model names as project features
+  'path-metadata.ts',  // SEO path metadata contains AI model names as project features
+  'schema.ts',         // SEO schema contains AI model names as project features
+  'metadata.md',       // SEO report contains AI model names as project features
 ]);
 
 // Directories to exclude
