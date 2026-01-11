@@ -5,6 +5,8 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AppID } from "@/os/store/types";
+
 import { DesktopIcon, type DesktopIconProps } from "./DesktopIcon";
 
 // Mock next/image to render a standard img tag for testing
@@ -101,7 +103,7 @@ vi.mock("framer-motion", async () => {
 
 describe("DesktopIcon", () => {
 	const defaultProps: DesktopIconProps = {
-		appId: "app.folder",
+		appId: AppID.FolderProjects,
 		label: "Test Folder",
 		iconType: "folder",
 		folderId: "test-folder",
@@ -172,7 +174,7 @@ describe("DesktopIcon", () => {
 	describe("File icon (SVG) drag behavior", () => {
 		const fileProps: DesktopIconProps = {
 			...defaultProps,
-			appId: "app.markdown",
+			appId: AppID.MarkdownViewer,
 			label: "Test File",
 			iconType: "file",
 			contentUrl: "/test.md",
@@ -210,7 +212,7 @@ describe("DesktopIcon", () => {
 					{...defaultProps}
 					iconType="file"
 					label="README"
-					appId="app.markdown"
+					appId={AppID.MarkdownViewer}
 					contentUrl="/readme.md"
 				/>,
 			);
