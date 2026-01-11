@@ -3,7 +3,7 @@
 import { motion, useAnimation } from "framer-motion";
 import { FileText } from "lucide-react";
 import Image from "next/image";
-import { memo, useCallback, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ONBOARDING_TIMING } from "@/os/boot";
 import { ELASTIC_DRAG_CONFIG, useElasticDrag } from "@/os/config";
@@ -127,6 +127,14 @@ export const DesktopIcon = memo(function DesktopIcon({
 		? ONBOARDING_TIMING.REDUCED_MOTION_DELAY / 1000
 		: ONBOARDING_TIMING.GLOW_TRANSITION / 1000;
 
+	// Remove href after hydration to hide browser status bar preview
+	// Crawlers see initial HTML with href, users never see the preview
+	const [isHydrated, setIsHydrated] = useState(false);
+
+	useEffect(() => {
+		setIsHydrated(true);
+	}, []);
+
 	// Get canonical path for this icon (enables crawler discovery)
 	const href = useMemo(() => {
 		if (isFile && contentUrl) {
@@ -239,7 +247,8 @@ export const DesktopIcon = memo(function DesktopIcon({
 	return (
 		<motion.a
 			ref={anchorRefCallback}
-			href={href}
+			href={isHydrated ? undefined : href}
+			draggable={false}
 			onClick={handleClick}
 			onKeyDown={handleKeyDown}
 			onContextMenu={handleContextMenu}

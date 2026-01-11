@@ -153,7 +153,7 @@ export const Dock = memo(function Dock({
 	const dockRef = useRef<HTMLElement>(null);
 	// Track mouse X for horizontal, Y for vertical
 	const mousePosition = useMotionValue(Infinity);
-	// Suspend mouse tracking after click until mouse leaves dock
+	// Briefly suspend tracking during bounce animation to prevent sticking
 	const isTrackingSuspended = useRef(false);
 
 	// Keyboard navigation state
@@ -185,8 +185,6 @@ export const Dock = memo(function Dock({
 	const handleMouseLeave = useCallback(() => {
 		mousePosition.set(Infinity);
 		setFocusedIndex(-1);
-		// Re-enable tracking when mouse leaves
-		isTrackingSuspended.current = false;
 	}, [mousePosition]);
 
 	const handleKeyDown = useCallback(
@@ -228,9 +226,14 @@ export const Dock = memo(function Dock({
 
 	const handleIconClick = useCallback(() => {
 		setFocusedIndex(-1);
-		// Reset magnification and suspend tracking until mouse leaves
+		// Reset magnification and suspend tracking during bounce animation
+		// This prevents the bouncing icon's moving bounds from causing magnification to stick
 		mousePosition.set(Infinity);
 		isTrackingSuspended.current = true;
+		// Resume tracking after bounce animation completes (500ms)
+		setTimeout(() => {
+			isTrackingSuspended.current = false;
+		}, 500);
 	}, [mousePosition]);
 
 	// Prevent selection box from triggering when interacting with dock

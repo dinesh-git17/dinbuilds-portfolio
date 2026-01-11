@@ -10,7 +10,7 @@ import {
 } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { useNavigate } from "@/os/hooks";
 import { type AppID, useSystemStore } from "@/os/store";
@@ -139,6 +139,13 @@ export const DockIcon = memo(function DockIcon({
 	);
 	const [isHovered, setIsHovered] = useState(false);
 	const [hasPrefetched, setHasPrefetched] = useState(false);
+	// Remove href after hydration to hide browser status bar preview
+	// Crawlers see initial HTML with href, users never see the preview
+	const [isHydrated, setIsHydrated] = useState(false);
+
+	useEffect(() => {
+		setIsHydrated(true);
+	}, []);
 
 	const isVertical = dockPosition === "left" || dockPosition === "right";
 
@@ -260,7 +267,9 @@ export const DockIcon = memo(function DockIcon({
 			{/* Icon anchor (enables crawler discovery via valid href) */}
 			<motion.a
 				ref={ref}
-				href={href}
+				href={isHydrated ? undefined : href}
+				draggable={false}
+				onDragStart={(e) => e.preventDefault()}
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}
 				onFocus={onFocus}
