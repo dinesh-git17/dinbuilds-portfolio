@@ -368,6 +368,7 @@ export const WindowFrame = memo(function WindowFrame({
 					damping: 30,
 				}}
 				onPointerDown={handleFocus}
+				onContextMenu={(e) => e.preventDefault()}
 			>
 				{/* Window chrome */}
 				<div
