@@ -101,6 +101,12 @@ export interface WindowProps {
 	folderId?: string;
 	/** Initial tab for Settings deep-linking */
 	initialTab?: string;
+	/**
+	 * Pre-loaded content for SSR.
+	 * When provided, client components skip fetching and render immediately.
+	 * Used by MarkdownViewer to display content without JavaScript.
+	 */
+	ssrContent?: string;
 }
 
 /**

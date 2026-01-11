@@ -25,14 +25,33 @@ export interface MarkdownViewerAppProps extends AppComponentProps {}
  *
  * A Notion/Obsidian-inspired document reader with polished typography
  * and the Focus OS dark aesthetic. Opens in fullscreen for focused reading.
+ *
+ * Supports Server-Side Rendering via `ssrContent` prop:
+ * - When `ssrContent` is provided, renders immediately without fetching
+ * - When `ssrContent` is not provided, falls back to client-side fetch
+ * - This ensures content is visible to search engines without JavaScript
  */
 export const MarkdownViewerApp = memo(function MarkdownViewerApp({
 	windowProps,
 }: MarkdownViewerAppProps) {
-	const [fetchState, setFetchState] = useState<FetchState>({ status: "idle" });
 	const url = windowProps?.url;
+	const ssrContent = windowProps?.ssrContent;
+
+	// Initialize state based on whether we have SSR content
+	// This prevents hydration mismatches by starting with the same state as server
+	const [fetchState, setFetchState] = useState<FetchState>(() => {
+		if (ssrContent) {
+			return { status: "success", content: ssrContent };
+		}
+		return { status: "idle" };
+	});
 
 	useEffect(() => {
+		// Skip fetching if we already have SSR content
+		if (ssrContent) {
+			return;
+		}
+
 		if (!url) {
 			setFetchState({ status: "error", message: "No file URL provided" });
 			return;
@@ -78,7 +97,7 @@ export const MarkdownViewerApp = memo(function MarkdownViewerApp({
 		fetchContent();
 
 		return () => controller.abort();
-	}, [url]);
+	}, [url, ssrContent]);
 
 	if (fetchState.status === "idle" || fetchState.status === "loading") {
 		return <LoadingState />;

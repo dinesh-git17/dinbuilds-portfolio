@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { hydrateWindowContent } from "@/lib/content";
 import {
 	FILE_SLUG_MAP,
 	generatePageMetadata,
@@ -9,6 +10,7 @@ import {
 } from "@/lib/seo";
 import { BootManager, BootScreen, WelcomeOverlay } from "@/os/boot";
 import { Stage } from "@/os/desktop";
+import { SSRContentProjection } from "@/os/ssr";
 import { StoreHydrator } from "@/os/store";
 
 /**
@@ -38,10 +40,19 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
  * - /?app=about → About window open
  * - /?app=yield → Yield project window
  * - /?app=markdown&file=yield → Markdown viewer with yield.md
+ *
+ * SSR Content Strategy (SEO-01 Story 1):
+ * - Content is fetched server-side and injected into window props
+ * - This ensures crawlers see full content in initial HTML response
+ * - Boot screen renders on top but doesn't block SSR content from DOM
  */
 export default async function Home({ searchParams }: PageProps) {
 	const params = await searchParams;
-	const initialState = parseURLToState(params);
+	const parsedState = parseURLToState(params);
+
+	// Hydrate window content server-side for SSR
+	// This fetches markdown content and injects it into window props
+	const initialState = await hydrateWindowContent(parsedState);
 
 	// Generate project schema if viewing a markdown file
 	let projectSchema = null;
@@ -59,6 +70,9 @@ export default async function Home({ searchParams }: PageProps) {
 				<Stage />
 				<WelcomeOverlay />
 			</BootManager>
+			{/* SSR Content Projection — Hidden content for search engine crawlers */}
+			{/* This renders pre-fetched content in a crawlable but visually hidden element */}
+			<SSRContentProjection windows={initialState.windows} />
 			{/* Schema.org JSON-LD for SoftwareSourceCode (projects only) */}
 			{projectSchema && (
 				<script
