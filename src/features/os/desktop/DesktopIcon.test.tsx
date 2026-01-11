@@ -57,6 +57,15 @@ vi.mock("@/os/window", () => ({
 	useReducedMotion: () => false,
 }));
 
+// Mock useNavigate hook (uses Next.js useRouter internally)
+vi.mock("@/os/hooks", () => ({
+	useNavigate: () => ({
+		navigate: vi.fn(),
+		prefetch: vi.fn(),
+		getPath: vi.fn(() => "/"),
+	}),
+}));
+
 // Mock framer-motion to capture drag events
 const mockOnDragStart = vi.fn();
 const mockOnDragEnd = vi.fn();
