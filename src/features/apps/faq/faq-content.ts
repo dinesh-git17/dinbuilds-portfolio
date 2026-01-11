@@ -16,7 +16,42 @@ export const FAQ_FILE_MAP: Record<FAQCategoryId, string> = {
 	about: "/faq/about.md",
 	technology: "/faq/projects-tech.md",
 	usage: "/faq/using-this-portfolio.md",
+	terms: "/faq/terms.md",
+	privacy: "/faq/privacy.md",
 };
+
+/**
+ * Categories that render as full documents instead of Q&A format.
+ */
+export const DOCUMENT_CATEGORIES: Set<FAQCategoryId> = new Set(["terms", "privacy"]);
+
+/**
+ * Check if a category should render as a document.
+ */
+export function isDocumentCategory(category: FAQCategoryId): boolean {
+	return DOCUMENT_CATEGORIES.has(category);
+}
+
+/**
+ * Fetch raw markdown content for document categories.
+ *
+ * @param category - The document category to fetch
+ * @returns Promise resolving to raw markdown string
+ */
+export async function fetchDocumentContent(category: FAQCategoryId): Promise<string> {
+	const filePath = FAQ_FILE_MAP[category];
+
+	try {
+		const response = await fetch(filePath);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch document content: ${response.status}`);
+		}
+
+		return await response.text();
+	} catch {
+		return "";
+	}
+}
 
 /**
  * Parse markdown content into Q&A entries.

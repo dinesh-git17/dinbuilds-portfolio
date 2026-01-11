@@ -100,3 +100,5 @@ If a model makes a claim, it should be able to defend it.
 If it cannot, you should be able to see that too.
 
 Debate Lab exists to make that visible.
+
+Github: [Debate Lab Repo](https://github.com/dinesh-git17/debate-lab)

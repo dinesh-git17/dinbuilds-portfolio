@@ -1,0 +1,30 @@
+PERSONAL PORTFOLIO SOURCE LICENSE
+Version 1.0
+
+Copyright (c) 2026 Dinesh Dawonauth
+
+1. PURPOSE AND INTENT
+This software is a personal portfolio and product demonstration. It is provided publicly to showcase engineering skills, architectural decisions, and design capabilities. It is explicitly not intended to be used as a template, starter kit, or boilerplate for other projects.
+
+2. PERMITTED USES
+You are free to:
+- View, read, and analyze the source code for educational purposes.
+- Fork the repository for private, non-commercial experimentation and learning.
+- Reference architectural patterns, logic, or specific coding techniques used within this project.
+- Adapt individual snippets or small functional components for your own distinct projects, provided they do not constitute a substantial portion of this work.
+
+3. RESTRICTIONS
+You may not:
+- Use this repository, in whole or in substantial part, as a template or foundation for your own portfolio or commercial project.
+- Rebrand, redistribute, or deploy a derivative work that functions or appears substantially similar to the original software.
+- Remove, obscure, or modify any copyright notices or attribution references present in the source files.
+- Use this software for any commercial purpose without prior written permission from the author.
+
+4. ATTRIBUTION
+If you adapt specific implementation details or logic from this project into your own public work, you must include a clear reference linking back to this repository. This attribution should be visible in your project's documentation or source code comments.
+
+5. NO ENDORSEMENT
+You may not imply any association with, sponsorship by, or endorsement from the original author. Your derivative or inspired works must be clearly distinguishable from this project.
+
+6. DISCLAIMER OF WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

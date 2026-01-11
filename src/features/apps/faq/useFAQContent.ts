@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import type { FAQCategoryId } from "./FAQSidebar";
-import { fetchFAQContent, type QAEntry } from "./faq-content";
+import {
+	fetchDocumentContent,
+	fetchFAQContent,
+	isDocumentCategory,
+	type QAEntry,
+} from "./faq-content";
 
 /**
  * Content cache to prevent refetching on category switches.
@@ -11,10 +16,16 @@ import { fetchFAQContent, type QAEntry } from "./faq-content";
 const contentCache = new Map<FAQCategoryId, QAEntry[]>();
 
 /**
+ * Document cache for full markdown content.
+ */
+const documentCache = new Map<FAQCategoryId, string>();
+
+/**
  * Hook state for FAQ content loading.
  */
 interface FAQContentState {
 	entries: QAEntry[];
+	document: string | null;
 	isLoading: boolean;
 	error: string | null;
 }
@@ -26,53 +37,90 @@ interface FAQContentState {
  * - Caches content to prevent refetching on category switches
  * - Returns loading state for UI feedback
  * - Handles errors gracefully
+ * - Supports both Q&A format and full document categories
  *
  * @param category - The FAQ category to load
- * @returns Object with entries, loading state, and error
+ * @returns Object with entries (for Q&A), document (for full docs), loading state, and error
  */
 export function useFAQContent(category: FAQCategoryId): FAQContentState {
+	const isDocument = isDocumentCategory(category);
+
 	const [state, setState] = useState<FAQContentState>(() => {
-		// Check cache on initial render
+		// Check appropriate cache on initial render
+		if (isDocument) {
+			const cached = documentCache.get(category);
+			return {
+				entries: [],
+				document: cached ?? null,
+				isLoading: !cached,
+				error: null,
+			};
+		}
+
 		const cached = contentCache.get(category);
 		return {
 			entries: cached ?? [],
+			document: null,
 			isLoading: !cached,
 			error: null,
 		};
 	});
 
 	useEffect(() => {
-		// Check cache first
-		const cached = contentCache.get(category);
-		if (cached) {
-			setState({ entries: cached, isLoading: false, error: null });
-			return;
-		}
-
-		// Fetch content
 		let cancelled = false;
 
-		setState((prev) => ({ ...prev, isLoading: true, error: null }));
+		if (isDocument) {
+			// Handle document categories
+			const cached = documentCache.get(category);
+			if (cached) {
+				setState({ entries: [], document: cached, isLoading: false, error: null });
+				return;
+			}
 
-		fetchFAQContent(category)
-			.then((entries) => {
-				if (cancelled) return;
+			setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-				// Cache the result
-				contentCache.set(category, entries);
-				setState({ entries, isLoading: false, error: null });
-			})
-			.catch((err: unknown) => {
-				if (cancelled) return;
+			fetchDocumentContent(category)
+				.then((content) => {
+					if (cancelled) return;
 
-				const message = err instanceof Error ? err.message : "Failed to load content";
-				setState({ entries: [], isLoading: false, error: message });
-			});
+					documentCache.set(category, content);
+					setState({ entries: [], document: content, isLoading: false, error: null });
+				})
+				.catch((err: unknown) => {
+					if (cancelled) return;
+
+					const message = err instanceof Error ? err.message : "Failed to load content";
+					setState({ entries: [], document: null, isLoading: false, error: message });
+				});
+		} else {
+			// Handle Q&A categories
+			const cached = contentCache.get(category);
+			if (cached) {
+				setState({ entries: cached, document: null, isLoading: false, error: null });
+				return;
+			}
+
+			setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+			fetchFAQContent(category)
+				.then((entries) => {
+					if (cancelled) return;
+
+					contentCache.set(category, entries);
+					setState({ entries, document: null, isLoading: false, error: null });
+				})
+				.catch((err: unknown) => {
+					if (cancelled) return;
+
+					const message = err instanceof Error ? err.message : "Failed to load content";
+					setState({ entries: [], document: null, isLoading: false, error: message });
+				});
+		}
 
 		return () => {
 			cancelled = true;
 		};
-	}, [category]);
+	}, [category, isDocument]);
 
 	return state;
 }

@@ -132,3 +132,5 @@ And your most sensitive data should belong to you, not a cloud.
 PassFX does one thing well: it stores your secrets locally, encrypts them properly, and gets out of your way.
 
 Everything else is noise.
+
+Github: [PassFX Repo](https://github.com/dinesh-git17/passfx)
