@@ -170,6 +170,7 @@ function createWindowForState(appId: AppID, props?: WindowProps): WindowInstance
  * @param pathname - The URL pathname (e.g., "/projects/yield")
  * @returns HydrationState for store initialization
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: route parsing requires comprehensive path matching
 export function parsePathToState(pathname: string): HydrationState {
 	const emptyState: HydrationState = {
 		windows: [],
@@ -267,6 +268,7 @@ export function parsePathToState(pathname: string): HydrationState {
  * @param props - Optional window props (for file-based apps)
  * @returns The canonical URL path
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: reverse mapping requires exhaustive file lookups
 export function getCanonicalPath(appId: AppID | null, props?: WindowProps): string {
 	if (!appId) {
 		return "/";
@@ -352,6 +354,14 @@ export function getLegacyRedirectPath(appSlug: string, fileSlug?: string): strin
 
 	// Handle markdown viewer with file param
 	if (normalizedApp === "markdown" && normalizedFile) {
+		// Check project app slugs (yield, debate, passfx) - legacy URLs may reference these
+		if (PROJECT_APP_SLUGS.has(normalizedFile)) {
+			return `/projects/${normalizedFile}`;
+		}
+		// Handle debate-lab alias
+		if (normalizedFile === "debate-lab") {
+			return "/projects/debate";
+		}
 		// Check project files
 		if (PROJECT_FILE_SLUGS[normalizedFile]) {
 			return `/projects/${normalizedFile}`;

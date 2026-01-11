@@ -80,11 +80,24 @@ vi.mock("framer-motion", async () => {
 		onDragEnd,
 		drag,
 		href,
+		// Filter out Framer Motion-specific props to avoid React warnings
+		dragSnapToOrigin: _snapOrigin,
+		dragElastic: _elastic,
+		dragMomentum: _momentum,
+		whileDrag: _whileDrag,
+		whileHover: _whileHover,
+		whileTap: _whileTap,
 		...props
 	}: React.ComponentProps<"a"> & {
 		drag?: boolean;
 		onDragStart?: () => void;
 		onDragEnd?: () => void;
+		dragSnapToOrigin?: boolean;
+		dragElastic?: number;
+		dragMomentum?: boolean;
+		whileDrag?: unknown;
+		whileHover?: unknown;
+		whileTap?: unknown;
 	}) => {
 		// Capture the drag handlers for testing
 		if (onDragStart) mockOnDragStart.mockImplementation(onDragStart);
@@ -113,11 +126,24 @@ vi.mock("framer-motion", async () => {
 				onDragStart,
 				onDragEnd,
 				drag,
+				// Filter out Framer Motion-specific props to avoid React warnings
+				dragSnapToOrigin: _snapOrigin,
+				dragElastic: _elastic,
+				dragMomentum: _momentum,
+				whileDrag: _whileDrag,
+				whileHover: _whileHover,
+				whileTap: _whileTap,
 				...props
 			}: React.ComponentProps<"button"> & {
 				drag?: boolean;
 				onDragStart?: () => void;
 				onDragEnd?: () => void;
+				dragSnapToOrigin?: boolean;
+				dragElastic?: number;
+				dragMomentum?: boolean;
+				whileDrag?: unknown;
+				whileHover?: unknown;
+				whileTap?: unknown;
 			}) => {
 				if (onDragStart) mockOnDragStart.mockImplementation(onDragStart);
 				if (onDragEnd) mockOnDragEnd.mockImplementation(onDragEnd);
