@@ -1,5 +1,5 @@
 import { hydrateWindowContent } from "@/lib/content";
-import { generateProjectSchema, type HydrationState, renderJsonLd } from "@/lib/seo";
+import { generateSoftwareApplicationSchema, type HydrationState, renderJsonLd } from "@/lib/seo";
 import { BootManager, BootScreen, WelcomeOverlay } from "@/os/boot";
 import { Stage } from "@/os/desktop";
 import { SSRContentProjection, SSREntityCard } from "@/os/ssr";
@@ -43,10 +43,10 @@ export async function OSShell({
 	// Hydrate content server-side for SSR
 	const hydratedState = await hydrateWindowContent(initialState);
 
-	// Generate project schema if viewing a project file
+	// Generate SoftwareApplication schema if viewing a project file (Story 5)
 	let projectSchema = null;
 	if (fileId) {
-		projectSchema = generateProjectSchema(fileId);
+		projectSchema = generateSoftwareApplicationSchema(fileId);
 	}
 
 	return (
@@ -60,7 +60,7 @@ export async function OSShell({
 			<SSREntityCard includeH1={isHomepage || !hasContentH1} />
 			{/* SSR Content Projection — Hidden content for search engine crawlers */}
 			<SSRContentProjection windows={hydratedState.windows} />
-			{/* Schema.org JSON-LD for SoftwareSourceCode (projects only) */}
+			{/* Schema.org JSON-LD for SoftwareApplication (projects only, Story 5) */}
 			{projectSchema && (
 				<script
 					type="application/ld+json"

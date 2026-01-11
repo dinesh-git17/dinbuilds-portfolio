@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * SSR Content Validation Script — SEO-01 Stories 1 & 3 + SEO-02 Story 2 + Story 4
+ * SSR Content Validation Script — SEO-01 Stories 1 & 3 + SEO-02 Story 2 + Story 4 + Story 5
  *
  * Validates that server-rendered content is present in HTML responses.
  * Also validates schema markup, meta tags, canonical URLs, and crawl files.
@@ -17,6 +17,11 @@
  * - Sitemap.xml structure (Story 4)
  * - Robots.txt syntax (Story 4)
  * - Site Index for crawlers (Story 4)
+ * - FAQPage schema (Story 5)
+ * - WebSite schema (Story 5)
+ * - SoftwareApplication schema (Story 5)
+ * - Semantic FAQ content (Story 5)
+ * - Semantic Resume content (Story 5)
  *
  * Usage:
  *   1. Build the app: pnpm build
@@ -137,8 +142,8 @@ const ENTITY_TEST_CASES = [
 			// OG tags present
 			{ type: "pattern", value: /<meta[^>]*property="og:title"[^>]*content="[^"]+"/i, description: "og:title meta tag" },
 			{ type: "pattern", value: /<meta[^>]*property="og:description"[^>]*content="[^"]+"/i, description: "og:description meta tag" },
-			// CreativeWork schema for project
-			{ type: "pattern", value: /"@type"\s*:\s*"CreativeWork"/, description: "CreativeWork schema type" },
+			// SoftwareApplication schema for project (Story 5 update)
+			{ type: "pattern", value: /"@type"\s*:\s*"SoftwareApplication"/, description: "SoftwareApplication schema type" },
 		],
 	},
 ];
@@ -214,6 +219,87 @@ const SITE_INDEX_TEST = {
 		{ type: "content", value: 'href="https://dineshd.dev/experience"', description: "Experience link in Site Index" },
 	],
 };
+
+/**
+ * Story 5 schema test cases - validates new schema types.
+ */
+const STORY5_SCHEMA_TEST_CASES = [
+	{
+		name: "WebSite Schema on Homepage",
+		path: "/",
+		checks: [
+			{ type: "pattern", value: /"@type"\s*:\s*"WebSite"/, description: "WebSite schema type" },
+			{ type: "content", value: '"@id":"https://dineshd.dev/#website"', description: "WebSite @id" },
+			{ type: "content", value: '"name":"DinBuilds OS"', description: "WebSite name" },
+		],
+	},
+	{
+		name: "FAQPage Schema on FAQ",
+		path: "/faq",
+		checks: [
+			{ type: "pattern", value: /"@type"\s*:\s*"FAQPage"/, description: "FAQPage schema type" },
+			{ type: "content", value: '"@id":"https://dineshd.dev/faq#faqpage"', description: "FAQPage @id" },
+			{ type: "pattern", value: /"@type"\s*:\s*"Question"/, description: "Question schema in FAQ" },
+			{ type: "pattern", value: /"@type"\s*:\s*"Answer"/, description: "Answer schema in FAQ" },
+		],
+	},
+	{
+		name: "SoftwareApplication Schema on Yield",
+		path: "/projects/yield",
+		checks: [
+			{ type: "pattern", value: /"@type"\s*:\s*"SoftwareApplication"/, description: "SoftwareApplication schema type" },
+			{ type: "content", value: '"name":"Yield"', description: "Yield app name in schema" },
+			{ type: "content", value: '"applicationCategory":"EducationalApplication"', description: "Yield application category" },
+		],
+	},
+	{
+		name: "SoftwareApplication Schema on Debate",
+		path: "/projects/debate",
+		checks: [
+			{ type: "pattern", value: /"@type"\s*:\s*"SoftwareApplication"/, description: "SoftwareApplication schema type" },
+			{ type: "content", value: '"name":"Debate Lab"', description: "Debate Lab app name in schema" },
+		],
+	},
+	{
+		name: "SoftwareApplication Schema on PassFX",
+		path: "/projects/passfx",
+		checks: [
+			{ type: "pattern", value: /"@type"\s*:\s*"SoftwareApplication"/, description: "SoftwareApplication schema type" },
+			{ type: "content", value: '"name":"PassFX"', description: "PassFX app name in schema" },
+			{ type: "content", value: '"applicationCategory":"SecurityApplication"', description: "PassFX application category" },
+		],
+	},
+];
+
+/**
+ * Story 5 semantic content test cases - validates FAQ and Resume rendering.
+ */
+const STORY5_CONTENT_TEST_CASES = [
+	{
+		name: "Semantic FAQ Content",
+		path: "/faq",
+		checks: [
+			{ type: "content", value: 'data-ssr-faq="true"', description: "SSR FAQ marker" },
+			{ type: "content", value: 'data-ssr-faq-list="true"', description: "SSR FAQ list marker" },
+			{ type: "pattern", value: /<dl[^>]*data-ssr-faq-list/, description: "FAQ uses description list" },
+			{ type: "pattern", value: /<dt[^>]*data-question/, description: "FAQ questions use dt element" },
+			{ type: "pattern", value: /<dd[^>]*data-answer/, description: "FAQ answers use dd element" },
+		],
+	},
+	{
+		name: "Semantic Resume Content",
+		path: "/resume",
+		checks: [
+			{ type: "content", value: 'data-ssr-resume="true"', description: "SSR Resume marker" },
+			{ type: "pattern", value: /<article[^>]*data-ssr-resume/, description: "Resume uses article element" },
+			{ type: "pattern", value: /<section[^>]*data-section="summary"/, description: "Resume has summary section" },
+			{ type: "pattern", value: /<section[^>]*data-section="skills"/, description: "Resume has skills section" },
+			{ type: "pattern", value: /<section[^>]*data-section="experience"/, description: "Resume has experience section" },
+			{ type: "pattern", value: /<h2[^>]*>/, description: "Resume uses h2 for sections" },
+			{ type: "pattern", value: /<ul>/, description: "Resume uses lists for items" },
+		],
+	},
+];
 
 /**
  * Wait for the server to be ready by polling the health endpoint.
@@ -734,12 +820,54 @@ async function main() {
 		}
 
 		// ============================================
+		// Section 6: Story 5 Schema Validation
+		// ============================================
+		console.log("\n--- Story 5 Schema Validation ---\n");
+
+		const story5SchemaResults = [];
+		for (const testCase of STORY5_SCHEMA_TEST_CASES) {
+			process.stdout.write(`  Testing: ${testCase.name}... `);
+			const result = await runEntityTestCase(testCase);
+			story5SchemaResults.push({ ...testCase, ...result });
+
+			if (result.passed) {
+				console.log("PASS");
+			} else {
+				console.log("FAIL");
+				for (const error of result.errors) {
+					console.log(`    - ${error}`);
+				}
+			}
+		}
+
+		// ============================================
+		// Section 7: Story 5 Content Validation
+		// ============================================
+		console.log("\n--- Story 5 Content Validation ---\n");
+
+		const story5ContentResults = [];
+		for (const testCase of STORY5_CONTENT_TEST_CASES) {
+			process.stdout.write(`  Testing: ${testCase.name}... `);
+			const result = await runEntityTestCase(testCase);
+			story5ContentResults.push({ ...testCase, ...result });
+
+			if (result.passed) {
+				console.log("PASS");
+			} else {
+				console.log("FAIL");
+				for (const error of result.errors) {
+					console.log(`    - ${error}`);
+				}
+			}
+		}
+
+		// ============================================
 		// Summary
 		// ============================================
 		console.log("");
 		console.log("=".repeat(70));
 
-		const allResults = [...ssrResults, ...entityResults, ...canonicalResults, ...redirectResults, ...crawlResults];
+		const allResults = [...ssrResults, ...entityResults, ...canonicalResults, ...redirectResults, ...crawlResults, ...story5SchemaResults, ...story5ContentResults];
 		const passed = allResults.filter((r) => r.passed).length;
 		const failed = allResults.filter((r) => !r.passed).length;
 
@@ -760,6 +888,8 @@ async function main() {
 		const canonicalFailed = canonicalResults.filter((r) => !r.passed).length;
 		const redirectFailed = redirectResults.filter((r) => !r.passed).length;
 		const crawlFailed = crawlResults.filter((r) => !r.passed).length;
+		const story5SchemaFailed = story5SchemaResults.filter((r) => !r.passed).length;
+		const story5ContentFailed = story5ContentResults.filter((r) => !r.passed).length;
 
 		if (ssrFailed > 0) {
 			console.log("  SSR Content Issues:");
@@ -795,6 +925,22 @@ async function main() {
 			console.log("    - Check sitemap.ts for URL generation");
 			console.log("    - Verify robots.ts syntax and sitemap reference");
 			console.log("    - Ensure SiteIndex component is in layout.tsx");
+		}
+
+		if (story5SchemaFailed > 0) {
+			console.log("  Story 5 Schema Issues:");
+			console.log("    - Check WebSite schema in layout.tsx");
+			console.log("    - Verify FAQPage schema in /faq page");
+			console.log("    - Ensure SoftwareApplication schema on project pages");
+			console.log("    - Verify schema.ts generator functions");
+		}
+
+		if (story5ContentFailed > 0) {
+			console.log("  Story 5 Content Issues:");
+			console.log("    - Check SSRFAQContent component renders on /faq");
+			console.log("    - Verify SSRResumeContent component renders on /resume");
+			console.log("    - Ensure fetchAllFAQContent/fetchParsedResume work correctly");
+			console.log("    - Check semantic HTML structure (dl/dt/dd for FAQ, sections for resume)");
 		}
 
 		console.log("");

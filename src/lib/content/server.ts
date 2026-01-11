@@ -1,15 +1,20 @@
 /**
- * Server-Side Content Fetching — SEO-01 Story 1
+ * Server-Side Content Fetching — SEO-01 Story 1 + Story 5
  *
  * Utilities for fetching markdown content on the server.
  * Used to pre-render content in the initial HTML response for SEO.
  *
  * These functions are server-only and use Node.js fs module directly.
  * Content is read from the /public directory at build/request time.
+ *
+ * Story 5 Additions:
+ * - FAQ content fetching and parsing
+ * - Resume semantic parsing
  */
 
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { FAQEntry } from "@/lib/seo";
 
 /**
  * Result of a server-side content fetch operation.
@@ -195,4 +200,224 @@ export async function hydrateWindowContent<T extends HydrateableState>(
 		...hydrationState,
 		windows: hydratedWindows,
 	} as T;
+}
+
+/**
+ * FAQ category file mappings (Story 5).
+ * Maps category IDs to their markdown file paths.
+ */
+const FAQ_FILES: Record<string, string> = {
+	about: "/faq/about.md",
+	technology: "/faq/projects-tech.md",
+	usage: "/faq/using-this-portfolio.md",
+};
+
+/**
+ * Parse markdown content into FAQ entries.
+ *
+ * Expected format:
+ * ```
+ * ## Section Header (ignored)
+ *
+ * **Question text?**
+ * Answer text spanning one or more lines.
+ *
+ * **Next question?**
+ * Next answer.
+ * ```
+ *
+ * @param markdown - Raw markdown content
+ * @returns Array of FAQ entries
+ */
+export function parseFAQMarkdown(markdown: string): FAQEntry[] {
+	const entries: FAQEntry[] = [];
+
+	// Pattern: **Question?** followed by answer text
+	const questionPattern = /\*\*([^*]+\??)\*\*\s*\n?([\s\S]*?)(?=\n\*\*[^*]+\*\*|\n##|$)/g;
+
+	const matches = markdown.matchAll(questionPattern);
+
+	for (const match of matches) {
+		const questionMatch = match[1];
+		const answerMatch = match[2];
+
+		if (!questionMatch || !answerMatch) {
+			continue;
+		}
+
+		const question = questionMatch.trim();
+		const answer = answerMatch.trim();
+
+		// Skip empty answers or section headers
+		if (answer && !answer.startsWith("##")) {
+			entries.push({ question, answer });
+		}
+	}
+
+	return entries;
+}
+
+/**
+ * Fetch all FAQ content from the server (Story 5).
+ *
+ * Reads all FAQ markdown files and parses them into structured entries.
+ * Used for SSR content projection and FAQPage schema generation.
+ *
+ * @returns Promise resolving to array of all FAQ entries
+ */
+export async function fetchAllFAQContent(): Promise<FAQEntry[]> {
+	const allEntries: FAQEntry[] = [];
+
+	for (const [_category, filePath] of Object.entries(FAQ_FILES)) {
+		try {
+			const result = await fetchMarkdownContent(filePath);
+			if (result.success && result.content) {
+				const entries = parseFAQMarkdown(result.content);
+				allEntries.push(...entries);
+			}
+		} catch {
+			// Continue with other files if one fails
+		}
+	}
+
+	return allEntries;
+}
+
+/**
+ * Resume section structure for semantic parsing (Story 5).
+ */
+export interface ResumeSection {
+	title: string;
+	items: string[];
+}
+
+/**
+ * Parsed resume structure for semantic rendering (Story 5).
+ */
+export interface ParsedResume {
+	name: string;
+	title: string;
+	summary: string;
+	skills: Record<string, string>;
+	projects: ResumeSection[];
+	experience: ResumeSection[];
+}
+
+/**
+ * Parse resume markdown into semantic sections (Story 5).
+ *
+ * Extracts structured data from resume.md for semantic HTML rendering.
+ * Enables crawlers to understand resume structure and content hierarchy.
+ *
+ * @param markdown - Raw resume markdown content
+ * @returns Parsed resume structure
+ */
+export function parseResumeMarkdown(markdown: string): ParsedResume {
+	const lines = markdown.split("\n");
+
+	const result: ParsedResume = {
+		name: "",
+		title: "",
+		summary: "",
+		skills: {},
+		projects: [],
+		experience: [],
+	};
+
+	// Extract name from first heading
+	const nameMatch = markdown.match(/^#\s+(.+)/m);
+	if (nameMatch?.[1]) {
+		result.name = nameMatch[1].trim();
+	}
+
+	// Extract title from bold text after name
+	const titleMatch = markdown.match(/\*\*([^*]+)\*\*/);
+	if (titleMatch?.[1]) {
+		result.title = titleMatch[1].trim();
+	}
+
+	// Extract summary section
+	const summaryMatch = markdown.match(/## Summary\s*\n+([\s\S]*?)(?=\n---|\n##)/);
+	if (summaryMatch?.[1]) {
+		result.summary = summaryMatch[1].trim();
+	}
+
+	// Extract skills section
+	const skillsMatch = markdown.match(/## Technical Skills\s*\n+([\s\S]*?)(?=\n---|\n##)/);
+	if (skillsMatch?.[1]) {
+		const skillLines = skillsMatch[1].split("\n").filter((l) => l.trim());
+		let currentCategory = "";
+
+		for (const line of skillLines) {
+			const categoryMatch = line.match(/^\*\*([^*]+)\*\*\s*$/);
+			if (categoryMatch?.[1]) {
+				currentCategory = categoryMatch[1].trim();
+			} else if (currentCategory && line.trim()) {
+				result.skills[currentCategory] = line.trim();
+			}
+		}
+	}
+
+	// Extract projects and experience sections using similar pattern
+	let currentSection = "";
+	let currentItem: ResumeSection | null = null;
+
+	for (const line of lines) {
+		if (line.startsWith("## Featured Engineering Projects")) {
+			currentSection = "projects";
+			continue;
+		}
+		if (line.startsWith("## Professional Experience")) {
+			currentSection = "experience";
+			continue;
+		}
+		if (line.startsWith("## ") && currentSection) {
+			currentSection = "";
+			continue;
+		}
+
+		if (currentSection && line.startsWith("### ")) {
+			// Save previous item if exists
+			if (currentItem) {
+				if (currentSection === "projects") {
+					result.projects.push(currentItem);
+				} else {
+					result.experience.push(currentItem);
+				}
+			}
+			currentItem = {
+				title: line.replace("### ", "").trim(),
+				items: [],
+			};
+			continue;
+		}
+
+		if (currentItem && line.startsWith("- ")) {
+			currentItem.items.push(line.replace("- ", "").trim());
+		}
+	}
+
+	// Don't forget the last item
+	if (currentItem) {
+		if (currentSection === "projects") {
+			result.projects.push(currentItem);
+		} else if (currentSection === "experience") {
+			result.experience.push(currentItem);
+		}
+	}
+
+	return result;
+}
+
+/**
+ * Fetch and parse resume content (Story 5).
+ *
+ * @returns Promise resolving to parsed resume or null on failure
+ */
+export async function fetchParsedResume(): Promise<ParsedResume | null> {
+	const result = await fetchMarkdownContent("/readmes/resume.md");
+	if (!result.success || !result.content) {
+		return null;
+	}
+	return parseResumeMarkdown(result.content);
 }

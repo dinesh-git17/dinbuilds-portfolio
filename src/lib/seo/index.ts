@@ -34,14 +34,21 @@ export {
 export { SiteIndex, type SiteIndexProps } from "./SiteIndex";
 export {
 	type CreativeWorkSchema,
+	type FAQEntry,
+	type FAQPageSchema,
+	generateFAQPageSchema,
 	generatePersonSchema,
 	generateProfilePageSchema,
 	generateProjectSchema,
+	generateSoftwareApplicationSchema,
+	generateWebSiteSchema,
 	type PersonSchema,
 	PROJECT_METADATA,
 	type ProfilePageSchema,
 	type ProjectMetadata,
 	renderJsonLd,
+	type SoftwareApplicationSchema,
+	type WebSiteSchema,
 } from "./schema";
 export {
 	APP_ID_TO_SLUG,
