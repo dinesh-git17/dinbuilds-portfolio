@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, useAnimation } from "framer-motion";
-import { FileText, Folder } from "lucide-react";
+import { FileText } from "lucide-react";
+import Image from "next/image";
 import { memo, useCallback, useRef } from "react";
 
 import { ONBOARDING_TIMING } from "@/os/boot";
@@ -33,13 +34,15 @@ function IconGraphic({ isFile, isSelected }: IconGraphicProps) {
 	}
 
 	return (
-		<Folder
+		<Image
+			src="/assets/dock/folder.png"
+			alt="Folder"
+			width={64}
+			height={64}
 			className={`
-				h-10 w-10 transition-colors duration-150
-				${isSelected ? "text-blue-400" : "text-yellow-400/80 group-hover:text-yellow-400"}
+				h-16 w-16 transition-opacity duration-150
+				${isSelected ? "opacity-100" : "opacity-80 group-hover:opacity-100"}
 			`}
-			strokeWidth={1.5}
-			fill={isSelected ? "rgba(96, 165, 250, 0.15)" : "rgba(250, 204, 21, 0.1)"}
 		/>
 	);
 }
