@@ -3,21 +3,11 @@ import { type NextRequest, NextResponse } from "next/server";
 const isDev = process.env.NODE_ENV === "development";
 
 /**
- * Generates a cryptographic nonce for CSP.
- * Uses Web Crypto API (available in Edge Runtime).
- */
-function generateNonce(): string {
-	const bytes = new Uint8Array(16);
-	crypto.getRandomValues(bytes);
-	return btoa(String.fromCharCode(...bytes));
-}
-
-/**
  * Builds CSP directives based on environment.
  * Development: permissive for hot reload
- * Production: strict with nonce-based script execution
+ * Production: standard security for portfolio site
  */
-function buildCsp(nonce: string): string {
+function buildCsp(): string {
 	const frameSrc = "'self' https://dineshd.dev https://*.dineshd.dev https://*.vercel.app";
 
 	if (isDev) {
@@ -34,7 +24,7 @@ function buildCsp(nonce: string): string {
 
 	return [
 		"default-src 'self'",
-		`script-src 'self' 'unsafe-inline' 'nonce-${nonce}' 'strict-dynamic' https://va.vercel-scripts.com`,
+		"script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com",
 		"style-src 'self' 'unsafe-inline'",
 		"img-src 'self' data:",
 		"font-src 'self'",
@@ -46,26 +36,21 @@ function buildCsp(nonce: string): string {
 
 /**
  * Security headers applied to all routes.
- * CSP uses nonces for inline scripts instead of 'unsafe-inline'.
  */
-function buildSecurityHeaders(nonce: string): Headers {
+function buildSecurityHeaders(): Headers {
 	const headers = new Headers();
 
-	headers.set("Content-Security-Policy", buildCsp(nonce));
+	headers.set("Content-Security-Policy", buildCsp());
 	headers.set("X-Content-Type-Options", "nosniff");
 	headers.set("X-Frame-Options", "DENY");
 	headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 	headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 
-	// Pass nonce to the application via custom header
-	headers.set("x-nonce", nonce);
-
 	return headers;
 }
 
 export function middleware(_request: NextRequest) {
-	const nonce = generateNonce();
-	const securityHeaders = buildSecurityHeaders(nonce);
+	const securityHeaders = buildSecurityHeaders();
 
 	const response = NextResponse.next();
 
