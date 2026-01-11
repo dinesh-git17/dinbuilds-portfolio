@@ -2,9 +2,15 @@
 
 A portfolio presented as a desktop OS so you can explore projects, experience, and design decisions the way I build them.
 
-![Next.js](https://img.shields.io/badge/Next.js-16.1.1-000000?style=for-the-badge&logo=next.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Vercel](https://img.shields.io/badge/Vercel-Hosting-000000?style=for-the-badge&logo=vercel&logoColor=white)
+[![Next.js](https://img.shields.io/badge/Next.js_16-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript_5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_v4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Framer Motion](https://img.shields.io/badge/Framer_Motion-black?logo=framer&logoColor=white)](https://www.framer.com/motion/)
+[![Deployed on Vercel](https://img.shields.io/badge/Vercel-black?logo=vercel)](https://vercel.com/)
+
+<p align="center">
+  <img src="public/assets/screenshots/hero.png" alt="DinBuilds OS Boot Screen" width="800" />
+</p>
 
 ## Overview
 
