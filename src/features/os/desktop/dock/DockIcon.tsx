@@ -268,6 +268,7 @@ export const DockIcon = memo(function DockIcon({
 			<motion.a
 				ref={ref}
 				href={isHydrated ? undefined : href}
+				tabIndex={0}
 				draggable={false}
 				onDragStart={(e) => e.preventDefault()}
 				onClick={handleClick}

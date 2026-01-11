@@ -248,6 +248,7 @@ export const DesktopIcon = memo(function DesktopIcon({
 		<motion.a
 			ref={anchorRefCallback}
 			href={isHydrated ? undefined : href}
+			tabIndex={0}
 			draggable={false}
 			onClick={handleClick}
 			onKeyDown={handleKeyDown}
