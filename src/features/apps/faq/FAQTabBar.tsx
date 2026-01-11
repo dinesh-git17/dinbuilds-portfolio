@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import { BookOpen, Code, Compass } from "lucide-react";
+import { BookOpen, Code, Compass, FileText, Shield } from "lucide-react";
 import { memo, useCallback } from "react";
 
 import type { FAQCategoryId } from "./FAQSidebar";
@@ -20,6 +20,8 @@ const CATEGORIES: CategoryConfig[] = [
 	{ id: "about", label: "About", icon: BookOpen },
 	{ id: "technology", label: "Technology", icon: Code },
 	{ id: "usage", label: "Usage", icon: Compass },
+	{ id: "terms", label: "Terms", icon: FileText },
+	{ id: "privacy", label: "Privacy", icon: Shield },
 ];
 
 export interface FAQTabBarProps {

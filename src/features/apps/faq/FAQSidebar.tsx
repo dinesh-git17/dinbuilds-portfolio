@@ -2,13 +2,13 @@
 
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import { BookOpen, CircleHelp, Code, Compass } from "lucide-react";
+import { BookOpen, CircleHelp, Code, Compass, FileText, Shield } from "lucide-react";
 import { memo, useCallback } from "react";
 
 /**
  * FAQ category identifiers.
  */
-export type FAQCategoryId = "about" | "technology" | "usage";
+export type FAQCategoryId = "about" | "technology" | "usage" | "terms" | "privacy";
 
 /**
  * Category configuration with display metadata.
@@ -23,6 +23,8 @@ const CATEGORIES: CategoryConfig[] = [
 	{ id: "about", label: "About", icon: BookOpen },
 	{ id: "technology", label: "Technology", icon: Code },
 	{ id: "usage", label: "Usage", icon: Compass },
+	{ id: "terms", label: "Terms", icon: FileText },
+	{ id: "privacy", label: "Privacy", icon: Shield },
 ];
 
 export interface FAQSidebarProps {
