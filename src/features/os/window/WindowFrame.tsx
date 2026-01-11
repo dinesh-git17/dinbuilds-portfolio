@@ -387,10 +387,7 @@ export const WindowFrame = memo(function WindowFrame({
 					{/* biome-ignore lint/a11y/noStaticElementInteractions: Window chrome header with drag + double-click interactions */}
 					<header
 						className={clsx(
-							"flex h-11 shrink-0 items-center gap-3 border-b border-white/5 px-4",
-							isFullscreen || isFullHeightMobile
-								? "cursor-default"
-								: "cursor-grab active:cursor-grabbing",
+							"flex h-11 shrink-0 items-center gap-3 border-b border-white/5 px-4 cursor-default",
 							isHeaderHighlighted && "rounded-t-xl",
 						)}
 						onPointerDown={isFullscreen || isFullHeightMobile ? undefined : handleHeaderPointerDown}
