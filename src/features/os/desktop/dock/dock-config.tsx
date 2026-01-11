@@ -1,4 +1,4 @@
-import { Folder, type LucideIcon, Mail, Settings, Terminal, User } from "lucide-react";
+import { Folder, type LucideIcon } from "lucide-react";
 
 import { AppID, DockStackID } from "@/os/store";
 
@@ -77,8 +77,8 @@ export const DOCK_ITEMS: DockAppItem[] = [
 		type: "app",
 		id: AppID.About,
 		label: "About",
-		icon: User,
-		gradient: ["#5AC8FA", "#007AFF"], // Blue - like Finder
+		iconSrc: "/assets/dock/about.png",
+		backgroundColor: "#007AFF",
 	},
 	{
 		type: "app",
@@ -106,22 +106,22 @@ export const DOCK_ITEMS: DockAppItem[] = [
 		type: "app",
 		id: AppID.Terminal,
 		label: "Terminal",
-		icon: Terminal,
-		gradient: ["#1C1C1E", "#000000"], // Dark - like Terminal
+		iconSrc: "/assets/dock/terminal.png",
+		backgroundColor: "#000000",
 	},
 	{
 		type: "app",
 		id: AppID.Contact,
 		label: "Contact",
-		icon: Mail,
-		gradient: ["#64D2FF", "#0A84FF"], // Light blue - like Mail
+		iconSrc: "/assets/dock/contact.png",
+		backgroundColor: "#5AC8FA",
 	},
 	{
 		type: "app",
 		id: AppID.Settings,
 		label: "Settings",
-		icon: Settings,
-		gradient: ["#8E8E93", "#636366"], // Gray - like System Preferences
+		iconSrc: "/assets/dock/settings.png",
+		backgroundColor: "#636366",
 	},
 ];
 
@@ -134,7 +134,7 @@ export const PROJECTS_STACK: DockStackItem = {
 	id: DockStackID.Projects,
 	label: "Projects",
 	icon: Folder,
-	gradient: ["#5AC8FA", "#007AFF"], // macOS folder blue
+	gradient: ["#5AC8FA", "#007AFF"],
 	contents: [AppID.Yield, AppID.Debate, AppID.PassFX],
 };
 
@@ -148,30 +148,30 @@ export const MOBILE_DOCK_ITEMS: DockItem[] = [
 		type: "app",
 		id: AppID.About,
 		label: "About",
-		icon: User,
-		gradient: ["#5AC8FA", "#007AFF"],
+		iconSrc: "/assets/dock/about.png",
+		backgroundColor: "#007AFF",
 	},
 	PROJECTS_STACK,
 	{
 		type: "app",
 		id: AppID.Terminal,
 		label: "Terminal",
-		icon: Terminal,
-		gradient: ["#1C1C1E", "#000000"],
+		iconSrc: "/assets/dock/terminal.png",
+		backgroundColor: "#000000",
 	},
 	{
 		type: "app",
 		id: AppID.Contact,
 		label: "Contact",
-		icon: Mail,
-		gradient: ["#64D2FF", "#0A84FF"],
+		iconSrc: "/assets/dock/contact.png",
+		backgroundColor: "#5AC8FA",
 	},
 	{
 		type: "app",
 		id: AppID.Settings,
 		label: "Settings",
-		icon: Settings,
-		gradient: ["#8E8E93", "#636366"],
+		iconSrc: "/assets/dock/settings.png",
+		backgroundColor: "#636366",
 	},
 ];
 
