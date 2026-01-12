@@ -27,19 +27,19 @@
 		"@hookform/resolvers": "^5.2.2",
 		"@vercel/analytics": "^1.6.1",
 		"clsx": "^2.1.1",
-		"framer-motion": "^12.24.11",
+		"framer-motion": "^12.26.1",
 		"lucide-react": "^0.562.0",
 		"next": "16.1.1",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
-		"react-hook-form": "^7.70.0",
+		"react-hook-form": "^7.71.0",
 		"react-markdown": "^10.1.0",
 		"redis": "^5.10.0",
 		"remark-gfm": "^4.0.1",
 		"resend": "^6.7.0",
 		"sanitize-html": "^2.17.0",
 		"zod": "^4.3.5",
-		"zustand": "^5.0.9"
+		"zustand": "^5.0.10"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.11",
