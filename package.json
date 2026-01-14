@@ -12,7 +12,7 @@
 		"test": "vitest",
 		"test:run": "vitest run",
 		"test:ssr": "node scripts/validate-ssr.cjs",
-		"prepare": "husky"
+		"prepare": "husky || true"
 	},
 	"lint-staged": {
 		"*.{ts,tsx}": [
