@@ -30,7 +30,7 @@ function buildCsp(): string {
 		"img-src 'self' data:",
 		"font-src 'self'",
 		`frame-src ${frameSrc}`,
-		"frame-ancestors 'none'",
+		"frame-ancestors 'self' https://dev.to https://*.dev.to",
 		"connect-src 'self' https://api.open-meteo.com",
 	].join("; ");
 }
@@ -43,7 +43,6 @@ function buildSecurityHeaders(): Headers {
 
 	headers.set("Content-Security-Policy", buildCsp());
 	headers.set("X-Content-Type-Options", "nosniff");
-	headers.set("X-Frame-Options", "DENY");
 	headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 	headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 
